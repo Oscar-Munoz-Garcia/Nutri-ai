@@ -1,0 +1,21 @@
+# Entorno virtual y Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Variables de entorno y claves secretas
+.env
+
+# Almacenamiento local de datos / bases temporales
+data/
+*.sqlite
+*.sqlite3
+
+# Configuración de VS Code e IDEs
+.vscode/
+.idea/
+
+# Archivos del sistema
+Thumbs.db
+Desktop.ini

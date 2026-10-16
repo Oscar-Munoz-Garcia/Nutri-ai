@@ -1,0 +1,1 @@
+# NutriAI - Asistente Inteligente de Nutrición, Despensa y Macros
