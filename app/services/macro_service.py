@@ -1,6 +1,5 @@
 from app.models.user import PerfilUsuario, ObjetivoMacros
 
-# Multiplicadores de nivel de actividad
 FACTOR_ACTIVIDAD = {
     "sedentario": 1.2,
     "ligero": 1.375,
@@ -25,29 +24,25 @@ def calcular_objetivo_macros(perfil: PerfilUsuario) -> ObjetivoMacros:
 
     # 3. Ajuste por objetivo
     if perfil.objetivo == "perder_grasa":
-        calorias_target = tdee - 400  # Déficit calórico moderado
+        calorias_target = tdee - 400
     elif perfil.objetivo == "ganar_masa":
-        calorias_target = tdee + 300  # Superávit calórico moderado
+        calorias_target = tdee + 300
     else:
         calorias_target = tdee
 
     # 4. Reparto de Macronutrientes
-    # Proteína: 2.0g por kg para pérdida/ganancia o 1.8g para mantenimiento
     if perfil.objetivo in ["perder_grasa", "ganar_masa"]:
         proteinas_g = perfil.peso_kg * 2.0
     else:
         proteinas_g = perfil.peso_kg * 1.8
 
-    # Grasas: 0.9g por kg de peso corporal
     grasas_g = perfil.peso_kg * 0.9
 
-    # Carbohidratos: el resto de las calorías
-    # (1g proteina = 4 kcal, 1g grasa = 9 kcal, 1g carbohidrato = 4 kcal)
     calorias_prot = proteinas_g * 4
     calorias_gras = grasas_g * 9
     calorias_restantes = calorias_target - (calorias_prot + calorias_gras)
     
-    carbohidratos_g = max(calorias_restantes / 4, 50)  # Mínimo de seguridad de 50g
+    carbohidratos_g = max(calorias_restantes / 4, 50)
 
     return ObjetivoMacros(
         bmr_calorias=round(bmr),
