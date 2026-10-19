@@ -123,3 +123,12 @@ def sugerir_recetas(solicitud: SolicitudRecomendacion):
 @app.post("/api/v1/chat/planificar", response_model=RespuestaChat)
 async def chat_planificador(solicitud: SolicitudChat):
     return await agent_service.procesar_chat_agente(solicitud)
+
+@app.get("/manifest.json", include_in_schema=False)
+def get_manifest():
+    """Sirve el manifiesto de la aplicación PWA para móviles."""
+    manifest_path = Path(__file__).parent / "templates" / "manifest.json"
+    if not manifest_path.exists():
+        raise HTTPException(status_code=404, detail="Manifest no encontrado.")
+    with open(manifest_path, "r", encoding="utf-8") as f:
+        return Response(content=f.read(), media_type="application/json")
