@@ -12,6 +12,9 @@ from app.services.openfoodfacts_service import consultar_open_food_facts
 from app.services import pantry_service
 from app.services.vision_service import analizar_etiqueta_imagen
 
+from app.models.recommendation import SolicitudRecomendacion, RecomendacionResultado
+from app.services import recommendation_service
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
@@ -85,3 +88,12 @@ def registrar_comida_diario(entrada: RegistroComidaEntrada):
 @app.get("/api/v1/diario/resumen", response_model=ResumenDiarioMacros)
 def resumen_diario(fecha: Optional[str] = None):
     return pantry_service.obtener_resumen_diario(fecha)
+
+# --- RECOMENDADOR NUTRICIONAL INTELIGENTE ---
+@app.post("/api/v1/recomendaciones/sugerir", response_model=List[RecomendacionResultado])
+def sugerir_recetas(solicitud: SolicitudRecomendacion):
+    """
+    Calcula los macros pendientes del día y cruza la despensa y los utensilios
+    disponibles para recomendar las mejores recetas que completan la meta diaria.
+    """
+    return recommendation_service.obtener_sugerencias_recetas(solicitud)
