@@ -14,6 +14,9 @@ from app.services import pantry_service
 from app.services.vision_service import analizar_etiqueta_imagen
 from app.services import recipe_service
 
+from app.models.chat import SolicitudChat, RespuestaChat
+from app.services import agent_service
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
@@ -102,3 +105,13 @@ def crear_receta(receta: RecetaEntrada):
     sus calorías y macronutrientes totales sumando sus ingredientes.
     """
     return recipe_service.crear_receta(receta)
+
+
+# --- AGENTE INTERACTIVO DE CHAT (TOOL CALLING) ---
+@app.post("/api/v1/chat/planificar", response_model=RespuestaChat)
+async def chat_planificador(solicitud: SolicitudChat):
+    """
+    Agente conversacional que utiliza Tool Calling para razonar y realizar
+    cálculos matemáticos exactos sobre porciones de alimentos.
+    """
+    return await agent_service.procesar_chat_agente(solicitud)
