@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriAI Studio — Dashboard</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        darkbg: '#0F172A',
+                        cardbg: '#1E293B',
+                        accent: '#10B981',
+                        accenthover: '#059669'
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-darkbg text-slate-100 font-sans min-h-screen p-4 md:p-8">
+
+    <!-- Header -->
+    <header class="max-w-7xl mx-auto flex justify-between items-center pb-6 mb-8 border-b border-slate-700">
+        <div class="flex items-center gap-3">
+            <span class="text-3xl">🥗</span>
+            <div>
+                <h1 class="text-2xl font-bold text-emerald-400">NutriAI Studio</h1>
+                <p class="text-xs text-slate-400">Backend AI Engine & Dashboard Nutricional</p>
+            </div>
+        </div>
+        <a href="/docs" target="_blank" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm rounded-lg border border-slate-600 transition">
+            Swagger API Docs ↗
+        </a>
+    </header>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+        <!-- COLUMNA IZQUIERDA Y CENTRO: MACROS & DESPENSA -->
+        <div class="lg:col-span-2 space-y-8">
+
+            <!-- CARD 1: RESUMEN DE MACROS DEL DÍA -->
+            <div class="bg-cardbg p-6 rounded-2xl border border-slate-700/60 shadow-xl">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-slate-200 flex items-center gap-2">
+                        📊 Progreso Diario de Macros
+                    </h2>
+                    <button onclick="cargarResumenDiario()" class="text-xs text-emerald-400 hover:underline">
+                        🔄 Actualizar
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400">Calorías</span>
+                        <p id="mac-cal" class="text-2xl font-bold text-amber-400">0 kcal</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400">Proteínas</span>
+                        <p id="mac-prot" class="text-2xl font-bold text-emerald-400">0 g</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400">Carbohidratos</span>
+                        <p id="mac-carb" class="text-2xl font-bold text-blue-400">0 g</p>
+                    </div>
+                    <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400">Grasas</span>
+                        <p id="mac-gras" class="text-2xl font-bold text-rose-400">0 g</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CARD 2: ESCÁNER OCR DE FOTOS Y DESPENSA -->
+            <div class="bg-cardbg p-6 rounded-2xl border border-slate-700/60 shadow-xl space-y-6">
+                
+                <!-- Subida OCR -->
+                <div>
+                    <h2 class="text-lg font-semibold text-slate-200 mb-2 flex items-center gap-2">
+                        📷 Escáner Multimodal OCR (Groq Vision)
+                    </h2>
+                    <p class="text-xs text-slate-400 mb-4">Sube una imagen de etiqueta nutricional para extraer automáticamente los datos por 100g.</p>
+                    
+                    <form id="ocrForm" class="flex flex-wrap items-center gap-4">
+                        <input type="file" id="ocrInput" accept="image/*" required class="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-emerald-600 file:text-white hover:file:bg-emerald-500 cursor-pointer">
+                        <button type="submit" id="ocrBtn" class="w-full sm:w-auto px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg transition shadow-lg">
+                            Procesar con IA
+                        </button>
+                    </form>
+                    <div id="ocrStatus" class="mt-3 text-xs hidden"></div>
+                </div>
+
+                <hr class="border-slate-700">
+
+                <!-- Tabla de Despensa -->
+                <div>
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-md font-semibold text-slate-300">🥫 Despensa Virtual en Casa</h3>
+                        <button onclick="cargarDespensa()" class="text-xs text-emerald-400 hover:underline">Refrescar</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-300">
+                            <thead class="text-xs text-slate-400 uppercase bg-slate-900/80">
+                                <tr>
+                                    <th class="px-4 py-3">Alimento</th>
+                                    <th class="px-4 py-3">Cantidad</th>
+                                    <th class="px-4 py-3">Kcal / 100g</th>
+                                    <th class="px-4 py-3">Proteína / 100g</th>
+                                </tr>
+                            </thead>
+                            <tbody id="despensaTbody">
+                                <tr><td colspan="4" class="px-4 py-4 text-center text-slate-500">Cargando despensa...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- COLUMNA DERECHA: CHAT CON NUTRI-AI AGENT -->
+        <div class="bg-cardbg p-6 rounded-2xl border border-slate-700/60 shadow-xl flex flex-col h-[650px]">
+            <div class="flex items-center gap-3 pb-4 mb-4 border-b border-slate-700">
+                <span class="p-2 bg-emerald-500/20 text-emerald-400 rounded-lg text-xl">🤖</span>
+                <div>
+                    <h2 class="text-md font-bold text-slate-200">NutriAI Agent Studio</h2>
+                    <p class="text-xs text-emerald-400">● Tool Calling Activo (Python Math Engine)</p>
+                </div>
+            </div>
+
+            <!-- Caja de Historial -->
+            <div id="chatHistory" class="flex-1 overflow-y-auto space-y-4 pr-2 text-sm">
+                <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-slate-300">
+                    👋 ¡Hola! Soy NutriAI Agent. Puedes pedirme ayuda para ajustar porciones de alimentos exactas según tus macros.
+                </div>
+            </div>
+
+            <!-- Formulario del Chat -->
+            <form id="chatForm" class="mt-4 flex gap-2">
+                <input type="text" id="chatInput" placeholder="Ej: Necesito 40g de proteína cenando pechuga de pollo..." required class="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-lg px-4 py-2.5 focus:outline-none focus:border-emerald-500">
+                <button type="submit" id="sendBtn" class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-sm rounded-lg transition">
+                    Enviar
+                </button>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- LOGICA JAVASCRIPT DE INTEGRACIÓN -->
+    <script>
+        const API_BASE = "/api/v1";
+        let historialMensajes = [];
+
+        // 1. Cargar Resumen de Macros
+        async function cargarResumenDiario() {
+            try {
+                const res = await fetch(`${API_BASE}/diario/resumen`);
+                const data = await res.json();
+                document.getElementById("mac-cal").innerText = `${data.calorias_totales} kcal`;
+                document.getElementById("mac-prot").innerText = `${data.proteinas_totales} g`;
+                document.getElementById("mac-carb").innerText = `${data.carbohidratos_totales} g`;
+                document.getElementById("mac-gras").innerText = `${data.grasas_totales} g`;
+            } catch (e) {
+                console.error("Error cargando diario", e);
+            }
+        }
+
+        // 2. Cargar Despensa Virtual
+        async function cargarDespensa() {
+            try {
+                const res = await fetch(`${API_BASE}/despensa`);
+                const data = await res.json();
+                const tbody = document.getElementById("despensaTbody");
+                if (data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-4 text-center text-slate-500">Despensa vacía. Usa el OCR para agregar.</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = data.map(item => `
+                    <tr class="border-b border-slate-800 hover:bg-slate-900/40">
+                        <td class="px-4 py-3 font-medium text-slate-200">${item.nombre}</td>
+                        <td class="px-4 py-3 text-emerald-400 font-semibold">${item.cantidad_gramos} g</td>
+                        <td class="px-4 py-3 text-slate-400">${item.calorias_100g}</td>
+                        <td class="px-4 py-3 text-slate-400">${item.proteinas_100g} g</td>
+                    </tr>
+                `).join("");
+            } catch (e) {
+                console.error("Error cargando despensa", e);
+            }
+        }
+
+        // 3. Procesar OCR Form
+        document.getElementById("ocrForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("ocrInput");
+            const status = document.getElementById("ocrStatus");
+            const btn = document.getElementById("ocrBtn");
+
+            if (!input.files[0]) return;
+
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+
+            btn.disabled = true;
+            btn.innerText = "Procesando...";
+            status.classList.remove("hidden");
+            status.className = "mt-3 text-xs text-amber-400";
+            status.innerText = "⏳ Analizando imagen con Groq Llama 3.2 Vision...";
+
+            try {
+                const res = await fetch(`${API_BASE}/alimentos/vision-ocr`, {
+                    method: "POST",
+                    body: formData
+                });
+                const prod = await res.json();
+
+                if (prod.calorias_100g > 0 || prod.nombre) {
+                    // Agregar automáticamente a la despensa
+                    await fetch(`${API_BASE}/despensa`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            nombre: prod.nombre,
+                            cantidad_gramos: 500,
+                            calorias_100g: prod.calorias_100g,
+                            proteinas_100g: prod.proteinas_100g,
+                            carbohidratos_100g: prod.carbohidratos_100g,
+                            grasas_100g: prod.grasas_100g
+                        })
+                    });
+
+                    status.className = "mt-3 text-xs text-emerald-400 font-semibold";
+                    status.innerText = `✅ Alimento detectado y guardado en despensa: ${prod.nombre} (${prod.calorias_100g} kcal/100g)`;
+                    cargarDespensa();
+                } else {
+                    status.className = "mt-3 text-xs text-rose-400";
+                    status.innerText = `❌ Error leyendo etiqueta: ${prod.nombre}`;
+                }
+            } catch (err) {
+                status.className = "mt-3 text-xs text-rose-400";
+                status.innerText = "❌ Fallo de red procesando la imagen.";
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "Procesar con IA";
+            }
+        });
+
+        // 4. Chat Agente Form
+        document.getElementById("chatForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("chatInput");
+            const history = document.getElementById("chatHistory");
+            const sendBtn = document.getElementById("sendBtn");
+            const txt = input.value.trim();
+
+            if (!txt) return;
+
+            // Mostrar mensaje usuario
+            historialMensajes.push({ role: "user", content: txt });
+            history.innerHTML += `
+                <div class="bg-emerald-950/60 border border-emerald-800/50 p-3 rounded-xl text-slate-200 ml-6">
+                    <span class="text-xs text-emerald-400 font-semibold block mb-1">Tú</span>
+                    ${txt}
+                </div>
+            `;
+            input.value = "";
+            history.scrollTop = history.scrollHeight;
+
+            sendBtn.disabled = true;
+
+            try {
+                const res = await fetch(`${API_BASE}/chat/planificar`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ historial: historialMensajes })
+                });
+                const data = await res.json();
+
+                historialMensajes.push({ role: "assistant", content: data.respuesta });
+
+                const badgeTool = data.herramientas_usadas.length > 0 
+                    ? `<span class="inline-block bg-amber-500/20 text-amber-300 text-[10px] px-2 py-0.5 rounded font-mono mb-2">⚙️ Executed: ${data.herramientas_usadas.join(", ")}</span><br>`
+                    : '';
+
+                history.innerHTML += `
+                    <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800 text-slate-300 mr-6">
+                        <span class="text-xs text-emerald-400 font-semibold block mb-1">NutriAI Agent</span>
+                        ${badgeTool}
+                        ${data.respuesta.replace(/\n/g, '<br>')}
+                    </div>
+                `;
+            } catch (err) {
+                history.innerHTML += `
+                    <div class="bg-rose-950/60 p-3 rounded-xl text-rose-300 text-xs">❌ Error de conexión con el agente.</div>
+                `;
+            } finally {
+                sendBtn.disabled = false;
+                history.scrollTop = history.scrollHeight;
+            }
+        });
+
+        // Inicializar datos al cargar la página
+        cargarResumenDiario();
+        cargarDespensa();
+    </script>
+</body>
+</html>

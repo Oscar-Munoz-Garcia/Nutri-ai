@@ -1,5 +1,7 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, File, UploadFile, Query
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, HTMLResponse
 from typing import List, Optional
 
 from app.core.config import settings
@@ -7,12 +9,16 @@ from app.models.user import PerfilUsuario, ObjetivoMacros
 from app.models.food import ProductoNutricional
 from app.models.pantry import ItemDespensa, RegistroComidaEntrada, RegistroComidaSalida, ResumenDiarioMacros
 from app.models.recipe import RecetaEntrada, RecetaSalida
+from app.models.recommendation import SolicitudRecomendacion, RecomendacionResultado
+from app.models.chat import SolicitudChat, RespuestaChat
 
 from app.services.macro_service import calcular_objetivo_macros
 from app.services.openfoodfacts_service import consultar_open_food_facts
 from app.services import pantry_service
 from app.services.vision_service import analizar_etiqueta_imagen
 from app.services import recipe_service
+from app.services import recommendation_service
+import app.services.agent_service as agent_service
 
 from app.models.chat import SolicitudChat, RespuestaChat
 from app.services import agent_service
@@ -20,9 +26,20 @@ from app.services import agent_service
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
+# --- DASHBOARD Y DOCUMENTACIÓN ---
 @app.get("/", include_in_schema=False)
 def inicio():
-    return RedirectResponse(url="/docs")
+    return RedirectResponse(url="/dashboard")
+
+
+@app.get("/dashboard", response_class=HTMLResponse, include_in_schema=False)
+def ver_dashboard():
+    """Servicio de la interfaz web del Dashboard NutriAI Studio."""
+    template_path = Path(__file__).parent / "templates" / "index.html"
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Plantilla Dashboard no encontrada.")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return f.read()
 
 
 @app.get("/health")
@@ -90,28 +107,22 @@ def resumen_diario(fecha: Optional[str] = None):
 
 # --- LIBRO DE RECETAS Y UTENSILIOS ---
 @app.get("/api/v1/recetas", response_model=List[RecetaSalida])
-def listar_recetas(utensilios: Optional[List[str]] = Query(None, description="Filtrar por utensilios disponibles (ej: ?utensilios=airfryer&utensilios=batidora)")):
-    """
-    Obtiene el catálogo de recetas. Si se especifican utensilios disponibles,
-    filtra y devuelve solo aquellas recetas que el usuario puede cocinar.
-    """
+def listar_recetas(utensilios: Optional[List[str]] = Query(None)):
     return recipe_service.listar_recetas(utensilios_disponibles=utensilios)
 
 
 @app.post("/api/v1/recetas", response_model=RecetaSalida)
 def crear_receta(receta: RecetaEntrada):
-    """
-    Guarda una nueva receta y calcula automáticamente de forma determinista
-    sus calorías y macronutrientes totales sumando sus ingredientes.
-    """
     return recipe_service.crear_receta(receta)
+
+
+# --- RECOMENDADOR NUTRICIONAL INTELIGENTE ---
+@app.post("/api/v1/recomendaciones/sugerir", response_model=List[RecomendacionResultado])
+def sugerir_recetas(solicitud: SolicitudRecomendacion):
+    return recommendation_service.obtener_sugerencias_recetas(solicitud)
 
 
 # --- AGENTE INTERACTIVO DE CHAT (TOOL CALLING) ---
 @app.post("/api/v1/chat/planificar", response_model=RespuestaChat)
 async def chat_planificador(solicitud: SolicitudChat):
-    """
-    Agente conversacional que utiliza Tool Calling para razonar y realizar
-    cálculos matemáticos exactos sobre porciones de alimentos.
-    """
     return await agent_service.procesar_chat_agente(solicitud)

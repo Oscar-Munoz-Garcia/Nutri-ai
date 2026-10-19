@@ -7,7 +7,6 @@ from app.models.chat import MensajeChat, RespuestaChat, SolicitudChat
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models"
 
-# --- HERRAMIENTA DETERMINISTA EN PYTHON ---
 
 def herramienta_calcular_porcion_exacta(
     alimento: str,
@@ -16,9 +15,6 @@ def herramienta_calcular_porcion_exacta(
     proteinas_100g: float,
     carbohidratos_100g: float
 ) -> str:
-    """
-    Calcula los gramos exactos necesarios de un alimento para alcanzar unos macros meta.
-    """
     gramos_por_prot = (proteinas_objetivo / proteinas_100g * 100) if proteinas_100g > 0 else 0
     gramos_por_carb = (carbohidratos_objetivo / carbohidratos_100g * 100) if carbohidratos_100g > 0 else 0
     
@@ -54,7 +50,6 @@ HERRAMIENTAS_DEFINICION = [
 
 
 async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) -> List[str]:
-    """Obtiene dinámicamente los modelos de texto/chat activos en la cuenta de Groq."""
     modelos_encontrados = []
     try:
         res = await client.get(GROQ_MODELS_ENDPOINT, headers=headers)
@@ -62,22 +57,17 @@ async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) 
             datos = res.json().get("data", [])
             for item in datos:
                 model_id = item.get("id", "")
-                # Excluir modelos de audio, vision pura o guardrails
                 if not any(x in model_id.lower() for x in ["whisper", "guard", "audio", "safeguard", "orpheus"]):
                     modelos_encontrados.append(model_id)
     except Exception:
         pass
 
-    # Modelos de reserva conocidos en Groq
     reserva = [
-        "openai/gpt-oss-20b",
+        "llama-3.3-70b-versatile",
+        "llama-3.1-8b-instant",
         "qwen/qwen3.8-27b",
-        "gemma2-9b-it",
-        "llama3-70b-8192",
-        "llama3-8b-8192",
-        "mixtral-8x7b-32768"
+        "gemma2-9b-it"
     ]
-
     for m in reserva:
         if m not in modelos_encontrados:
             modelos_encontrados.append(m)
@@ -112,7 +102,6 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
     herramientas_ejecutadas = []
 
     async with httpx.AsyncClient(timeout=30.0) as client:
-        # Obtención dinámica de modelos de Groq
         modelos_candidatos = await obtener_modelos_disponibles(client, headers)
         errores_acumulados = []
 
@@ -131,7 +120,6 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
                     res_data = res.json()
                     mensaje_respuesta = res_data["choices"][0]["message"]
 
-                    # Verificar si el modelo solicitó Tool Calling
                     if "tool_calls" in mensaje_respuesta and mensaje_respuesta["tool_calls"]:
                         tool_call = mensaje_respuesta["tool_calls"][0]
                         fn_name = tool_call["function"]["name"]
@@ -172,6 +160,6 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
                 errores_acumulados.append(f"{modelo} ({str(e)})")
 
         return RespuestaChat(
-            respuesta=f"No se pudo conectar con ningún modelo de Groq activo en tu cuenta. Detalle: {', '.join(errores_acumulados[:3])}",
+            respuesta=f"No se pudo conectar con ningún modelo de Groq activo. Detalle: {', '.join(errores_acumulados[:3])}",
             herramientas_usadas=[]
         )
