@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, File, UploadFile, Query
 from fastapi.responses import RedirectResponse, HTMLResponse
 from typing import List, Optional
+from fastapi import FastAPI, HTTPException, Request, Response
 
 from app.core.config import settings
 from app.models.user import PerfilUsuario, ObjetivoMacros
