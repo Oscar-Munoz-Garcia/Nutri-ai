@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, File, UploadFile
+from fastapi import FastAPI, HTTPException, File, UploadFile, Query
 from fastapi.responses import RedirectResponse
 from typing import List, Optional
 
@@ -6,11 +6,13 @@ from app.core.config import settings
 from app.models.user import PerfilUsuario, ObjetivoMacros
 from app.models.food import ProductoNutricional
 from app.models.pantry import ItemDespensa, RegistroComidaEntrada, RegistroComidaSalida, ResumenDiarioMacros
+from app.models.recipe import RecetaEntrada, RecetaSalida
 
 from app.services.macro_service import calcular_objetivo_macros
 from app.services.openfoodfacts_service import consultar_open_food_facts
 from app.services import pantry_service
 from app.services.vision_service import analizar_etiqueta_imagen
+from app.services import recipe_service
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -50,10 +52,6 @@ async def escanear_producto(codigo_barras: str):
 # --- OCR Y VISIÓN CON LLM ---
 @app.post("/api/v1/alimentos/vision-ocr", response_model=ProductoNutricional)
 async def procesar_etiqueta_vision(file: UploadFile = File(...)):
-    """
-    Sube una foto de una tabla/etiqueta nutricional para extraer
-    automáticamente los datos mediante Visión por Inteligencia Artificial.
-    """
     if not file.content_type.startswith("image/"):
         raise HTTPException(
             status_code=400,
@@ -85,3 +83,22 @@ def registrar_comida_diario(entrada: RegistroComidaEntrada):
 @app.get("/api/v1/diario/resumen", response_model=ResumenDiarioMacros)
 def resumen_diario(fecha: Optional[str] = None):
     return pantry_service.obtener_resumen_diario(fecha)
+
+
+# --- LIBRO DE RECETAS Y UTENSILIOS ---
+@app.get("/api/v1/recetas", response_model=List[RecetaSalida])
+def listar_recetas(utensilios: Optional[List[str]] = Query(None, description="Filtrar por utensilios disponibles (ej: ?utensilios=airfryer&utensilios=batidora)")):
+    """
+    Obtiene el catálogo de recetas. Si se especifican utensilios disponibles,
+    filtra y devuelve solo aquellas recetas que el usuario puede cocinar.
+    """
+    return recipe_service.listar_recetas(utensilios_disponibles=utensilios)
+
+
+@app.post("/api/v1/recetas", response_model=RecetaSalida)
+def crear_receta(receta: RecetaEntrada):
+    """
+    Guarda una nueva receta y calcula automáticamente de forma determinista
+    sus calorías y macronutrientes totales sumando sus ingredientes.
+    """
+    return recipe_service.crear_receta(receta)
