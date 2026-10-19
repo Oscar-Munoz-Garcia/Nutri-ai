@@ -20,6 +20,9 @@ from app.services import recipe_service
 from app.services import recommendation_service
 import app.services.agent_service as agent_service
 
+from app.models.chat import SolicitudChat, RespuestaChat
+from app.services import agent_service
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
