@@ -14,6 +14,9 @@ from app.services import pantry_service
 from app.services.vision_service import analizar_etiqueta_imagen
 from app.services import recipe_service
 
+from app.models.recommendation import SolicitudRecomendacion, RecomendacionResultado
+from app.services import recommendation_service
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
