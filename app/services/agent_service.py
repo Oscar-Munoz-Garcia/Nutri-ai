@@ -3,6 +3,8 @@ import httpx
 from typing import List, Dict, Any
 from app.core.config import settings
 from app.models.chat import MensajeChat, RespuestaChat, SolicitudChat
+from app.models.daily import RegistroConsumo
+from app.services import daily_service
 
 GROQ_ENDPOINT = "https://api.groq.com/openai/v1/chat/completions"
 GROQ_MODELS_ENDPOINT = "https://api.groq.com/openai/v1/models"
@@ -17,14 +19,38 @@ def herramienta_calcular_porcion_exacta(
 ) -> str:
     gramos_por_prot = (proteinas_objetivo / proteinas_100g * 100) if proteinas_100g > 0 else 0
     gramos_por_carb = (carbohidratos_objetivo / carbohidratos_100g * 100) if carbohidratos_100g > 0 else 0
-    
     gramos_recomendados = round(max(gramos_por_prot, gramos_por_carb), 1)
     
     return json.dumps({
         "alimento": alimento,
         "gramos_recomendados": gramos_recomendados,
-        "explicacion": f"Para aportar ~{proteinas_objetivo}g de proteína o ~{carbohidratos_objetivo}g de carbs con {alimento}, necesitas exactamente {gramos_recomendados}g."
-    })
+        "explicacion": f"Para aportar ~{proteinas_objetivo}g prot o ~{carbohidratos_objetivo}g carbs con {alimento}, necesitas exactamente {gramos_recomendados}g."
+    }, ensure_ascii=False)
+
+
+def herramienta_registrar_comida_consumida(
+    nombre: str,
+    calorias: float,
+    proteinas: float,
+    carbohidratos: float,
+    grasas: float
+) -> str:
+    registro = RegistroConsumo(
+        nombre=nombre,
+        calorias=float(calorias),
+        proteinas=float(proteinas),
+        carbohidratos=float(carbohidratos),
+        grasas=float(grasas)
+    )
+    daily_service.registrar_consumo(registro)
+    resumen = daily_service.obtener_resumen_diario()
+
+    return json.dumps({
+        "status": "exito",
+        "mensaje": f"Registrado '{nombre}' en tu diario (+{calorias} kcal, +{proteinas}g prot, +{carbohidratos}g carbs, +{grasas}g grasas).",
+        "calorias_restantes": resumen.calorias_restantes,
+        "proteinas_restantes": resumen.proteinas_restantes
+    }, ensure_ascii=False)
 
 
 HERRAMIENTAS_DEFINICION = [
@@ -32,7 +58,7 @@ HERRAMIENTAS_DEFINICION = [
         "type": "function",
         "function": {
             "name": "herramienta_calcular_porcion_exacta",
-            "description": "Calcula matemáticamente en gramos la ración exacta de un alimento para llegar a una meta de proteínas o carbohidratos.",
+            "description": "Calcula en gramos la ración exacta de un alimento para llegar a una meta de macros.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -43,6 +69,24 @@ HERRAMIENTAS_DEFINICION = [
                     "carbohidratos_100g": {"type": "number", "description": "Carbohidratos por 100g del alimento"}
                 },
                 "required": ["alimento", "proteinas_objetivo", "carbohidratos_objetivo", "proteinas_100g", "carbohidratos_100g"]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "herramienta_registrar_comida_consumida",
+            "description": "Registra una comida consumida en el diario sumando sus macros. USAR ÚNICAMENTE cuando el usuario confirme explícitamente haber comido algo (ej: 'He comido 200g de pollo', 'Añade 3 huevos'). NUNCA usar al sugerir o recomendar recetas.",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "nombre": {"type": "string", "description": "Nombre de la comida consumida"},
+                    "calorias": {"type": "number", "description": "Calorías consumidas"},
+                    "proteinas": {"type": "number", "description": "Proteínas consumidas en g"},
+                    "carbohidratos": {"type": "number", "description": "Carbohidratos consumidos en g"},
+                    "grasas": {"type": "number", "description": "Grasas consumidas en g"}
+                },
+                "required": ["nombre", "calorias", "proteinas", "carbohidratos", "grasas"]
             }
         }
     }
@@ -62,12 +106,7 @@ async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) 
     except Exception:
         pass
 
-    reserva = [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "qwen/qwen3.8-27b",
-        "gemma2-9b-it"
-    ]
+    reserva = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "qwen/qwen3.8-27b"]
     for m in reserva:
         if m not in modelos_encontrados:
             modelos_encontrados.append(m)
@@ -78,16 +117,23 @@ async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) 
 async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
     if not settings.GROQ_API_KEY:
         return RespuestaChat(
-            respuesta="El agente de chat requiere configurar la clave GROQ_API_KEY en el archivo .env.",
+            respuesta="Configura GROQ_API_KEY en tu archivo .env para interactuar con el agente.",
             herramientas_usadas=[]
         )
 
+    resumen_diario = daily_service.obtener_resumen_diario()
+
     prompt_sistema = (
-        "Eres NutriAI Agent, un asistente experto en ingeniería nutricional y dietética.\n"
-        "Tu objetivo es ayudar al usuario a ajustar sus comidas según sus macros diarios.\n"
-        "Cuando el usuario te pida calcular cantidades de alimentos para alcanzar sus macros, "
-        "SIEMPRE utiliza la herramienta 'herramienta_calcular_porcion_exacta' para realizar el cálculo matemático real.\n"
-        "Sé preciso, conciso y profesional."
+        "Eres NutriAI Agent, un asistente experto e ingenioso en ingeniería nutricional y dietética.\n"
+        f"ESTADO DE DIARIO DEL USUARIO HOY:\n"
+        f"- Consumido: {resumen_diario.calorias_totales} kcal / Meta: {resumen_diario.objetivos.calorias_objetivo} kcal (Faltan: {resumen_diario.calorias_restantes} kcal)\n"
+        f"- Proteínas: {resumen_diario.proteinas_totales}g / Meta: {resumen_diario.objetivos.proteinas_objetivo}g (Faltan: {resumen_diario.proteinas_restantes}g)\n"
+        f"- Carbohidratos: {resumen_diario.carbohidratos_totales}g / Meta: {resumen_diario.objetivos.carbohidratos_objetivo}g (Faltan: {resumen_diario.carbohidratos_restantes}g)\n"
+        f"- Grasas: {resumen_diario.grasas_totales}g / Meta: {resumen_diario.objetivos.grasas_objetivo}g (Faltan: {resumen_diario.grasas_restantes}g)\n\n"
+        "REGLAS CRÍTICAS DE HERRAMIENTAS:\n"
+        "1. 'herramienta_calcular_porcion_exacta': Usa esta herramienta para calcular la ración matemática exacta si el usuario te lo solicita.\n"
+        "2. 'herramienta_registrar_comida_consumida': Usa esta herramienta ÚNICAMENTE cuando el usuario te diga explícitamente que HA COMIDO o QUIERE ANOTAR/REGISTRAR algo (ej: 'He comido 200g de pollo', 'Añade mi almuerzo').\n"
+        "3. PROHIBICIÓN: NUNCA ejecutes 'herramienta_registrar_comida_consumida' si solo estás sugiriendo o recomendando recetas futuras."
     )
 
     mensajes = [{"role": "system", "content": prompt_sistema}]
@@ -125,10 +171,15 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
                         fn_name = tool_call["function"]["name"]
                         fn_args = json.loads(tool_call["function"]["arguments"])
 
+                        resultado_tool = ""
                         if fn_name == "herramienta_calcular_porcion_exacta":
                             herramientas_ejecutadas.append(fn_name)
                             resultado_tool = herramienta_calcular_porcion_exacta(**fn_args)
+                        elif fn_name == "herramienta_registrar_comida_consumida":
+                            herramientas_ejecutadas.append(fn_name)
+                            resultado_tool = herramienta_registrar_comida_consumida(**fn_args)
 
+                        if resultado_tool:
                             mensajes.append(mensaje_respuesta)
                             mensajes.append({
                                 "role": "tool",
@@ -160,6 +211,6 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
                 errores_acumulados.append(f"{modelo} ({str(e)})")
 
         return RespuestaChat(
-            respuesta=f"No se pudo conectar con ningún modelo de Groq activo. Detalle: {', '.join(errores_acumulados[:3])}",
+            respuesta=f"Error conectando con los modelos de Groq. Detalle: {', '.join(errores_acumulados[:2])}",
             herramientas_usadas=[]
         )
