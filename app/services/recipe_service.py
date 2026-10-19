@@ -26,6 +26,7 @@ def _guardar_recetas(data: list) -> None:
 
 
 def _inicializar_recetas_demo():
+    """Crea un catálogo inicial con recetas de muestra si no existe el archivo."""
     recetas_base = [
         {
             "id": "rec_001",
@@ -59,16 +60,65 @@ def _inicializar_recetas_demo():
             "proteinas_totales": 62.0,
             "carbohidratos_totales": 0.0,
             "grasas_totales": 12.2
+        },
+        {
+            "id": "rec_002",
+            "nombre": "Batido Proteico de Avena y Plátano",
+            "descripcion": "Ideal para desayuno o post-entreno rápido.",
+            "tiempo_preparacion_min": 5,
+            "utensilios_necesarios": ["batidora"],
+            "ingredientes": [
+                {
+                    "nombre": "Harina de avena",
+                    "cantidad_gramos": 60,
+                    "calorias_100g": 380,
+                    "proteinas_100g": 12,
+                    "carbohidratos_100g": 66,
+                    "grasas_100g": 7
+                },
+                {
+                    "nombre": "Proteína en polvo (Whey)",
+                    "cantidad_gramos": 30,
+                    "calorias_100g": 370,
+                    "proteinas_100g": 80,
+                    "carbohidratos_100g": 5,
+                    "grasas_100g": 3
+                },
+                {
+                    "nombre": "Plátano",
+                    "cantidad_gramos": 100,
+                    "calorias_100g": 89,
+                    "proteinas_100g": 1.1,
+                    "carbohidratos_100g": 23,
+                    "grasas_100g": 0.3
+                }
+            ],
+            "pasos": [
+                "Añadir 300ml de agua o leche en el vaso de la batidora.",
+                "Agregar la avena, proteína y plátano y batir 45 segundos."
+            ],
+            "calorias_totales": 428.0,
+            "proteinas_totales": 32.3,
+            "carbohidratos_totales": 64.1,
+            "grasas_totales": 5.4
         }
     ]
     _guardar_recetas(recetas_base)
 
 
 def calcular_macros_receta(ingredientes: List[IngredienteReceta]) -> dict:
-    cal_tot = sum((ing.calorias_100g * ing.cantidad_gramos / 100.0) for ing in ingredientes)
-    prot_tot = sum((ing.proteinas_100g * ing.cantidad_gramos / 100.0) for ing in ingredientes)
-    carb_tot = sum((ing.carbohidratos_100g * ing.cantidad_gramos / 100.0) for ing in ingredientes)
-    gras_tot = sum((ing.grasas_100g * ing.cantidad_gramos / 100.0) for ing in ingredientes)
+    """Calcula de forma determinista el total de calorías y macros sumando los ingredientes."""
+    cal_tot = 0.0
+    prot_tot = 0.0
+    carb_tot = 0.0
+    gras_tot = 0.0
+
+    for ing in ingredientes:
+        factor = ing.cantidad_gramos / 100.0
+        cal_tot += ing.calorias_100g * factor
+        prot_tot += ing.proteinas_100g * factor
+        carb_tot += ing.carbohidratos_100g * factor
+        gras_tot += ing.grasas_100g * factor
 
     return {
         "calorias_totales": round(cal_tot, 1),
@@ -98,7 +148,10 @@ def listar_recetas(utensilios_disponibles: Optional[List[str]] = None) -> List[R
     if not utensilios_disponibles:
         return [RecetaSalida(**r) for r in recetas_raw]
 
+    # Convertir lista de utensilios a minúsculas
     utensilios_usuario = set([u.strip().lower() for u in utensilios_disponibles])
+
+    # Filtrar solo recetas cuyos utensilios requeridos estén todos disponibles
     recetas_filtradas = []
     for r in recetas_raw:
         requeridos = set([u.strip().lower() for u in r.get("utensilios_necesarios", [])])
