@@ -3,240 +3,301 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NutriAI Studio — App</title>
+    <title>NUTRI.AI Studio — Telemetría Nutricional</title>
 
     <!-- Manifest PWA -->
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#10B981">
+    <meta name="theme-color" content="#0B0C0E">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Tailwind CSS & Chart.js -->
+    <!-- Typographic Direction: Space Grotesk + Outfit + JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
+                    fontFamily: {
+                        display: ['Space Grotesk', 'sans-serif'],
+                        sans: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace']
+                    },
                     colors: {
-                        darkbg: '#0F172A',
-                        cardbg: '#1E293B',
-                        accent: '#10B981'
+                        canvas: '#0B0C0E',
+                        panel: '#121418',
+                        panelBorder: '#1E222A',
+                        matcha: '#A3E635',
+                        matchaDark: '#15240A',
+                        amberAccent: '#F59E0B'
                     }
                 }
             }
         }
     </script>
     <style>
-        /* Desplazamiento suave y ocultar scrollbars para experiencia nativa */
-        body { -webkit-tap-highlight-color: transparent; user-select: none; }
+        body {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+            background-color: #0B0C0E;
+            background-image: radial-gradient(#1E222A 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
-<body class="bg-darkbg text-slate-100 font-sans min-h-screen pb-24 antialiased">
+<body class="text-zinc-100 font-sans min-h-screen pb-28 antialiased selection:bg-matcha selection:text-black">
 
-    <!-- HEADER SUPERIOR -->
-    <header class="sticky top-0 z-40 bg-darkbg/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex justify-between items-center">
-        <div class="flex items-center gap-2">
-            <span class="text-2xl">🥗</span>
-            <div>
-                <h1 class="text-lg font-bold text-emerald-400 leading-tight">NutriAI App</h1>
-                <p class="text-[10px] text-slate-400">Asistente AI & Despensa</p>
+    <!-- HEADER EDITORIAL DE STUDIO -->
+    <header class="sticky top-0 z-40 bg-canvas/90 backdrop-blur-md border-b border-panelBorder px-5 py-4">
+        <div class="max-w-md mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-2.5 h-2.5 bg-matcha rounded-full animate-pulse"></div>
+                <div>
+                    <h1 class="font-display font-bold text-base tracking-tight text-zinc-100 uppercase">
+                        NUTRI<span class="text-matcha">.AI</span> <span class="font-mono text-[10px] text-zinc-500 font-normal">v1.2</span>
+                    </h1>
+                    <p class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">Digital Studio // Telemetría</p>
+                </div>
             </div>
+            <a href="/docs" target="_blank" class="font-mono text-[10px] text-zinc-400 hover:text-matcha bg-panel border border-panelBorder px-3 py-1 rounded transition uppercase tracking-wider">
+                API Docs ↗
+            </a>
         </div>
-        <a href="/docs" target="_blank" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded-full border border-slate-700 transition">
-            API Docs ↗
-        </a>
     </header>
 
-    <!-- CONTENEDOR PRINCIPAL MULTI-PESTAÑA -->
-    <main class="max-w-md mx-auto p-4 space-y-6">
+    <!-- CONTENEDOR PRINCIPAL -->
+    <main class="max-w-md mx-auto p-5 space-y-6">
 
-        <!-- PESTAÑA 1: INICIO & ANILLOS DE MACROS -->
+        <!-- NAVEGACIÓN EDITORIAL -->
+        <nav class="bg-panel border border-panelBorder p-1.5 rounded-xl flex text-center font-mono text-[11px] uppercase tracking-wider">
+            <button onclick="cambiarPestana('sec-inicio')" id="nav-sec-inicio" class="nav-btn flex-1 py-2 text-matcha font-semibold bg-zinc-900 border border-panelBorder rounded-lg transition">
+                01 / Diario
+            </button>
+            <button onclick="cambiarPestana('sec-recetas')" id="nav-sec-recetas" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition">
+                02 / Recetas
+            </button>
+            <button onclick="cambiarPestana('sec-despensa')" id="nav-sec-despensa" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition">
+                03 / Escáner
+            </button>
+            <button onclick="cambiarPestana('sec-chat')" id="nav-sec-chat" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition">
+                04 / Agente
+            </button>
+        </nav>
+
+        <!-- PESTAÑA 01: DIARIO Y METAS DE MACROS -->
         <section id="sec-inicio" class="tab-content space-y-6">
-            <!-- Tarjeta Principal con Anillo de Calorías -->
-            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-2xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-slate-300">📊 Resumen del Día</h2>
-                    <button onclick="cargarResumenDiario()" class="text-xs text-emerald-400">🔄 Actualizar</button>
-                </div>
-
-                <div class="relative flex justify-center items-center py-2">
-                    <div class="w-44 h-44">
-                        <canvas id="macroChart"></canvas>
+            
+            <!-- TARJETA PRINCIPAL DE CALORÍAS -->
+            <div class="bg-panel p-6 rounded-2xl border border-panelBorder shadow-2xl relative overflow-hidden space-y-6">
+                <div class="flex justify-between items-start border-b border-panelBorder pb-4">
+                    <div>
+                        <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA DIARIA</span>
+                        <h2 class="font-display font-semibold text-xl text-zinc-100">Energía & Macros</h2>
                     </div>
-                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
-                        <span id="txt-cal-tot" class="text-2xl font-black text-amber-400">0</span>
-                        <span class="text-[10px] uppercase tracking-wider text-slate-400">Kcal Consumidas</span>
-                    </div>
-                </div>
-
-                <!-- Desglose de Macros -->
-                <div class="grid grid-cols-3 gap-2 text-center pt-2">
-                    <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80">
-                        <span class="text-[10px] text-slate-400 block mb-0.5">Proteína</span>
-                        <span id="txt-prot-tot" class="text-sm font-bold text-emerald-400">0 g</span>
-                    </div>
-                    <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80">
-                        <span class="text-[10px] text-slate-400 block mb-0.5">Carbs</span>
-                        <span id="txt-carb-tot" class="text-sm font-bold text-blue-400">0 g</span>
-                    </div>
-                    <div class="bg-slate-900/80 p-3 rounded-2xl border border-slate-800/80">
-                        <span class="text-[10px] text-slate-400 block mb-0.5">Grasas</span>
-                        <span id="txt-gras-tot" class="text-sm font-bold text-rose-400">0 g</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Accesos Rápidos -->
-            <div class="grid grid-cols-2 gap-3">
-                <button onclick="cambiarPestana('sec-despensa')" class="p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-2xl text-left transition">
-                    <span class="text-xl block mb-1">📷</span>
-                    <span class="text-xs font-semibold text-slate-200 block">Escanear Foto</span>
-                    <span class="text-[10px] text-slate-400">Añadir con Groq Vision</span>
-                </button>
-                <button onclick="cambiarPestana('sec-chat')" class="p-4 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 rounded-2xl text-left transition">
-                    <span class="text-xl block mb-1">💬</span>
-                    <span class="text-xs font-semibold text-slate-200 block">Chat Agente</span>
-                    <span class="text-[10px] text-slate-400">Ajustar gramos con IA</span>
-                </button>
-            </div>
-        </section>
-
-        <!-- PESTAÑA 2: ESCÁNER OCR & DESPENSA -->
-        <section id="sec-despensa" class="tab-content hidden space-y-6">
-            <!-- Cámara y Subida OCR -->
-            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-                <h2 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
-                    📷 Escáner OCR de Etiquetas
-                </h2>
-                <p class="text-xs text-slate-400">Haz una foto o sube una imagen de la tabla nutricional de tu alimento.</p>
-
-                <form id="ocrForm" class="space-y-3">
-                    <label class="flex flex-col items-center justify-center p-6 border-2 border-dashed border-emerald-500/40 rounded-2xl bg-slate-900/50 hover:bg-slate-900 transition cursor-pointer">
-                        <span class="text-3xl mb-2">📸</span>
-                        <span class="text-xs font-medium text-emerald-400">Tocar para Hacer Foto / Subir</span>
-                        <span class="text-[10px] text-slate-500 mt-1">Abre directamente la cámara en el móvil</span>
-                        <input type="file" id="ocrInput" accept="image/*" capture="environment" class="hidden" onchange="mostrarNombreArchivo(this)">
-                    </label>
-                    <div id="file-name-preview" class="text-xs text-center text-slate-300 hidden"></div>
-
-                    <button type="submit" id="ocrBtn" class="w-full py-3 bg-emerald-600 active:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-lg transition">
-                        Escanear con Groq Vision
+                    <button onclick="toggleModalObjetivos()" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
+                        ⚙ Metas
                     </button>
-                </form>
-                <div id="ocrStatus" class="text-xs text-center hidden"></div>
+                </div>
+
+                <!-- Display Numérico Focal -->
+                <div class="grid grid-cols-2 gap-4 items-baseline pt-2">
+                    <div>
+                        <span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block">Consumido</span>
+                        <span id="txt-cal-tot" class="font-display text-4xl font-bold text-matcha">0</span>
+                        <span class="font-mono text-xs text-zinc-500">kcal</span>
+                    </div>
+                    <div class="text-right border-l border-panelBorder pl-4">
+                        <span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block">Faltan / Meta</span>
+                        <div class="font-mono text-lg font-bold text-amberAccent">
+                            <span id="txt-cal-rest">0</span> <span class="text-xs text-zinc-500 font-normal">kcal</span>
+                        </div>
+                        <span id="txt-cal-obj-lbl" class="font-mono text-[10px] text-zinc-500">de 2200 kcal</span>
+                    </div>
+                </div>
+
+                <!-- Barra de Calorías Principal -->
+                <div class="space-y-1.5 pt-1">
+                    <div class="w-full bg-zinc-900 h-2 rounded-full overflow-hidden p-0.5 border border-panelBorder">
+                        <div id="bar-cal" class="bg-matcha h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Barras de Proteínas, Carbs y Grasas -->
+                <div class="space-y-4 pt-4 border-t border-panelBorder">
+                    
+                    <!-- Proteína -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between font-mono text-[11px]">
+                            <span class="text-zinc-300 font-medium">PROTEÍNAS</span>
+                            <span class="text-zinc-400"><strong id="txt-prot-tot" class="text-matcha">0g</strong> / <span id="txt-prot-obj">160g</span> (<span id="txt-prot-rest" class="text-amberAccent">160g</span> restantes)</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-panelBorder">
+                            <div id="bar-prot" class="bg-matcha h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Carbohidratos -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between font-mono text-[11px]">
+                            <span class="text-zinc-300 font-medium">CARBOHIDRATOS</span>
+                            <span class="text-zinc-400"><strong id="txt-carb-tot" class="text-blue-400">0g</strong> / <span id="txt-carb-obj">210g</span> (<span id="txt-carb-rest" class="text-amberAccent">210g</span> restantes)</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-panelBorder">
+                            <div id="bar-carb" class="bg-blue-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Grasas -->
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between font-mono text-[11px]">
+                            <span class="text-zinc-300 font-medium">GRASAS</span>
+                            <span class="text-zinc-400"><strong id="txt-gras-tot" class="text-rose-400">0g</strong> / <span id="txt-gras-obj">70g</span> (<span id="txt-gras-rest" class="text-amberAccent">70g</span> restantes)</span>
+                        </div>
+                        <div class="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-panelBorder">
+                            <div id="bar-gras" class="bg-rose-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                </div>
             </div>
 
-            <!-- Tabla Despensa -->
-            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-semibold text-slate-200">🥫 Despensa Virtual</h3>
-                    <button onclick="cargarDespensa()" class="text-xs text-emerald-400">Refrescar</button>
+            <!-- REGISTRO DEL DÍA -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
+                <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
+                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Historial del Día</h3>
+                    <button onclick="cargarResumenDiario()" class="font-mono text-[10px] text-matcha">🔄 Actualizar</button>
                 </div>
-                <div id="despensaList" class="space-y-2">
-                    <p class="text-xs text-center text-slate-500 py-4">Cargando alimentos...</p>
+                <div id="registrosList" class="space-y-2">
+                    <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>
                 </div>
             </div>
         </section>
 
-        <!-- PESTAÑA 3: LIBRO DE RECETAS -->
+        <!-- PESTAÑA 02: RECETAS -->
         <section id="sec-recetas" class="tab-content hidden space-y-6">
-            <!-- Botón desplegable para añadir receta -->
-            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-slate-200">➕ Crear Nueva Receta</h2>
-                    <button onclick="toggleFormReceta()" id="btnToggleForm" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-medium transition">
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CATÁLOGO EDITORIAL</span>
+                        <h2 class="font-display font-semibold text-lg text-zinc-100">Recetas & Preparación</h2>
+                    </div>
+                    <button onclick="toggleFormReceta()" class="font-mono text-[10px] bg-matcha hover:bg-lime-400 text-black px-3 py-1.5 rounded font-semibold transition uppercase">
                         + Nueva
                     </button>
                 </div>
 
-                <!-- Formulario oculto por defecto -->
-                <form id="recetaForm" class="hidden space-y-3 pt-2 border-t border-slate-800">
+                <!-- Formulario Crear Receta -->
+                <form id="recetaForm" class="hidden space-y-3 pt-3 border-t border-panelBorder">
                     <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">Nombre de la Receta</label>
-                        <input type="text" id="rec-nombre" placeholder="Ej: Bowl de Avena y Proteína" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <label class="font-mono text-[10px] text-zinc-400 block mb-1">Nombre de la Receta</label>
+                        <input type="text" id="rec-nombre" placeholder="Ej: Bowl de Avena y Proteína" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha">
                     </div>
-
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Calorías (kcal)</label>
-                            <input type="number" step="0.1" id="rec-cal" placeholder="350" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Calorías (kcal)</label>
+                            <input type="number" step="0.1" id="rec-cal" placeholder="350" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-mono focus:outline-none focus:border-matcha">
                         </div>
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Proteínas (g)</label>
-                            <input type="number" step="0.1" id="rec-prot" placeholder="30" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Proteínas (g)</label>
+                            <input type="number" step="0.1" id="rec-prot" placeholder="30" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-mono focus:outline-none focus:border-matcha">
                         </div>
                     </div>
-
                     <div class="grid grid-cols-2 gap-2">
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Carbohidratos (g)</label>
-                            <input type="number" step="0.1" id="rec-carb" placeholder="40" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Carbohidratos (g)</label>
+                            <input type="number" step="0.1" id="rec-carb" placeholder="40" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-mono focus:outline-none focus:border-matcha">
                         </div>
                         <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Grasas (g)</label>
-                            <input type="number" step="0.1" id="rec-gras" placeholder="8" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Grasas (g)</label>
+                            <input type="number" step="0.1" id="rec-gras" placeholder="8" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-mono focus:outline-none focus:border-matcha">
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Tiempo (min)</label>
-                            <input type="number" id="rec-tiempo" value="15" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
-                        </div>
-                        <div>
-                            <label class="text-[10px] text-slate-400 block mb-1">Utensilios (separados por coma)</label>
-                            <input type="text" id="rec-utensilios" placeholder="Air Fryer, Sartén" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
-                        </div>
-                    </div>
-
                     <div>
-                        <label class="text-[10px] text-slate-400 block mb-1">Descripción / Notas</label>
-                        <input type="text" id="rec-desc" placeholder="Mezclar todo y cocinar a fuego medio..." class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        <label class="font-mono text-[10px] text-zinc-400 block mb-1">Utensilios (separados por coma)</label>
+                        <input type="text" id="rec-utensilios" placeholder="Air Fryer, Sartén" class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha">
                     </div>
-
-                    <button type="submit" id="btnGuardarReceta" class="w-full py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-lg transition mt-2">
-                        💾 Guardar Receta
+                    <div>
+                        <label class="font-mono text-[10px] text-zinc-400 block mb-1">Descripción</label>
+                        <input type="text" id="rec-desc" placeholder="Instrucciones breves..." class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha">
+                    </div>
+                    <button type="submit" id="btnGuardarReceta" class="w-full py-2 bg-matcha hover:bg-lime-400 text-black font-semibold font-mono text-xs rounded transition uppercase">
+                        Guardar Receta
                     </button>
                 </form>
-            </div>
 
-            <!-- Catálogo de Recetas -->
-            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-sm font-semibold text-slate-200">🍳 Catálogo de Recetas</h3>
-                    <button onclick="cargarRecetas()" class="text-xs text-emerald-400">Refrescar</button>
-                </div>
-                <div id="recetasList" class="space-y-3">
-                    <p class="text-xs text-center text-slate-500 py-4">Cargando recetas...</p>
+                <!-- Listado de Recetas -->
+                <div id="recetasList" class="space-y-4 pt-2">
+                    <p class="font-mono text-[11px] text-center text-zinc-500 py-4">Cargando recetas...</p>
                 </div>
             </div>
         </section>
 
-        <!-- PESTAÑA 4: CHAT STUDIO DEL AGENTE -->
+        <!-- PESTAÑA 03: ESCÁNER OCR -->
+        <section id="sec-despensa" class="tab-content hidden space-y-6">
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="pb-2 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">VISIÓN MULTIMODAL GROQ</span>
+                    <h2 class="font-display font-semibold text-lg text-zinc-100">Escáner OCR de Tablas</h2>
+                </div>
+
+                <form id="ocrForm" class="space-y-3">
+                    <label class="flex flex-col items-center justify-center p-8 border border-dashed border-matcha/40 hover:border-matcha rounded-xl bg-canvas transition cursor-pointer text-center">
+                        <span class="font-mono text-2xl mb-1 text-matcha">📷</span>
+                        <span class="font-mono text-xs text-zinc-200 uppercase font-semibold">Fotografiar / Capturar</span>
+                        <span class="font-mono text-[10px] text-zinc-500 mt-1">Abre la cámara del móvil en tiempo real</span>
+                        <input type="file" id="ocrInput" accept="image/*" capture="environment" class="hidden" onchange="mostrarNombreArchivo(this)">
+                    </label>
+                    <div id="file-name-preview" class="font-mono text-[11px] text-center text-zinc-400 hidden"></div>
+
+                    <button type="submit" id="ocrBtn" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded transition uppercase">
+                        Procesar con Groq Vision
+                    </button>
+                </form>
+                <div id="ocrStatus" class="font-mono text-[11px] text-center hidden"></div>
+            </div>
+
+            <!-- Despensa -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
+                <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
+                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Despensa Virtual</h3>
+                    <button onclick="cargarDespensa()" class="font-mono text-[10px] text-matcha">Refrescar</button>
+                </div>
+                <div id="despensaList" class="space-y-2">
+                    <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Cargando despensa...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- PESTAÑA 04: CHAT AGENTE AI -->
         <section id="sec-chat" class="tab-content hidden space-y-4">
-            <div class="bg-cardbg p-4 rounded-3xl border border-slate-800 shadow-xl flex flex-col h-[520px]">
-                <div class="flex items-center gap-2 pb-3 mb-3 border-b border-slate-800">
-                    <span class="p-1.5 bg-emerald-500/20 text-emerald-400 rounded-lg text-lg">🤖</span>
-                    <div>
-                        <h2 class="text-xs font-bold text-slate-200">NutriAI Agent</h2>
-                        <span class="text-[9px] text-emerald-400">● Tool Calling Conectado</span>
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder shadow-2xl flex flex-col h-[520px]">
+                <div class="flex items-center justify-between pb-3 mb-3 border-b border-panelBorder">
+                    <div class="flex items-center gap-2">
+                        <div class="w-2 h-2 bg-matcha rounded-full"></div>
+                        <div>
+                            <h2 class="font-display font-semibold text-sm text-zinc-100">NutriAI Conversational Agent</h2>
+                            <p class="font-mono text-[9px] text-matcha">SYS // TOOL CALLING ACTIVE</p>
+                        </div>
                     </div>
                 </div>
 
-                <div id="chatHistory" class="flex-1 overflow-y-auto space-y-3 pr-1 text-xs">
-                    <div class="bg-slate-900/90 p-3 rounded-2xl border border-slate-800 text-slate-300">
-                        👋 ¡Hola! Pídeme calcular las porciones exactas de cualquier alimento para cumplir tus macros hoy.
+                <div id="chatHistory" class="flex-1 overflow-y-auto space-y-3 pr-1 font-sans text-xs">
+                    <div class="bg-canvas border border-panelBorder p-3 rounded-xl text-zinc-300 font-mono text-[11px]">
+                        👋 **NutriAI Agent**: Puedes pedirme calcular raciones exactas o decirme *"He comido 200g de pollo"* para sumarlo en vivo a tu diario.
                     </div>
                 </div>
 
                 <form id="chatForm" class="mt-3 flex gap-2">
-                    <input type="text" id="chatInput" placeholder="Ej: Necesito 35g de proteína..." required class="flex-1 bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-500">
-                    <button type="submit" id="sendBtn" class="px-4 py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-medium text-xs rounded-xl transition">
+                    <input type="text" id="chatInput" placeholder="Ej: He comido 200g de pechuga..." required class="flex-1 bg-canvas border border-panelBorder text-zinc-200 font-sans text-xs rounded px-3 py-2.5 focus:outline-none focus:border-matcha">
+                    <button type="submit" id="sendBtn" class="px-4 py-2.5 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded transition uppercase">
                         Enviar
                     </button>
                 </form>
@@ -245,45 +306,206 @@
 
     </main>
 
-    <!-- BARRA NAVEGACIÓN INFERIOR (BOTTOM NAV BAR MÓVIL) -->
-    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 px-4 py-2">
-        <div class="max-w-md mx-auto grid grid-cols-4 gap-1 text-center">
-            <button onclick="cambiarPestana('sec-inicio')" id="nav-sec-inicio" class="nav-btn flex flex-col items-center py-1 text-emerald-400 font-semibold">
-                <span class="text-lg">📊</span>
-                <span class="text-[10px] mt-0.5">Inicio</span>
-            </button>
-            <button onclick="cambiarPestana('sec-despensa')" id="nav-sec-despensa" class="nav-btn flex flex-col items-center py-1 text-slate-400 hover:text-slate-200">
-                <span class="text-lg">📷</span>
-                <span class="text-[10px] mt-0.5">Despensa</span>
-            </button>
-            <button onclick="cambiarPestana('sec-recetas')" id="nav-sec-recetas" class="nav-btn flex flex-col items-center py-1 text-slate-400 hover:text-slate-200">
-                <span class="text-lg">🍳</span>
-                <span class="text-[10px] mt-0.5">Recetas</span>
-            </button>
-            <button onclick="cambiarPestana('sec-chat')" id="nav-sec-chat" class="nav-btn flex flex-col items-center py-1 text-slate-400 hover:text-slate-200">
-                <span class="text-lg">💬</span>
-                <span class="text-[10px] mt-0.5">Agente</span>
-            </button>
+    <!-- MODAL DE CONFIGURACIÓN DE METAS DE MACROS -->
+    <div id="modalObjetivos" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div class="bg-panel border border-panelBorder p-6 rounded-2xl max-w-sm w-full space-y-4">
+            <div class="flex justify-between items-center border-b border-panelBorder pb-3">
+                <h3 class="font-display font-bold text-base text-zinc-100">Establecer Metas Diarias</h3>
+                <button onclick="toggleModalObjetivos()" class="font-mono text-zinc-400 hover:text-zinc-100">✕</button>
+            </div>
+            <form id="objetivosForm" class="space-y-3 font-mono text-xs">
+                <div>
+                    <label class="text-zinc-400 block mb-1 text-[10px]">Meta Calorías (kcal)</label>
+                    <input type="number" id="obj-cal" value="2200" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+                <div>
+                    <label class="text-zinc-400 block mb-1 text-[10px]">Meta Proteínas (g)</label>
+                    <input type="number" id="obj-prot" value="160" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+                <div>
+                    <label class="text-zinc-400 block mb-1 text-[10px]">Meta Carbohidratos (g)</label>
+                    <input type="number" id="obj-carb" value="210" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+                <div>
+                    <label class="text-zinc-400 block mb-1 text-[10px]">Meta Grasas (g)</label>
+                    <input type="number" id="obj-gras" value="70" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+                <button type="submit" class="w-full py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded uppercase mt-2">
+                    Guardar Metas
+                </button>
+            </form>
         </div>
-    </nav>
+    </div>
 
-    <!-- SCRIPT JS PRINCIPAL -->
+    <!-- JAVASCRIPT PRINCIPAL -->
     <script>
         const API_BASE = "/api/v1";
         let historialMensajes = [];
-        let chartInstance = null;
-        // Toggle desplegar formulario de receta
-        function toggleFormReceta() {
-            const form = document.getElementById("recetaForm");
-            form.classList.toggle("hidden");
+
+        // Cambiar pestañas
+        function cambiarPestana(secId) {
+            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
+            document.getElementById(secId).classList.remove("hidden");
+
+            document.querySelectorAll(".nav-btn").forEach(btn => {
+                btn.classList.remove("text-matcha", "font-semibold", "bg-zinc-900", "border", "border-panelBorder");
+                btn.classList.add("text-zinc-400");
+            });
+
+            const activeNav = document.getElementById(`nav-${secId}`);
+            if (activeNav) {
+                activeNav.classList.remove("text-zinc-400");
+                activeNav.classList.add("text-matcha", "font-semibold", "bg-zinc-900", "border", "border-panelBorder");
+            }
+
+            if (secId === 'sec-inicio') cargarResumenDiario();
+            if (secId === 'sec-despensa') cargarDespensa();
+            if (secId === 'sec-recetas') cargarRecetas();
         }
 
-        // Guardar Receta Submit
+        // Toggle Modal Objetivos
+        function toggleModalObjetivos() {
+            document.getElementById("modalObjetivos").classList.toggle("hidden");
+        }
+
+        // Cargar Resumen Diario
+        async function cargarResumenDiario() {
+            try {
+                const res = await fetch(`${API_BASE}/diario/resumen`);
+                const data = await res.json();
+
+                // Totales
+                document.getElementById("txt-cal-tot").innerText = data.calorias_totales;
+                document.getElementById("txt-cal-rest").innerText = data.calorias_restantes;
+                document.getElementById("txt-cal-obj-lbl").innerText = `de ${data.objetivos.calorias_objetivo} kcal`;
+
+                // Proteínas
+                document.getElementById("txt-prot-tot").innerText = `${data.proteinas_totales}g`;
+                document.getElementById("txt-prot-obj").innerText = `${data.objetivos.proteinas_objetivo}g`;
+                document.getElementById("txt-prot-rest").innerText = `${data.proteinas_restantes}g`;
+
+                // Carbs
+                document.getElementById("txt-carb-tot").innerText = `${data.carbohidratos_totales}g`;
+                document.getElementById("txt-carb-obj").innerText = `${data.objetivos.carbohidratos_objetivo}g`;
+                document.getElementById("txt-carb-rest").innerText = `${data.carbohidratos_restantes}g`;
+
+                // Grasas
+                document.getElementById("txt-gras-tot").innerText = `${data.grasas_totales}g`;
+                document.getElementById("txt-gras-obj").innerText = `${data.objetivos.grasas_objetivo}g`;
+                document.getElementById("txt-gras-rest").innerText = `${data.grasas_restantes}g`;
+
+                // Calcular Porcentajes
+                const pctCal = Math.min(100, (data.calorias_totales / data.objetivos.calorias_objetivo) * 100);
+                const pctProt = Math.min(100, (data.proteinas_totales / data.objetivos.proteinas_objetivo) * 100);
+                const pctCarb = Math.min(100, (data.carbohidratos_totales / data.objetivos.carbohidratos_objetivo) * 100);
+                const pctGras = Math.min(100, (data.grasas_totales / data.objetivos.grasas_objetivo) * 100);
+
+                document.getElementById("bar-cal").style.width = `${pctCal}%`;
+                document.getElementById("bar-prot").style.width = `${pctProt}%`;
+                document.getElementById("bar-carb").style.width = `${pctCarb}%`;
+                document.getElementById("bar-gras").style.width = `${pctGras}%`;
+
+                // Render Registros
+                const regList = document.getElementById("registrosList");
+                if (!data.registros || data.registros.length === 0) {
+                    regList.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>';
+                } else {
+                    regList.innerHTML = data.registros.map(r => `
+                        <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
+                            <div>
+                                <span class="text-zinc-200 font-semibold block">${r.nombre}</span>
+                                <span class="text-zinc-500 text-[9px]">${r.proteinas}g prot · ${r.carbohidratos}g carbs · ${r.grasas}g grasas</span>
+                            </div>
+                            <span class="text-matcha font-bold">+${r.calorias} kcal</span>
+                        </div>
+                    `).join("");
+                }
+
+                // Actualizar inputs del modal
+                document.getElementById("obj-cal").value = data.objetivos.calorias_objetivo;
+                document.getElementById("obj-prot").value = data.objetivos.proteinas_objetivo;
+                document.getElementById("obj-carb").value = data.objetivos.carbohidratos_objetivo;
+                document.getElementById("obj-gras").value = data.objetivos.grasas_objetivo;
+
+            } catch (e) {
+                console.error("Error cargando resumen", e);
+            }
+        }
+
+        // Guardar Metas Diarias Submit
+        document.getElementById("objetivosForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const metas = {
+                calorias_objetivo: parseFloat(document.getElementById("obj-cal").value),
+                proteinas_objetivo: parseFloat(document.getElementById("obj-prot").value),
+                carbohidratos_objetivo: parseFloat(document.getElementById("obj-carb").value),
+                grasas_objetivo: parseFloat(document.getElementById("obj-gras").value)
+            };
+            await fetch(`${API_BASE}/diario/objetivos`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(metas)
+            });
+            toggleModalObjetivos();
+            cargarResumenDiario();
+        });
+
+        // Cargar Recetas & Consumir Receta
+        async function cargarRecetas() {
+            try {
+                const res = await fetch(`${API_BASE}/recetas`);
+                const data = await res.json();
+                const container = document.getElementById("recetasList");
+                if (data.length === 0) {
+                    container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-4">Sin recetas disponibles.</p>';
+                    return;
+                }
+                container.innerHTML = data.map(r => `
+                    <div class="p-4 bg-canvas border-l-2 border-l-matcha border border-panelBorder rounded-xl space-y-3">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h4 class="font-display font-bold text-sm text-zinc-100">${r.nombre}</h4>
+                                <p class="text-[11px] text-zinc-400 mt-0.5">${r.descripcion || 'Sin descripción'}</p>
+                            </div>
+                            <span class="font-mono text-xs bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded font-semibold">${r.calorias_totales} kcal</span>
+                        </div>
+                        <div class="flex gap-3 font-mono text-[10px] text-zinc-400 border-t border-panelBorder pt-2">
+                            <span>PROTEÍNA: <strong class="text-zinc-200">${r.proteinas_totales}g</strong></span>
+                            <span>CARBS: <strong class="text-zinc-200">${r.carbohidratos_totales}g</strong></span>
+                            <span>GRASAS: <strong class="text-zinc-200">${r.grasas_totales}g</strong></span>
+                        </div>
+                        <button onclick="consumirReceta('${r.id}')" class="w-full py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded uppercase transition">
+                            [ + CONSUMIR RECETA ]
+                        </button>
+                    </div>
+                `).join("");
+            } catch (e) {
+                console.error("Error cargando recetas", e);
+            }
+        }
+
+        // Consumir Receta Directamente
+        async function consumirReceta(recetaId) {
+            try {
+                const res = await fetch(`${API_BASE}/recetas/${recetaId}/consumir`, { method: "POST" });
+                if (res.ok) {
+                    alert("✅ Receta consumida y agregada a tus macros diarios.");
+                    cargarResumenDiario();
+                }
+            } catch (e) {
+                alert("Error al consumir la receta.");
+            }
+        }
+
+        function toggleFormReceta() {
+            document.getElementById("recetaForm").classList.toggle("hidden");
+        }
+
+        // Guardar Receta
         document.getElementById("recetaForm")?.addEventListener("submit", async (e) => {
             e.preventDefault();
             const btn = document.getElementById("btnGuardarReceta");
             btn.disabled = true;
-            btn.innerText = "Guardando...";
 
             const utensiliosRaw = document.getElementById("rec-utensilios").value;
             const utensilios = utensiliosRaw ? utensiliosRaw.split(",").map(u => u.trim()) : ["Sartén"];
@@ -295,110 +517,39 @@
                 proteinas_totales: parseFloat(document.getElementById("rec-prot").value),
                 carbohidratos_totales: parseFloat(document.getElementById("rec-carb").value),
                 grasas_totales: parseFloat(document.getElementById("rec-gras").value),
-                tiempo_preparacion_min: parseInt(document.getElementById("rec-tiempo").value) || 15,
+                tiempo_preparacion_min: 15,
                 utensilios_necesarios: utensilios
             };
 
-            try {
-                const res = await fetch(`${API_BASE}/recetas`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(nuevaReceta)
-                });
+            await fetch(`${API_BASE}/recetas`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(nuevaReceta)
+            });
 
-                if (res.ok) {
-                    document.getElementById("recetaForm").reset();
-                    toggleFormReceta();
-                    cargarRecetas();
-                } else {
-                    alert("Error al guardar la receta");
-                }
-            } catch (err) {
-                alert("Error de red al guardar receta");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "💾 Guardar Receta";
-            }
+            document.getElementById("recetaForm").reset();
+            toggleFormReceta();
+            cargarRecetas();
+            btn.disabled = false;
         });
 
-        // 1. Cambiar Pestañas Rápidas
-        function cambiarPestana(secId) {
-            document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
-            document.getElementById(secId).classList.remove("hidden");
-
-            document.querySelectorAll(".nav-btn").forEach(btn => {
-                btn.classList.remove("text-emerald-400", "font-semibold");
-                btn.classList.add("text-slate-400");
-            });
-
-            const activeNav = document.getElementById(`nav-${secId}`);
-            if (activeNav) {
-                activeNav.classList.remove("text-slate-400");
-                activeNav.classList.add("text-emerald-400", "font-semibold");
-            }
-
-            if (secId === 'sec-despensa') cargarDespensa();
-            if (secId === 'sec-recetas') cargarRecetas();
-        }
-
-        // 2. Gráfico Donut de Macros
-        function renderizarGrafico(prot, carb, gras) {
-            const ctx = document.getElementById('macroChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Proteína (g)', 'Carbs (g)', 'Grasa (g)'],
-                    datasets: [{
-                        data: [prot || 1, carb || 1, gras || 1],
-                        backgroundColor: ['#10B981', '#60A5FA', '#F43F5E'],
-                        borderWidth: 0,
-                        hoverOffset: 4
-                    }]
-                },
-                options: {
-                    cutout: '78%',
-                    plugins: { legend: { display: false }, tooltip: { enabled: true } },
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
-        }
-
-        // 3. Cargar Resumen Diario
-        async function cargarResumenDiario() {
-            try {
-                const res = await fetch(`${API_BASE}/diario/resumen`);
-                const data = await res.json();
-                document.getElementById("txt-cal-tot").innerText = data.calorias_totales;
-                document.getElementById("txt-prot-tot").innerText = `${data.proteinas_totales} g`;
-                document.getElementById("txt-carb-tot").innerText = `${data.carbohidratos_totales} g`;
-                document.getElementById("txt-gras-tot").innerText = `${data.grasas_totales} g`;
-
-                renderizarGrafico(data.proteinas_totales, data.carbohidratos_totales, data.grasas_totales);
-            } catch (e) {
-                console.error("Error cargando resumen", e);
-            }
-        }
-
-        // 4. Cargar Despensa
+        // Cargar Despensa
         async function cargarDespensa() {
             try {
                 const res = await fetch(`${API_BASE}/despensa`);
                 const data = await res.json();
                 const container = document.getElementById("despensaList");
                 if (data.length === 0) {
-                    container.innerHTML = '<p class="text-xs text-center text-slate-500 py-4">Despensa vacía. Usa el escáner.</p>';
+                    container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Despensa vacía.</p>';
                     return;
                 }
                 container.innerHTML = data.map(item => `
-                    <div class="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl flex justify-between items-center">
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
                         <div>
-                            <span class="text-xs font-semibold text-slate-200 block">${item.nombre}</span>
-                            <span class="text-[10px] text-slate-400">${item.calorias_100g} kcal/100g · ${item.proteinas_100g}g prot</span>
+                            <span class="text-zinc-200 font-semibold block">${item.nombre}</span>
+                            <span class="text-zinc-500 text-[9px]">${item.calorias_100g} kcal/100g · ${item.proteinas_100g}g prot</span>
                         </div>
-                        <span class="text-xs font-bold text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2.5 py-1 rounded-xl">${item.cantidad_gramos} g</span>
+                        <span class="text-matcha font-bold">${item.cantidad_gramos} g</span>
                     </div>
                 `).join("");
             } catch (e) {
@@ -406,36 +557,6 @@
             }
         }
 
-        // 5. Cargar Recetas
-        async function cargarRecetas() {
-            try {
-                const res = await fetch(`${API_BASE}/recetas`);
-                const data = await res.json();
-                const container = document.getElementById("recetasList");
-                if (data.length === 0) {
-                    container.innerHTML = '<p class="text-xs text-center text-slate-500 py-4">Sin recetas disponibles.</p>';
-                    return;
-                }
-                container.innerHTML = data.map(r => `
-                    <div class="p-4 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-2">
-                        <div class="flex justify-between items-start">
-                            <h4 class="text-xs font-bold text-slate-200">${r.nombre}</h4>
-                            <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full">${r.calorias_totales} kcal</span>
-                        </div>
-                        <p class="text-[10px] text-slate-400">${r.descripcion || 'Sin descripción'}</p>
-                        <div class="flex gap-2 text-[9px] text-slate-400">
-                            <span>⏱️ ${r.tiempo_preparacion_min} min</span>
-                            <span>🍳 ${r.utensilios_necesarios.join(', ')}</span>
-                            <span>💪 ${r.proteinas_totales}g prot</span>
-                        </div>
-                    </div>
-                `).join("");
-            } catch (e) {
-                console.error("Error cargando recetas", e);
-            }
-        }
-
-        // Mostrar nombre de archivo seleccionado
         function mostrarNombreArchivo(input) {
             const preview = document.getElementById("file-name-preview");
             if (input.files && input.files[0]) {
@@ -444,7 +565,7 @@
             }
         }
 
-        // 6. OCR Submit
+        // OCR Submit
         document.getElementById("ocrForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const input = document.getElementById("ocrInput");
@@ -452,15 +573,13 @@
             const btn = document.getElementById("ocrBtn");
 
             if (!input.files[0]) return;
-
             const formData = new FormData();
             formData.append("file", input.files[0]);
 
             btn.disabled = true;
-            btn.innerText = "Analizando con Groq...";
             status.classList.remove("hidden");
-            status.className = "text-xs text-amber-400 text-center";
-            status.innerText = "⏳ Extrayendo macros de la imagen...";
+            status.className = "font-mono text-[11px] text-amberAccent text-center";
+            status.innerText = "⏳ Extrayendo datos con Groq Vision...";
 
             try {
                 const res = await fetch(`${API_BASE}/alimentos/vision-ocr`, { method: "POST", body: formData });
@@ -479,24 +598,22 @@
                             grasas_100g: prod.grasas_100g
                         })
                     });
-
-                    status.className = "text-xs text-emerald-400 font-semibold text-center";
-                    status.innerText = `✅ Detectado y guardado: ${prod.nombre} (${prod.calorias_100g} kcal/100g)`;
+                    status.className = "font-mono text-[11px] text-matcha font-semibold text-center";
+                    status.innerText = `✅ Alimento detectado: ${prod.nombre} (${prod.calorias_100g} kcal/100g)`;
                     cargarDespensa();
                 } else {
-                    status.className = "text-xs text-rose-400 text-center";
-                    status.innerText = `❌ Error procesando etiqueta.`;
+                    status.className = "font-mono text-[11px] text-rose-400 text-center";
+                    status.innerText = "❌ No se pudieron leer los macros.";
                 }
             } catch (err) {
-                status.className = "text-xs text-rose-400 text-center";
-                status.innerText = "❌ Error de red con la imagen.";
+                status.className = "font-mono text-[11px] text-rose-400 text-center";
+                status.innerText = "❌ Error de red.";
             } finally {
                 btn.disabled = false;
-                btn.innerText = "Escanear con Groq Vision";
             }
         });
 
-        // 7. Chat Agente Submit
+        // Chat Submit
         document.getElementById("chatForm").addEventListener("submit", async (e) => {
             e.preventDefault();
             const input = document.getElementById("chatInput");
@@ -508,14 +625,13 @@
 
             historialMensajes.push({ role: "user", content: txt });
             history.innerHTML += `
-                <div class="bg-emerald-950/60 border border-emerald-800/50 p-2.5 rounded-2xl text-slate-200 ml-4">
-                    <span class="text-[9px] text-emerald-400 font-semibold block mb-0.5">Tú</span>
+                <div class="bg-matchaDark border border-matcha/40 p-3 rounded-xl text-zinc-100 ml-4 font-mono text-[11px]">
+                    <span class="text-[9px] text-matcha font-semibold block uppercase mb-1">USER</span>
                     ${txt}
                 </div>
             `;
             input.value = "";
             history.scrollTop = history.scrollHeight;
-
             sendBtn.disabled = true;
 
             try {
@@ -525,22 +641,27 @@
                     body: JSON.stringify({ historial: historialMensajes })
                 });
                 const data = await res.json();
-
                 historialMensajes.push({ role: "assistant", content: data.respuesta });
 
                 const badgeTool = data.herramientas_usadas.length > 0 
-                    ? `<span class="inline-block bg-amber-500/20 text-amber-300 text-[9px] px-1.5 py-0.5 rounded font-mono mb-1">⚙️ Executed: ${data.herramientas_usadas.join(", ")}</span><br>`
+                    ? `<span class="inline-block bg-matchaDark text-matcha border border-matcha/30 font-mono text-[9px] px-2 py-0.5 rounded mb-1">SYS // TOOL EXECUTED: ${data.herramientas_usadas.join(", ")}</span><br>`
                     : '';
 
                 history.innerHTML += `
-                    <div class="bg-slate-900/90 p-2.5 rounded-2xl border border-slate-800 text-slate-300 mr-4">
-                        <span class="text-[9px] text-emerald-400 font-semibold block mb-0.5">NutriAI Agent</span>
+                    <div class="bg-canvas border border-panelBorder p-3 rounded-xl text-zinc-300 font-mono text-[11px] mr-4">
+                        <span class="text-[9px] text-matcha font-semibold block uppercase mb-1">NUTRI.AI AGENT</span>
                         ${badgeTool}
                         ${data.respuesta.replace(/\n/g, '<br>')}
                     </div>
                 `;
+
+                // Refrescar diario por si el agente registró consumo
+                if (data.herramientas_usadas.includes("herramienta_registrar_comida_consumida")) {
+                    cargarResumenDiario();
+                }
+
             } catch (err) {
-                history.innerHTML += `<div class="bg-rose-950/60 p-2 rounded-xl text-rose-300 text-[10px]">❌ Error conectando con agente.</div>`;
+                history.innerHTML += `<div class="bg-rose-950 border border-rose-800 p-2 rounded text-rose-300 font-mono text-[10px]">❌ Error de conexión.</div>`;
             } finally {
                 sendBtn.disabled = false;
                 history.scrollTop = history.scrollHeight;

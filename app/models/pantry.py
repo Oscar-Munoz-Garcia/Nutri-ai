@@ -1,46 +1,26 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
-from datetime import date
+from typing import Optional, Union
+from app.models.daily import RegistroConsumo, ResumenDiario
 
 
-class ItemDespensa(BaseModel):
-    id: Optional[str] = Field(default=None, description="Identificador único del alimento en despensa")
-    nombre: str = Field(..., description="Nombre del alimento o ingrediente")
-    cantidad_gramos: float = Field(..., gt=0, description="Cantidad disponible en gramos o ml")
-    calorias_100g: float = Field(default=0.0, ge=0)
-    proteinas_100g: float = Field(default=0.0, ge=0)
-    carbohidratos_100g: float = Field(default=0.0, ge=0)
-    grasas_100g: float = Field(default=0.0, ge=0)
-    categoria: Optional[str] = Field(default="general", description="Categoría (ej: proteina, verdura, lacteo)")
+class AlimentoPantryEntrada(BaseModel):
+    nombre: str = Field(..., description="Nombre del alimento")
+    cantidad_gramos: float = Field(default=100.0, description="Cantidad disponible en gramos")
+    calorias_100g: float = Field(default=0.0, description="Calorías por cada 100g")
+    proteinas_100g: float = Field(default=0.0, description="Proteínas en gramos por cada 100g")
+    carbohidratos_100g: float = Field(default=0.0, description="Carbohidratos en gramos por cada 100g")
+    grasas_100g: float = Field(default=0.0, description="Grasas en gramos por cada 100g")
 
 
-class RegistroComidaEntrada(BaseModel):
-    nombre_alimento: str = Field(..., description="Nombre del alimento consumido")
-    cantidad_gramos: float = Field(..., gt=0, description="Gramos o ml consumidos")
-    momento_dia: Literal["desayuno", "comida", "cena", "snack"] = Field(..., description="Momento de la ingesta")
-    calorias_100g: float = Field(default=0.0, ge=0)
-    proteinas_100g: float = Field(default=0.0, ge=0)
-    carbohidratos_100g: float = Field(default=0.0, ge=0)
-    grasas_100g: float = Field(default=0.0, ge=0)
-    descontar_de_despensa: bool = Field(default=True, description="Si es True, resta la cantidad de la despensa si existe")
+class AlimentoPantry(AlimentoPantryEntrada):
+    id: Optional[Union[str, int]] = Field(default=None, description="ID único del alimento en despensa")
 
 
-class RegistroComidaSalida(BaseModel):
-    id: str
-    fecha: str
-    nombre_alimento: str
-    cantidad_gramos: float
-    momento_dia: str
-    calorias_totales: float
-    proteinas_totales: float
-    carbohidratos_totales: float
-    grasas_totales: float
+# Alias y re-exportaciones para compatibilidad completa en pantry_service.py y main.py
+AlimentoDespensa = AlimentoPantry
+AlimentoDespensaEntrada = AlimentoPantryEntrada
+ItemDespensa = AlimentoPantry
 
-
-class ResumenDiarioMacros(BaseModel):
-    fecha: str
-    calorias_totales: float
-    proteinas_totales: float
-    carbohidratos_totales: float
-    grasas_totales: float
-    comidas_registradas: list[RegistroComidaSalida]
+RegistroComidaEntrada = RegistroConsumo
+RegistroComidaSalida = RegistroConsumo
+ResumenDiarioMacros = ResumenDiario

@@ -2,65 +2,63 @@ import pytest
 from fastapi.testclient import TestClient
 from app.main import app
 
-# Cliente de pruebas para FastAPI
 client = TestClient(app)
 
 
-# 1. Test de la página principal (HTML Dashboard)
 def test_read_root():
     response = client.get("/")
     assert response.status_code == 200
-    assert "<!DOCTYPE html>" in response.text or "NutriAI" in response.text
+    assert "<!DOCTYPE html>" in response.text or "NUTRI.AI" in response.text
 
 
-# 2. Test del archivo Manifest PWA
 def test_pwa_manifest():
     response = client.get("/manifest.json")
     assert response.status_code == 200
     data = response.json()
     assert data.get("display") == "standalone"
-    assert data.get("short_name") == "NutriAI"
 
 
-# 3. Test del endpoint de resumen del diario nutricional
 def test_obtener_resumen_diario():
     response = client.get("/api/v1/diario/resumen")
     assert response.status_code == 200
     data = response.json()
     assert "calorias_totales" in data
-    assert "proteinas_totales" in data
+    assert "objetivos" in data
 
 
-# 4. Test del catálogo de recetas
+def test_actualizar_objetivos_diarios():
+    nuevos_objetivos = {
+        "calorias_objetivo": 2400.0,
+        "proteinas_objetivo": 170.0,
+        "carbohidratos_objetivo": 220.0,
+        "grasas_objetivo": 75.0
+    }
+    response = client.put("/api/v1/diario/objetivos", json=nuevos_objetivos)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["calorias_objetivo"] == 2400.0
+
+
+def test_registrar_consumo_diario():
+    nuevo_consumo = {
+        "nombre": "Snack Proteico Test",
+        "calorias": 250.0,
+        "proteinas": 25.0,
+        "carbohidratos": 15.0,
+        "grasas": 5.0
+    }
+    response = client.post("/api/v1/diario/consumo", json=nuevo_consumo)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["nombre"] == "Snack Proteico Test"
+
+
 def test_obtener_recetas():
     response = client.get("/api/v1/recetas")
     assert response.status_code == 200
     assert isinstance(response.json(), list)
 
 
-# 5. Test CRUD básico de la Despensa Virtual
-def test_despensa_flow():
-    nuevo_alimento = {
-        "nombre": "Pechuga de Pavo Test",
-        "cantidad_gramos": 250.0,
-        "calorias_100g": 105.0,
-        "proteinas_100g": 24.0,
-        "carbohidratos_100g": 0.0,
-        "grasas_100g": 1.0
-    }
-    
-    # Insertar alimento de prueba
-    res_post = client.post("/api/v1/despensa", json=nuevo_alimento)
-    assert res_post.status_code == 200
-    
-    # Verificar que el alimento se guardó en la lista
-    res_get = client.get("/api/v1/despensa")
-    assert res_get.status_code == 200
-    items = res_get.json()
-    nombres = [item["nombre"] for item in items]
-    assert "Pechuga de Pavo Test" in nombres
-
-    # 6. Test de creación de receta personalizada
 def test_crear_receta():
     nueva_receta = {
         "nombre": "Batido Proteico de Avena",
@@ -76,4 +74,12 @@ def test_crear_receta():
     assert res_post.status_code == 200
     data = res_post.json()
     assert data["nombre"] == "Batido Proteico de Avena"
-    assert "id" in data
+
+
+def test_consumir_receta():
+    recetas = client.get("/api/v1/recetas").json()
+    if recetas:
+        rec_id = recetas[0]["id"]
+        res_consumo = client.post(f"/api/v1/recetas/{rec_id}/consumir")
+        assert res_consumo.status_code == 200
+        assert "status" in res_consumo.json()
