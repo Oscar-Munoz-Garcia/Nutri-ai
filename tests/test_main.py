@@ -59,3 +59,21 @@ def test_despensa_flow():
     items = res_get.json()
     nombres = [item["nombre"] for item in items]
     assert "Pechuga de Pavo Test" in nombres
+
+    # 6. Test de creación de receta personalizada
+def test_crear_receta():
+    nueva_receta = {
+        "nombre": "Batido Proteico de Avena",
+        "descripcion": "Batido post-entreno rápido.",
+        "calorias_totales": 320.0,
+        "proteinas_totales": 30.0,
+        "carbohidratos_totales": 35.0,
+        "grasas_totales": 5.0,
+        "tiempo_preparacion_min": 5,
+        "utensilios_necesarios": ["Batidora"]
+    }
+    res_post = client.post("/api/v1/recetas", json=nueva_receta)
+    assert res_post.status_code == 200
+    data = res_post.json()
+    assert data["nombre"] == "Batido Proteico de Avena"
+    assert "id" in data

@@ -21,6 +21,9 @@ from app.services import recipe_service
 from app.services import recommendation_service
 import app.services.agent_service as agent_service
 
+from app.models.recipe import Receta, RecetaCrear
+import app.services.recipe_service as recipe_service
+
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
@@ -133,3 +136,13 @@ def get_manifest():
         raise HTTPException(status_code=404, detail="Manifest no encontrado.")
     with open(manifest_path, "r", encoding="utf-8") as f:
         return Response(content=f.read(), media_type="application/json")
+
+
+@app.get("/api/v1/recetas", response_model=List[Receta], tags=["Recetas"])
+def listar_recetas():
+    return recipe_service.obtener_todas_las_recetas()
+
+
+@app.post("/api/v1/recetas", response_model=Receta, tags=["Recetas"])
+def guardar_receta(receta: RecetaCrear):
+    return recipe_service.crear_nueva_receta(receta)

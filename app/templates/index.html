@@ -145,9 +145,70 @@
 
         <!-- PESTAÑA 3: LIBRO DE RECETAS -->
         <section id="sec-recetas" class="tab-content hidden space-y-6">
+            <!-- Botón desplegable para añadir receta -->
             <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
                 <div class="flex justify-between items-center">
-                    <h2 class="text-sm font-semibold text-slate-200">🍳 Catálogo de Recetas</h2>
+                    <h2 class="text-sm font-semibold text-slate-200">➕ Crear Nueva Receta</h2>
+                    <button onclick="toggleFormReceta()" id="btnToggleForm" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl font-medium transition">
+                        + Nueva
+                    </button>
+                </div>
+
+                <!-- Formulario oculto por defecto -->
+                <form id="recetaForm" class="hidden space-y-3 pt-2 border-t border-slate-800">
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Nombre de la Receta</label>
+                        <input type="text" id="rec-nombre" placeholder="Ej: Bowl de Avena y Proteína" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Calorías (kcal)</label>
+                            <input type="number" step="0.1" id="rec-cal" placeholder="350" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Proteínas (g)</label>
+                            <input type="number" step="0.1" id="rec-prot" placeholder="30" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Carbohidratos (g)</label>
+                            <input type="number" step="0.1" id="rec-carb" placeholder="40" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Grasas (g)</label>
+                            <input type="number" step="0.1" id="rec-gras" placeholder="8" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Tiempo (min)</label>
+                            <input type="number" id="rec-tiempo" value="15" required class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 block mb-1">Utensilios (separados por coma)</label>
+                            <input type="text" id="rec-utensilios" placeholder="Air Fryer, Sartén" class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-slate-400 block mb-1">Descripción / Notas</label>
+                        <input type="text" id="rec-desc" placeholder="Mezclar todo y cocinar a fuego medio..." class="w-full bg-slate-900 border border-slate-700 text-slate-200 text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-emerald-500">
+                    </div>
+
+                    <button type="submit" id="btnGuardarReceta" class="w-full py-2.5 bg-emerald-600 active:bg-emerald-700 text-white font-semibold text-xs rounded-xl shadow-lg transition mt-2">
+                        💾 Guardar Receta
+                    </button>
+                </form>
+            </div>
+
+            <!-- Catálogo de Recetas -->
+            <div class="bg-cardbg p-5 rounded-3xl border border-slate-800 shadow-xl space-y-4">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-sm font-semibold text-slate-200">🍳 Catálogo de Recetas</h3>
                     <button onclick="cargarRecetas()" class="text-xs text-emerald-400">Refrescar</button>
                 </div>
                 <div id="recetasList" class="space-y-3">
@@ -211,6 +272,54 @@
         const API_BASE = "/api/v1";
         let historialMensajes = [];
         let chartInstance = null;
+        // Toggle desplegar formulario de receta
+        function toggleFormReceta() {
+            const form = document.getElementById("recetaForm");
+            form.classList.toggle("hidden");
+        }
+
+        // Guardar Receta Submit
+        document.getElementById("recetaForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById("btnGuardarReceta");
+            btn.disabled = true;
+            btn.innerText = "Guardando...";
+
+            const utensiliosRaw = document.getElementById("rec-utensilios").value;
+            const utensilios = utensiliosRaw ? utensiliosRaw.split(",").map(u => u.trim()) : ["Sartén"];
+
+            const nuevaReceta = {
+                nombre: document.getElementById("rec-nombre").value,
+                descripcion: document.getElementById("rec-desc").value,
+                calorias_totales: parseFloat(document.getElementById("rec-cal").value),
+                proteinas_totales: parseFloat(document.getElementById("rec-prot").value),
+                carbohidratos_totales: parseFloat(document.getElementById("rec-carb").value),
+                grasas_totales: parseFloat(document.getElementById("rec-gras").value),
+                tiempo_preparacion_min: parseInt(document.getElementById("rec-tiempo").value) || 15,
+                utensilios_necesarios: utensilios
+            };
+
+            try {
+                const res = await fetch(`${API_BASE}/recetas`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(nuevaReceta)
+                });
+
+                if (res.ok) {
+                    document.getElementById("recetaForm").reset();
+                    toggleFormReceta();
+                    cargarRecetas();
+                } else {
+                    alert("Error al guardar la receta");
+                }
+            } catch (err) {
+                alert("Error de red al guardar receta");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "💾 Guardar Receta";
+            }
+        });
 
         // 1. Cambiar Pestañas Rápidas
         function cambiarPestana(secId) {

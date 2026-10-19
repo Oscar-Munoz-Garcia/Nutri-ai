@@ -159,3 +159,43 @@ def listar_recetas(utensilios_disponibles: Optional[List[str]] = None) -> List[R
             recetas_filtradas.append(RecetaSalida(**r))
 
     return recetas_filtradas
+
+from typing import List
+from app.models.recipe import Receta, RecetaCrear
+
+# Base de datos local en memoria
+RECETAS_DB: List[Receta] = [
+    Receta(
+        id=1,
+        nombre="Tortilla Proteica de Claras y Pavo",
+        descripcion="Tortilla rápida alta en proteína para desayuno o cena.",
+        calorias_totales=280.0,
+        proteinas_totales=35.0,
+        carbohidratos_totales=4.0,
+        grasas_totales=12.0,
+        tiempo_preparacion_min=10,
+        utensilios_necesarios=["Sartén", "Batidor"]
+    ),
+    Receta(
+        id=2,
+        nombre="Pollo al Air Fryer con Arroz Integrada",
+        descripcion="Pechuga sazonada en freidora de aire acompañada de arroz.",
+        calorias_totales=450.0,
+        proteinas_totales=42.0,
+        carbohidratos_totales=48.0,
+        grasas_totales=8.0,
+        tiempo_preparacion_min=20,
+        utensilios_necesarios=["Air Fryer"]
+    )
+]
+
+
+def obtener_todas_las_recetas() -> List[Receta]:
+    return RECETAS_DB
+
+
+def crear_nueva_receta(datos: RecetaCrear) -> Receta:
+    nuevo_id = max([r.id for r in RECETAS_DB], default=0) + 1
+    nueva_receta = Receta(id=nuevo_id, **datos.model_dump())
+    RECETAS_DB.append(nueva_receta)
+    return nueva_receta
