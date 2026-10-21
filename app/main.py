@@ -16,8 +16,9 @@ from app.models.vision import ProductoOCR
 
 from app.models.profile import PerfilUsuario, PerfilActualizar
 import app.services.profile_service as profile_service
-
-
+from app.db.session import init_db
+# Inicializar tablas de SQLite al arrancar la app
+init_db()
 app = FastAPI(
     title="NutriAI Engine API",
     version="1.2.0",
