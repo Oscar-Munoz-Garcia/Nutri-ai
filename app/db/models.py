@@ -1,13 +1,30 @@
-from sqlalchemy import Column, String, Float, Integer, Text, Date
-from datetime import date
+from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey
+from sqlalchemy.orm import relationship
 from app.db.session import Base
+
+
+class UsuarioDB(Base):
+    __tablename__ = "usuarios"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    username = Column(String, unique=True, index=True, nullable=False)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+
+    perfil = relationship("PerfilDB", back_populates="usuario", uselist=False, cascade="all, delete-orphan")
+    pantry = relationship("PantryDB", back_populates="usuario", cascade="all, delete-orphan")
+    recetas = relationship("RecetaDB", back_populates="usuario", cascade="all, delete-orphan")
+    registros = relationship("RegistroConsumoDB", back_populates="usuario", cascade="all, delete-orphan")
 
 
 class PerfilDB(Base):
     __tablename__ = "perfil"
 
-    id = Column(Integer, primary_key=True, index=True, default=1)
-    nombre = Column(String, default="Oscar")
+    id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True, unique=True)
+    usuario = relationship("UsuarioDB", back_populates="perfil")
+
+    nombre = Column(String, default="Usuario")
     edad = Column(Integer, default=24)
     peso_kg = Column(Float, default=75.0)
     altura_cm = Column(Float, default=178.0)
@@ -20,12 +37,12 @@ class PerfilDB(Base):
     carbohidratos_objetivo = Column(Float, default=210.0)
     grasas_objetivo = Column(Float, default=70.0)
 
-
 class PesoHistorialDB(Base):
     __tablename__ = "peso_historial"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fecha = Column(String, index=True)  # YYYY-MM-DD
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    fecha = Column(String, index=True)
     peso_kg = Column(Float)
 
 
@@ -33,6 +50,9 @@ class PantryDB(Base):
     __tablename__ = "pantry"
 
     id = Column(String, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario = relationship("UsuarioDB", back_populates="pantry")
+
     nombre = Column(String, index=True)
     cantidad_gramos = Column(Float, default=100.0)
     calorias_100g = Column(Float, default=0.0)
@@ -45,6 +65,9 @@ class RecetaDB(Base):
     __tablename__ = "recetas"
 
     id = Column(String, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario = relationship("UsuarioDB", back_populates="recetas")
+
     nombre = Column(String, index=True)
     descripcion = Column(Text, default="")
     calorias_totales = Column(Float, default=0.0)
@@ -59,7 +82,10 @@ class RegistroConsumoDB(Base):
     __tablename__ = "registros_consumo"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    fecha = Column(String, index=True)  # Formato: YYYY-MM-DD
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True)
+    usuario = relationship("UsuarioDB", back_populates="registros")
+
+    fecha = Column(String, index=True)
     nombre = Column(String, index=True)
     calorias = Column(Float, default=0.0)
     proteinas = Column(Float, default=0.0)

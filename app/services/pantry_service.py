@@ -96,7 +96,18 @@ def registrar_comida(entrada: RegistroComidaEntrada) -> RegistroComidaSalida:
         
     return RegistroComidaSalida(**nuevo_registro)
 
-
+def eliminar_item_pantry(item_id: str) -> bool:
+    db = SessionLocal()
+    try:
+        item = db.query(PantryDB).filter(PantryDB.id == item_id).first()
+        if item:
+            db.delete(item)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
+        
 def obtener_resumen_diario(fecha_str: Optional[str] = None) -> ResumenDiarioMacros:
     if not fecha_str:
         fecha_str = datetime.now().strftime("%Y-%m-%d")

@@ -6,3 +6,7 @@ httpx>=0.24.0
 python-multipart>=0.0.6
 pytest>=7.0.0
 sqlalchemy
+pyjwt
+passlib[bcrypt]
+python-multipart
+email-validator
