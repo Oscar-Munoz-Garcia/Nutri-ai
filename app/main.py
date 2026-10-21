@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile
+from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile, Depends
 from fastapi.responses import HTMLResponse
 from typing import List, Optional
 from pathlib import Path
@@ -20,6 +20,12 @@ from app.db.session import init_db
 
 from typing import Optional
 import app.services.analytics_service as analytics_service
+from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
+from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
+from app.db.models import UsuarioDB
+
+
+
 # Inicializar tablas de SQLite al arrancar la app
 init_db()
 app = FastAPI(
@@ -137,3 +143,34 @@ def obtener_resumen_diario(fecha: Optional[str] = None):
 @app.get("/api/v1/analitica/tendencias", tags=["Analítica"])
 def obtener_tendencias(dias: int = 7):
     return analytics_service.obtener_tendencias(dias=dias)
+
+
+@app.delete("/api/v1/diario/consumo/{registro_id}", tags=["Diario"])
+def eliminar_consumo(registro_id: int):
+    exito = daily_service.eliminar_registro_consumo(registro_id)
+    if not exito:
+        raise HTTPException(status_code=404, detail="Registro no encontrado")
+    return {"status": "ok", "message": "Registro eliminado con éxito"}
+
+
+@app.delete("/api/v1/pantry/{item_id}", tags=["Despensa"])
+def eliminar_pantry_item(item_id: str):
+    exito = pantry_service.eliminar_item_pantry(item_id)
+    if not exito:
+        raise HTTPException(status_code=404, detail="Ítem no encontrado en despensa")
+    return {"status": "ok", "message": "Ítem eliminado de la despensa"}
+
+
+@app.post("/api/v1/auth/registro", response_model=TokenResponse, tags=["Autenticación"])
+def registro(datos: UsuarioRegistro):
+    return registrar_usuario(datos)
+
+
+@app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Autenticación"])
+def login(datos: UsuarioLogin):
+    return autenticar_usuario(datos)
+
+
+@app.get("/api/v1/auth/me", response_model=UsuarioOut, tags=["Autenticación"])
+def obtener_mi_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return current_user

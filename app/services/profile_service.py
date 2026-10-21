@@ -1,17 +1,24 @@
 from app.models.profile import PerfilUsuario, PerfilActualizar
 from app.models.daily import ObjetivosMacros
 from app.db.session import SessionLocal
-from app.db.models import PerfilDB
+from app.db.models import PerfilDB, UsuarioDB
 from app.services import daily_service
 
 
-def _obtener_o_crear_perfil_db(db) -> PerfilDB:
-    perfil = db.query(PerfilDB).filter(PerfilDB.id == 1).first()
+def _obtener_o_crear_perfil_db(db, usuario_id: int = None) -> PerfilDB:
+    if usuario_id:
+        perfil = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
+    else:
+        perfil = db.query(PerfilDB).first()
+
     if not perfil:
-        perfil = PerfilDB(id=1)
+        user = db.query(UsuarioDB).first()
+        uid = user.id if user else None
+        perfil = PerfilDB(usuario_id=uid, nombre="Usuario")
         db.add(perfil)
         db.commit()
         db.refresh(perfil)
+
     return perfil
 
 

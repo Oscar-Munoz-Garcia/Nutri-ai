@@ -11,7 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-    <!-- Typographic Direction: Space Grotesk + Outfit + JetBrains Mono -->
+    <!-- Tipografía: Space Grotesk + Outfit + JetBrains Mono -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -57,7 +57,46 @@
 </head>
 <body class="text-zinc-100 font-sans min-h-screen pb-28 antialiased selection:bg-matcha selection:text-black">
 
-    <!-- HEADER EDITORIAL DE STUDIO -->
+    <!-- MODAL DE LOGIN / REGISTRO MULTIUSUARIO -->
+    <div id="modal-auth" class="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
+        <div class="bg-panel border border-panelBorder rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
+            <div class="text-center space-y-1">
+                <span class="font-mono text-[9px] text-matcha uppercase tracking-widest block">SISTEMA MULTIUSUARIO</span>
+                <h2 id="auth-title" class="font-display text-xl font-bold text-zinc-100">Iniciar Sesión</h2>
+                <p class="text-zinc-400 text-xs font-mono">Ingresa a tu cuenta personal de NutriAI</p>
+            </div>
+
+            <form id="form-auth" onsubmit="procesarAuth(event)" class="space-y-3 font-mono text-xs">
+                <div id="group-email" class="hidden">
+                    <label class="text-zinc-400 text-[10px] block mb-1">Correo Electrónico</label>
+                    <input type="email" id="auth-email" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+
+                <div>
+                    <label class="text-zinc-400 text-[10px] block mb-1">Nombre de Usuario</label>
+                    <input type="text" id="auth-username" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+
+                <div>
+                    <label class="text-zinc-400 text-[10px] block mb-1">Contraseña</label>
+                    <input type="password" id="auth-password" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+
+                <div id="auth-error" class="text-rose-400 text-[10px] hidden text-center"></div>
+
+                <button type="submit" id="btn-auth-submit" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold rounded uppercase transition">
+                    Entrar a NutriAI
+                </button>
+            </form>
+
+            <div class="text-center font-mono text-[11px] pt-2 border-t border-panelBorder">
+                <span id="lbl-toggle-auth" class="text-zinc-400">¿No tienes cuenta?</span>
+                <button onclick="toggleModoAuth()" id="btn-toggle-auth" class="text-matcha font-bold ml-1 hover:underline">Regístrate gratis</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- HEADER DE STUDIO CON BOTÓN DE CERRAR SESIÓN -->
     <header class="sticky top-0 z-40 bg-canvas/90 backdrop-blur-md border-b border-panelBorder px-5 py-4">
         <div class="max-w-md mx-auto flex justify-between items-center">
             <div class="flex items-center gap-3">
@@ -66,19 +105,24 @@
                     <h1 class="font-display font-bold text-base tracking-tight text-zinc-100 uppercase">
                         NUTRI<span class="text-matcha">.AI</span> <span class="font-mono text-[10px] text-zinc-500 font-normal">v1.2</span>
                     </h1>
-                    <p class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">Digital Studio // Telemetría</p>
+                    <p class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest">Digital Studio // Multiusuario</p>
                 </div>
             </div>
-            <a href="/docs" target="_blank" class="font-mono text-[10px] text-zinc-400 hover:text-matcha bg-panel border border-panelBorder px-3 py-1 rounded transition uppercase tracking-wider">
-                API Docs ↗
-            </a>
+            <div class="flex items-center gap-2">
+                <button onclick="cerrarSesion()" class="font-mono text-[10px] text-rose-400 hover:text-rose-300 bg-panel border border-panelBorder px-2.5 py-1 rounded transition uppercase">
+                    Salir ↵
+                </button>
+                <a href="/docs" target="_blank" class="font-mono text-[10px] text-zinc-400 hover:text-matcha bg-panel border border-panelBorder px-2.5 py-1 rounded transition uppercase">
+                    API ↗
+                </a>
+            </div>
         </div>
     </header>
 
     <!-- CONTENEDOR PRINCIPAL -->
     <main class="max-w-md mx-auto p-5 space-y-6">
 
-        <!-- NAVEGACIÓN EDITORIAL -->
+        <!-- NAVEGACIÓN -->
         <nav class="bg-panel border border-panelBorder p-1.5 rounded-xl flex text-center font-mono text-[10px] uppercase tracking-wider overflow-x-auto no-scrollbar">
             <button onclick="cambiarPestana('sec-inicio')" id="nav-sec-inicio" class="nav-btn flex-1 py-2 text-matcha font-semibold bg-zinc-900 border border-panelBorder rounded-lg transition whitespace-nowrap px-2">
                 01 / Diario
@@ -137,8 +181,6 @@
 
                 <!-- Barras de Proteínas, Carbs y Grasas -->
                 <div class="space-y-4 pt-4 border-t border-panelBorder">
-                    
-                    <!-- Proteína -->
                     <div class="space-y-1.5">
                         <div class="flex justify-between font-mono text-[11px]">
                             <span class="text-zinc-300 font-medium">PROTEÍNAS</span>
@@ -149,7 +191,6 @@
                         </div>
                     </div>
 
-                    <!-- Carbohidratos -->
                     <div class="space-y-1.5">
                         <div class="flex justify-between font-mono text-[11px]">
                             <span class="text-zinc-300 font-medium">CARBOHIDRATOS</span>
@@ -160,7 +201,6 @@
                         </div>
                     </div>
 
-                    <!-- Grasas -->
                     <div class="space-y-1.5">
                         <div class="flex justify-between font-mono text-[11px]">
                             <span class="text-zinc-300 font-medium">GRASAS</span>
@@ -170,11 +210,10 @@
                             <div id="bar-gras" class="bg-rose-400 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
                         </div>
                     </div>
-
                 </div>
             </div>
 
-            <!-- REGISTRO DEL DÍA -->
+            <!-- REGISTRO DEL DÍA CON PAPELERA DE BORRADO -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
                 <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
                     <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Historial del Día</h3>
@@ -186,7 +225,7 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 02: RECETAS -->
+        <!-- PESTAÑA 02: RECETAS CON CREADOR Y INGREDIENTES DE DESPENSA -->
         <section id="sec-recetas" class="tab-content hidden space-y-6">
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
                 <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
@@ -199,12 +238,27 @@
                     </button>
                 </div>
 
-                <!-- Formulario Crear Receta -->
+                <!-- Formulario Crear Receta con Selección de Despensa -->
                 <form id="recetaForm" class="hidden space-y-3 pt-3 border-t border-panelBorder">
                     <div>
                         <label class="font-mono text-[10px] text-zinc-400 block mb-1">Nombre de la Receta</label>
                         <input type="text" id="rec-nombre" placeholder="Ej: Bowl de Avena y Proteína" required class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha">
                     </div>
+
+                    <!-- SELECTOR DE INGREDIENTES DE LA DESPENSA VIRTUAL -->
+                    <div class="space-y-2 p-3 bg-canvas rounded-xl border border-panelBorder">
+                        <span class="text-matcha font-mono text-[10px] uppercase font-semibold block tracking-wider">Añadir desde Despensa Virtual</span>
+                        <div class="flex gap-2">
+                            <select id="select-ingrediente-pantry" class="flex-1 bg-panel border border-panelBorder text-zinc-200 text-xs px-2.5 py-2 rounded focus:outline-none focus:border-matcha font-mono">
+                                <option value="">-- Seleccionar de despensa --</option>
+                            </select>
+                            <input type="number" id="cant-ingrediente-g" placeholder="Gramos" class="w-24 bg-panel border border-panelBorder text-zinc-200 text-xs px-2 py-2 rounded font-mono focus:outline-none focus:border-matcha">
+                            <button type="button" onclick="sumarIngredienteAReceta()" class="px-3 py-2 bg-matcha/20 text-matcha border border-matcha/40 text-xs rounded font-mono hover:bg-matcha hover:text-black font-semibold transition">
+                                + Sumar
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="grid grid-cols-2 gap-2">
                         <div>
                             <label class="font-mono text-[10px] text-zinc-400 block mb-1">Calorías (kcal)</label>
@@ -245,7 +299,7 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 03: ESCÁNER OCR -->
+        <!-- PESTAÑA 03: ESCÁNER OCR Y DESPENSA CON BORRADO -->
         <section id="sec-despensa" class="tab-content hidden space-y-6">
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
                 <div class="pb-2 border-b border-panelBorder">
@@ -269,7 +323,7 @@
                 <div id="ocrStatus" class="font-mono text-[11px] text-center hidden"></div>
             </div>
 
-            <!-- Despensa -->
+            <!-- Despensa con Botones de Borrado -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
                 <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
                     <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Despensa Virtual</h3>
@@ -308,152 +362,162 @@
                 </form>
             </div>
         </section>
-        <!-- PESTAÑA 05: PERFIL Y CONFIGURACIÓN DE OBJETIVOS -->
-<section id="sec-perfil" class="tab-content hidden space-y-6">
-    
-    <!-- BLOQUE 1: FORMULARIO DE CONFIGURACIÓN -->
-    <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
-        <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
-            <div>
-                <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CONFIGURACIÓN DE USUARIO</span>
-                <h2 class="font-display font-semibold text-lg text-zinc-100">Perfil & Límites Diarios</h2>
-            </div>
-            <span id="badge-modo" class="font-mono text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded uppercase font-semibold">
-                Manual Macros
-            </span>
-        </div>
 
-        <form id="perfilForm" class="space-y-4 font-mono text-xs">
-            <!-- Datos Personales -->
-            <div class="space-y-3">
-                <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Datos Antropométricos</span>
-                <div>
-                    <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
-                    <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+        <!-- PESTAÑA 05: PERFIL CON GRÁFICOS AVANZADOS -->
+        <section id="sec-perfil" class="tab-content hidden space-y-6">
+            
+            <!-- BLOQUE 1: FORMULARIO DE CONFIGURACIÓN -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
+                <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CONFIGURACIÓN DE USUARIO</span>
+                        <h2 class="font-display font-semibold text-lg text-zinc-100">Perfil & Límites Diarios</h2>
+                    </div>
+                    <span id="badge-modo" class="font-mono text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded uppercase font-semibold">
+                        Manual Macros
+                    </span>
                 </div>
-                <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
-                        <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+
+                <form id="perfilForm" class="space-y-4 font-mono text-xs">
+                    <!-- Datos Personales -->
+                    <div class="space-y-3">
+                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Datos Antropométricos</span>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
+                            <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
+                                <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
+                                <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
+                                <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
+                                <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <option value="hombre">Hombre</option>
+                                    <option value="mujer">Mujer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
+                                <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <option value="sedentario">Sedentario</option>
+                                    <option value="ligero">Ligero</option>
+                                    <option value="moderado">Moderado</option>
+                                    <option value="intenso">Intenso</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
-                        <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+
+                    <!-- Modo de Configuración de Límites -->
+                    <div class="space-y-3 pt-3 border-t border-panelBorder">
+                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
+                        <div>
+                            <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
+                                <option value="manual_macros">⚙️ Macros Exactos (Personalizado)</option>
+                                <option value="manual_calorias">🔥 Calorías Totales (Reparto automático)</option>
+                                <option value="mifflin_st_jeor">🧮 Calculadora Automática (Mifflin-St Jeor)</option>
+                            </select>
+                        </div>
+
+                        <!-- Campos para Macros Exactos -->
+                        <div id="campo-macros-exactos" class="space-y-2 pt-2">
+                            <span class="text-zinc-400 text-[10px] block">Define los gramos exactos deseados para todos los días:</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
+                                    <input type="number" step="0.1" id="prof-prot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
+                                    <input type="number" step="0.1" id="prof-carb" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
+                                    <input type="number" step="0.1" id="prof-gras" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Campos para Calorías Totales -->
+                        <div id="campo-calorias-totales" class="space-y-2 pt-2 hidden">
+                            <span class="text-zinc-400 text-[10px] block">Introduce las calorías totales diarias. Se repartirán automáticamente:</span>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Límite Calorías Totales (kcal)</label>
+                                <input type="number" step="1" id="prof-cal-tot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                        </div>
+
+                        <!-- Info Mifflin St Jeor -->
+                        <div id="campo-info-mifflin" class="p-3 bg-canvas border border-panelBorder rounded-xl text-zinc-400 text-[10px] leading-relaxed hidden">
+                            💡 Se calcularán automáticamente tus necesidades metabólicas diarias y gramos óptimos según tu peso, altura, edad y nivel de actividad.
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
-                        <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-2">
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
-                        <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            <option value="hombre">Hombre</option>
-                            <option value="mujer">Mujer</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
-                        <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            <option value="sedentario">Sedentario</option>
-                            <option value="ligero">Ligero</option>
-                            <option value="moderado">Moderado</option>
-                            <option value="intenso">Intenso</option>
-                        </select>
-                    </div>
-                </div>
+
+                    <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
+                        Guardar Perfil & Actualizar Diario
+                    </button>
+                </form>
             </div>
 
-            <!-- Modo de Configuración de Límites -->
-            <div class="space-y-3 pt-3 border-t border-panelBorder">
-                <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
-                <div>
-                    <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
-                        <option value="manual_macros">⚙️ Macros Exactos (Personalizado)</option>
-                        <option value="manual_calorias">🔥 Calorías Totales (Reparto automático)</option>
-                        <option value="mifflin_st_jeor">🧮 Calculadora Automática (Mifflin-St Jeor)</option>
+            <!-- BLOQUE 2: ANALÍTICA CON GRÁFICOS PARALELOS (BARRAS Y DONUT) -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="flex justify-between items-center border-b border-panelBorder pb-3">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA HISTÓRICA</span>
+                        <h3 class="font-display font-semibold text-base text-zinc-100">Análisis de Tendencias & Macros</h3>
+                    </div>
+                    <select id="select-dias-tendencia" onchange="cargarGraficasTendencia()" class="bg-canvas border border-panelBorder text-matcha font-mono text-[10px] px-2.5 py-1 rounded focus:outline-none focus:border-matcha">
+                        <option value="7">7 Días</option>
+                        <option value="14">14 Días</option>
+                        <option value="30">30 Días</option>
                     </select>
                 </div>
 
-                <!-- Campos para Macros Exactos -->
-                <div id="campo-macros-exactos" class="space-y-2 pt-2">
-                    <span class="text-zinc-400 text-[10px] block">Define los gramos exactos deseados para todos los días:</span>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
-                            <input type="number" step="0.1" id="prof-prot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                        </div>
-                        <div>
-                            <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
-                            <input type="number" step="0.1" id="prof-carb" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                        </div>
-                        <div>
-                            <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
-                            <input type="number" step="0.1" id="prof-gras" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                        </div>
+                <!-- KPIs Resumen -->
+                <div class="grid grid-cols-2 gap-3 font-mono text-xs">
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">Promedio Calórico</span>
+                        <span id="kpi-prom-cal" class="text-lg font-bold text-matcha">0</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
+                    </div>
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">Promedio Proteína</span>
+                        <span id="kpi-prom-prot" class="text-lg font-bold text-amberAccent">0</span> <span class="text-[10px] text-zinc-500">g/día</span>
                     </div>
                 </div>
 
-                <!-- Campos para Calorías Totales -->
-                <div id="campo-calorias-totales" class="space-y-2 pt-2 hidden">
-                    <span class="text-zinc-400 text-[10px] block">Introduce las calorías totales diarias. Se repartirán automáticamente (30% Prot / 40% Carb / 30% Grasas):</span>
-                    <div>
-                        <label class="text-zinc-400 block mb-1 text-[10px]">Límite Calorías Totales (kcal)</label>
-                        <input type="number" step="1" id="prof-cal-tot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                <!-- Canvas de Gráficos -->
+                <div class="space-y-4 pt-2">
+                    <div class="h-52 relative bg-canvas p-3 rounded-xl border border-panelBorder">
+                        <span class="text-[9px] font-mono text-zinc-400 uppercase block mb-1">Evolución Diaria (kcal & g)</span>
+                        <div class="h-40 relative">
+                            <canvas id="chartTendencias"></canvas>
+                        </div>
+                    </div>
+                    <div class="h-56 relative bg-canvas p-3 rounded-xl border border-panelBorder">
+                        <span class="text-[9px] font-mono text-zinc-400 uppercase block mb-1">Distribución Real de Macronutrientes</span>
+                        <div class="h-44 relative">
+                            <canvas id="chartDonutMacros"></canvas>
+                        </div>
                     </div>
                 </div>
-
-                <!-- Info Mifflin St Jeor -->
-                <div id="campo-info-mifflin" class="p-3 bg-canvas border border-panelBorder rounded-xl text-zinc-400 text-[10px] leading-relaxed hidden">
-                    💡 Se calcularán automáticamente tus necesidades metabólicas diarias y gramos óptimos según tu peso, altura, edad y nivel de actividad.
-                </div>
             </div>
 
-            <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
-                Guardar Perfil & Actualizar Diario
-            </button>
-        </form>
-    </div>
+        </section>
+    </main>
 
-    <!-- BLOQUE 2: ANALÍTICA Y TENDENCIAS HISTÓRICAS CON GRÁFICAS -->
-    <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
-        <div class="flex justify-between items-center border-b border-panelBorder pb-3">
-            <div>
-                <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA HISTÓRICA</span>
-                <h3 class="font-display font-semibold text-base text-zinc-100">Tendencia de Calorías & Proteínas</h3>
-            </div>
-            <select id="select-dias-tendencia" onchange="cargarGraficasTendencia()" class="bg-canvas border border-panelBorder text-matcha font-mono text-[10px] px-2.5 py-1 rounded focus:outline-none focus:border-matcha">
-                <option value="7">7 Días</option>
-                <option value="14">14 Días</option>
-                <option value="30">30 Días</option>
-            </select>
-        </div>
-
-        <!-- KPIs Resumen -->
-        <div class="grid grid-cols-2 gap-3 font-mono text-xs">
-            <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
-                <span class="text-[9px] text-zinc-500 uppercase block">Promedio Calórico</span>
-                <span id="kpi-prom-cal" class="text-lg font-bold text-matcha">0</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
-            </div>
-            <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
-                <span class="text-[9px] text-zinc-500 uppercase block">Promedio Proteína</span>
-                <span id="kpi-prom-prot" class="text-lg font-bold text-amberAccent">0</span> <span class="text-[10px] text-zinc-500">g/día</span>
-            </div>
-        </div>
-
-        <!-- Lienzo de Chart.js -->
-        <div class="h-56 relative pt-2">
-            <canvas id="chartTendencias"></canvas>
-        </div>
-    </div>
-
-</section>
-</main>
-
-    
-
-    <!-- MODAL DE CONFIGURACIÓN DE METAS DE MACROS -->
+    <!-- MODAL DE CONFIGURACIÓN RÁPIDA DE METAS -->
     <div id="modalObjetivos" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
         <div class="bg-panel border border-panelBorder p-6 rounded-2xl max-w-sm w-full space-y-4">
             <div class="flex justify-between items-center border-b border-panelBorder pb-3">
@@ -488,8 +552,83 @@
     <script>
         const API_BASE = "/api/v1";
         let historialMensajes = [];
+        let modoRegistro = false;
+        let listaPantryCache = [];
+        let chartInstance = null;
+        let chartDonutInstance = null;
 
-        // Cambiar pestañas
+        // Inyectar Authorization Header JWT en todas las peticiones fetch
+        const fetchOriginal = window.fetch;
+        window.fetch = async function(...args) {
+            let [resource, config] = args;
+            config = config || {};
+            config.headers = config.headers || {};
+            const token = localStorage.getItem("nutri_token");
+            if (token) {
+                if (config.headers instanceof Headers) {
+                    config.headers.append("Authorization", `Bearer ${token}`);
+                } else {
+                    config.headers["Authorization"] = `Bearer ${token}`;
+                }
+            }
+            return await fetchOriginal(resource, config);
+        };
+
+        function verificarSesion() {
+            const token = localStorage.getItem("nutri_token");
+            if (!token) {
+                document.getElementById("modal-auth").classList.remove("hidden");
+            } else {
+                document.getElementById("modal-auth").classList.add("hidden");
+            }
+        }
+
+        function toggleModoAuth() {
+            modoRegistro = !modoRegistro;
+            document.getElementById("auth-title").innerText = modoRegistro ? "Crear Cuenta" : "Iniciar Sesión";
+            document.getElementById("group-email").classList.toggle("hidden", !modoRegistro);
+            document.getElementById("btn-auth-submit").innerText = modoRegistro ? "Registrarse" : "Entrar a NutriAI";
+            document.getElementById("lbl-toggle-auth").innerText = modoRegistro ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?";
+            document.getElementById("btn-toggle-auth").innerText = modoRegistro ? "Inicia Sesión" : "Regístrate gratis";
+        }
+
+        async function procesarAuth(e) {
+            e.preventDefault();
+            const username = document.getElementById("auth-username").value;
+            const password = document.getElementById("auth-password").value;
+            const email = document.getElementById("auth-email").value;
+            const errorDiv = document.getElementById("auth-error");
+
+            errorDiv.classList.add("hidden");
+            const endpoint = modoRegistro ? "/api/v1/auth/registro" : "/api/v1/auth/login";
+            const body = modoRegistro ? { username, email, password } : { username_or_email: username, password };
+
+            try {
+                const res = await fetchOriginal(`${API_BASE}${endpoint}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Error en autenticación");
+
+                localStorage.setItem("nutri_token", data.access_token);
+                localStorage.setItem("nutri_user", data.username);
+                document.getElementById("modal-auth").classList.add("hidden");
+                location.reload();
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove("hidden");
+            }
+        }
+
+        function cerrarSesion() {
+            localStorage.removeItem("nutri_token");
+            localStorage.removeItem("nutri_user");
+            location.reload();
+        }
+
+        // Navegación Pestañas
         function cambiarPestana(secId) {
             document.querySelectorAll(".tab-content").forEach(el => el.classList.add("hidden"));
             document.getElementById(secId).classList.remove("hidden");
@@ -507,109 +646,36 @@
 
             if (secId === 'sec-inicio') cargarResumenDiario();
             if (secId === 'sec-despensa') cargarDespensa();
-            if (secId === 'sec-recetas') cargarRecetas();
+            if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
+            if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); }
         }
 
-        // Toggle Modal Objetivos
         function toggleModalObjetivos() {
             document.getElementById("modalObjetivos").classList.toggle("hidden");
         }
-        // Cargar Perfil
-        async function cargarPerfil() {
-            try {
-                const res = await fetch(`${API_BASE}/perfil`);
-                const p = await res.json();
 
-                document.getElementById("prof-nombre").value = p.nombre;
-                document.getElementById("prof-edad").value = p.edad;
-                document.getElementById("prof-peso").value = p.peso_kg;
-                document.getElementById("prof-altura").value = p.altura_cm;
-                document.getElementById("prof-genero").value = p.genero;
-                document.getElementById("prof-actividad").value = p.nivel_actividad;
-                document.getElementById("prof-modo").value = p.modo_objetivo;
-
-                document.getElementById("prof-prot").value = p.objetivos_diarios.proteinas_objetivo;
-                document.getElementById("prof-carb").value = p.objetivos_diarios.carbohidratos_objetivo;
-                document.getElementById("prof-gras").value = p.objetivos_diarios.grasas_objetivo;
-                document.getElementById("prof-cal-tot").value = p.objetivos_diarios.calorias_objetivo;
-
-                document.getElementById("badge-modo").innerText = p.modo_objetivo.replace("_", " ").toUpperCase();
-
-                actualizarModoVisibilidad();
-            } catch (e) {
-                console.error("Error cargando perfil", e);
-            }
-        }
-
-        function actualizarModoVisibilidad() {
-            const modo = document.getElementById("prof-modo").value;
-            document.getElementById("campo-macros-exactos").classList.toggle("hidden", modo !== "manual_macros");
-            document.getElementById("campo-calorias-totales").classList.toggle("hidden", modo !== "manual_calorias");
-            document.getElementById("campo-info-mifflin").classList.toggle("hidden", modo !== "mifflin_st_jeor");
-        }
-
-        // Guardar Perfil Submit
-        document.getElementById("perfilForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById("btnGuardarPerfil");
-            btn.disabled = true;
-
-            const datos = {
-                nombre: document.getElementById("prof-nombre").value,
-                edad: parseInt(document.getElementById("prof-edad").value),
-                peso_kg: parseFloat(document.getElementById("prof-peso").value),
-                altura_cm: parseFloat(document.getElementById("prof-altura").value),
-                genero: document.getElementById("prof-genero").value,
-                nivel_actividad: document.getElementById("prof-actividad").value,
-                modo_objetivo: document.getElementById("prof-modo").value,
-                proteinas_g: parseFloat(document.getElementById("prof-prot").value),
-                carbohidratos_g: parseFloat(document.getElementById("prof-carb").value),
-                grasas_g: parseFloat(document.getElementById("prof-gras").value),
-                calorias_totales: parseFloat(document.getElementById("prof-cal-tot").value)
-            };
-
-            await fetch(`${API_BASE}/perfil`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(datos)
-            });
-
-            btn.disabled = false;
-            alert("✅ Perfil y límites diarios actualizados con éxito.");
-            cargarPerfil();
-            cargarResumenDiario();
-        });
-
-        // Asegurar la carga inicial
-        cargarPerfil();
-
-        // Cargar Resumen Diario
+        // --- DIARIO DE CONSUMO & PAPELERAS ---
         async function cargarResumenDiario() {
             try {
                 const res = await fetch(`${API_BASE}/diario/resumen`);
                 const data = await res.json();
 
-                // Totales
                 document.getElementById("txt-cal-tot").innerText = data.calorias_totales;
                 document.getElementById("txt-cal-rest").innerText = data.calorias_restantes;
                 document.getElementById("txt-cal-obj-lbl").innerText = `de ${data.objetivos.calorias_objetivo} kcal`;
 
-                // Proteínas
                 document.getElementById("txt-prot-tot").innerText = `${data.proteinas_totales}g`;
                 document.getElementById("txt-prot-obj").innerText = `${data.objetivos.proteinas_objetivo}g`;
                 document.getElementById("txt-prot-rest").innerText = `${data.proteinas_restantes}g`;
 
-                // Carbs
                 document.getElementById("txt-carb-tot").innerText = `${data.carbohidratos_totales}g`;
                 document.getElementById("txt-carb-obj").innerText = `${data.objetivos.carbohidratos_objetivo}g`;
                 document.getElementById("txt-carb-rest").innerText = `${data.carbohidratos_restantes}g`;
 
-                // Grasas
                 document.getElementById("txt-gras-tot").innerText = `${data.grasas_totales}g`;
                 document.getElementById("txt-gras-obj").innerText = `${data.objetivos.grasas_objetivo}g`;
                 document.getElementById("txt-gras-rest").innerText = `${data.grasas_restantes}g`;
 
-                // Calcular Porcentajes
                 const pctCal = Math.min(100, (data.calorias_totales / data.objetivos.calorias_objetivo) * 100);
                 const pctProt = Math.min(100, (data.proteinas_totales / data.objetivos.proteinas_objetivo) * 100);
                 const pctCarb = Math.min(100, (data.carbohidratos_totales / data.objetivos.carbohidratos_objetivo) * 100);
@@ -620,23 +686,8 @@
                 document.getElementById("bar-carb").style.width = `${pctCarb}%`;
                 document.getElementById("bar-gras").style.width = `${pctGras}%`;
 
-                // Render Registros
-                const regList = document.getElementById("registrosList");
-                if (!data.registros || data.registros.length === 0) {
-                    regList.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>';
-                } else {
-                    regList.innerHTML = data.registros.map(r => `
-                        <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
-                            <div>
-                                <span class="text-zinc-200 font-semibold block">${r.nombre}</span>
-                                <span class="text-zinc-500 text-[9px]">${r.proteinas}g prot · ${r.carbohidratos}g carbs · ${r.grasas}g grasas</span>
-                            </div>
-                            <span class="text-matcha font-bold">+${r.calorias} kcal</span>
-                        </div>
-                    `).join("");
-                }
+                renderizarConsumos(data.registros);
 
-                // Actualizar inputs del modal
                 document.getElementById("obj-cal").value = data.objetivos.calorias_objetivo;
                 document.getElementById("obj-prot").value = data.objetivos.proteinas_objetivo;
                 document.getElementById("obj-carb").value = data.objetivos.carbohidratos_objetivo;
@@ -646,105 +697,139 @@
                 console.error("Error cargando resumen", e);
             }
         }
-        let fechaSeleccionada = new Date().toISOString().split('T')[0];
-        let chartInstance = null;
 
-        function cambiarFecha(deltaDias) {
-            const d = new Date(fechaSeleccionada);
-            d.setDate(d.getDate() + deltaDias);
-            fechaSeleccionada = d.toISOString().split('T')[0];
+        function renderizarConsumos(registros) {
+            const contenedor = document.getElementById("registrosList");
+            if (!contenedor) return;
 
-            const hoyISO = new Date().toISOString().split('T')[0];
-            document.getElementById("lbl-fecha-actual").innerText = (fechaSeleccionada === hoyISO) ? "HOY" : fechaSeleccionada;
-            document.getElementById("lbl-fecha-iso").innerText = fechaSeleccionada;
+            if (!registros || registros.length === 0) {
+                contenedor.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>';
+                return;
+            }
 
-            cargarResumenDiario(fechaSeleccionada);
+            contenedor.innerHTML = registros.map(r => `
+                <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
+                    <div>
+                        <span class="text-zinc-200 font-semibold block">${r.nombre}</span>
+                        <span class="text-zinc-500 text-[9px]">🔥 ${r.calorias} kcal · P: ${r.proteinas}g · C: ${r.carbohidratos}g · G: ${r.grasas}g</span>
+                    </div>
+                    <button onclick="eliminarConsumoDiario(${r.id})" class="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition" title="Eliminar registro">
+                        🗑️
+                    </button>
+                </div>
+            `).join("");
         }
 
-        async function cargarGraficasTendencia() {
-            const dias = document.getElementById("select-dias-tendencia")?.value || 7;
+        async function eliminarConsumoDiario(id) {
+            if (!confirm("¿Deseas eliminar este registro de comida?")) return;
             try {
-                const res = await fetch(`${API_BASE}/analitica/tendencias?dias=${dias}`);
-                const data = await res.json();
-
-                document.getElementById("kpi-prom-cal").innerText = data.promedio_calorias;
-                document.getElementById("kpi-prom-prot").innerText = data.promedio_proteinas;
-
-                const ctx = document.getElementById("chartTendencias").getContext("2d");
-                if (chartInstance) chartInstance.destroy();
-
-                chartInstance = new Chart(ctx, {
-                    type: 'bar',
-                    data: {
-                        labels: data.etiquetas,
-                        datasets: [
-                            {
-                                label: 'Calorías (kcal)',
-                                data: data.calorias,
-                                backgroundColor: '#A3E635',
-                                borderRadius: 4
-                            },
-                            {
-                                label: 'Proteínas (g)',
-                                data: data.proteinas,
-                                backgroundColor: '#F59E0B',
-                                borderRadius: 4
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { labels: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 10 } } }
-                        },
-                        scales: {
-                            x: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 9 } }, grid: { display: false } },
-                            y: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 9 } }, grid: { color: '#1E222A' } }
-                        }
-                    }
-                });
+                const res = await fetch(`${API_BASE}/diario/consumo/${id}`, { method: "DELETE" });
+                if (res.ok) {
+                    cargarResumenDiario();
+                }
             } catch (e) {
-                console.error("Error cargando gráficas", e);
+                console.error("Error al eliminar consumo:", e);
             }
         }
 
-        // Enganchar carga de gráficas al cambiar a la pestaña de perfil
-        const origCambiarPestana = cambiarPestana;
-        cambiarPestana = function(secId) {
-            origCambiarPestana(secId);
-            if (secId === 'sec-perfil') {
-                cargarPerfil();
-                cargarGraficasTendencia();
+        // --- DESPENSA & ESCÁNER OCR ---
+        async function cargarDespensa() {
+            try {
+                const res = await fetch(`${API_BASE}/despensa`);
+                const data = await res.json();
+                renderizarDespensa(data);
+            } catch (e) {
+                console.error("Error cargando despensa", e);
             }
-        };
+        }
 
-        // Guardar Metas Diarias Submit
-        document.getElementById("objetivosForm").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const metas = {
-                calorias_objetivo: parseFloat(document.getElementById("obj-cal").value),
-                proteinas_objetivo: parseFloat(document.getElementById("obj-prot").value),
-                carbohidratos_objetivo: parseFloat(document.getElementById("obj-carb").value),
-                grasas_objetivo: parseFloat(document.getElementById("obj-gras").value)
-            };
-            await fetch(`${API_BASE}/diario/objetivos`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(metas)
-            });
-            toggleModalObjetivos();
-            cargarResumenDiario();
-        });
+        function renderizarDespensa(items) {
+            const container = document.getElementById("despensaList");
+            if (!container) return;
 
-        // Cargar Recetas & Consumir Receta
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Tu despensa virtual está vacía.</p>';
+                return;
+            }
+
+            container.innerHTML = items.map(item => `
+                <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
+                    <div>
+                        <span class="text-zinc-200 font-semibold block">${item.nombre}</span>
+                        <span class="text-zinc-500 text-[9px]">${item.calorias_100g} kcal/100g · P:${item.proteinas_100g}g C:${item.carbohidratos_100g}g G:${item.grasas_100g}g</span>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <span class="text-matcha font-bold">${item.cantidad_gramos}g</span>
+                        <button onclick="eliminarPantryItem('${item.id}')" class="p-1.5 text-zinc-500 hover:text-rose-400 hover:bg-rose-500/10 rounded transition" title="Quitar de despensa">
+                            🗑️
+                        </button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        async function eliminarPantryItem(itemId) {
+            if (!confirm("¿Deseas eliminar este ingrediente de tu despensa?")) return;
+            try {
+                const res = await fetch(`${API_BASE}/pantry/${itemId}`, { method: "DELETE" });
+                if (res.ok) {
+                    cargarDespensa();
+                }
+            } catch (e) {
+                console.error("Error al eliminar elemento de despensa:", e);
+            }
+        }
+
+        // --- CREADOR DE RECETAS DESDE DESPENSA ---
+        async function popularSelectPantryRecetas() {
+            try {
+                const res = await fetch(`${API_BASE}/despensa`);
+                listaPantryCache = await res.json();
+                const select = document.getElementById("select-ingrediente-pantry");
+                if (!select) return;
+
+                select.innerHTML = `<option value="">-- Seleccionar de despensa --</option>` + 
+                    listaPantryCache.map(i => `<option value="${i.id}">${i.nombre} (${i.cantidad_gramos}g dispon.)</option>`).join("");
+            } catch (e) {
+                console.error("Error cargando opciones de despensa para receta", e);
+            }
+        }
+
+        function sumarIngredienteAReceta() {
+            const select = document.getElementById("select-ingrediente-pantry");
+            const idItem = select.value;
+            const gramos = parseFloat(document.getElementById("cant-ingrediente-g").value) || 0;
+
+            if (!idItem || gramos <= 0) {
+                alert("Selecciona un ingrediente de tu despensa e indica la cantidad en gramos.");
+                return;
+            }
+
+            const item = listaPantryCache.find(i => i.id === idItem);
+            if (!item) return;
+
+            const f = gramos / 100.0;
+            const inputCal = document.getElementById("rec-cal");
+            const inputProt = document.getElementById("rec-prot");
+            const inputCarb = document.getElementById("rec-carb");
+            const inputGras = document.getElementById("rec-gras");
+
+            inputCal.value = Math.round(((parseFloat(inputCal.value) || 0) + (item.calorias_100g * f)) * 10) / 10;
+            inputProt.value = Math.round(((parseFloat(inputProt.value) || 0) + (item.proteinas_100g * f)) * 10) / 10;
+            inputCarb.value = Math.round(((parseFloat(inputCarb.value) || 0) + (item.carbohidratos_100g * f)) * 10) / 10;
+            inputGras.value = Math.round(((parseFloat(inputGras.value) || 0) + (item.grasas_100g * f)) * 10) / 10;
+
+            document.getElementById("cant-ingrediente-g").value = "";
+            select.value = "";
+        }
+
         async function cargarRecetas() {
             try {
                 const res = await fetch(`${API_BASE}/recetas`);
                 const data = await res.json();
                 const container = document.getElementById("recetasList");
                 if (data.length === 0) {
-                    container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-4">Sin recetas disponibles.</p>';
+                    container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-4">Sin recetas registradas.</p>';
                     return;
                 }
                 container.innerHTML = data.map(r => `
@@ -757,7 +842,7 @@
                             <span class="font-mono text-xs bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded font-semibold">${r.calorias_totales} kcal</span>
                         </div>
                         <div class="flex gap-3 font-mono text-[10px] text-zinc-400 border-t border-panelBorder pt-2">
-                            <span>PROTEÍNA: <strong class="text-zinc-200">${r.proteinas_totales}g</strong></span>
+                            <span>PROT: <strong class="text-zinc-200">${r.proteinas_totales}g</strong></span>
                             <span>CARBS: <strong class="text-zinc-200">${r.carbohidratos_totales}g</strong></span>
                             <span>GRASAS: <strong class="text-zinc-200">${r.grasas_totales}g</strong></span>
                         </div>
@@ -771,12 +856,11 @@
             }
         }
 
-        // Consumir Receta Directamente
         async function consumirReceta(recetaId) {
             try {
                 const res = await fetch(`${API_BASE}/recetas/${recetaId}/consumir`, { method: "POST" });
                 if (res.ok) {
-                    alert("✅ Receta consumida y agregada a tus macros diarios.");
+                    alert("✅ Receta consumida e incorporada a tus macros diarios.");
                     cargarResumenDiario();
                 }
             } catch (e) {
@@ -785,10 +869,13 @@
         }
 
         function toggleFormReceta() {
-            document.getElementById("recetaForm").classList.toggle("hidden");
+            const form = document.getElementById("recetaForm");
+            form.classList.toggle("hidden");
+            if (!form.classList.contains("hidden")) {
+                popularSelectPantryRecetas();
+            }
         }
 
-        // Guardar Receta
         document.getElementById("recetaForm")?.addEventListener("submit", async (e) => {
             e.preventDefault();
             const btn = document.getElementById("btnGuardarReceta");
@@ -820,29 +907,155 @@
             btn.disabled = false;
         });
 
-        // Cargar Despensa
-        async function cargarDespensa() {
+        // --- PERFIL Y GRÁFICOS AVANZADOS (BARRAS Y DONUT) ---
+        async function cargarPerfil() {
             try {
-                const res = await fetch(`${API_BASE}/despensa`);
-                const data = await res.json();
-                const container = document.getElementById("despensaList");
-                if (data.length === 0) {
-                    container.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Despensa vacía.</p>';
-                    return;
-                }
-                container.innerHTML = data.map(item => `
-                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl flex justify-between items-center font-mono text-[11px]">
-                        <div>
-                            <span class="text-zinc-200 font-semibold block">${item.nombre}</span>
-                            <span class="text-zinc-500 text-[9px]">${item.calorias_100g} kcal/100g · ${item.proteinas_100g}g prot</span>
-                        </div>
-                        <span class="text-matcha font-bold">${item.cantidad_gramos} g</span>
-                    </div>
-                `).join("");
+                const res = await fetch(`${API_BASE}/perfil`);
+                const p = await res.json();
+
+                document.getElementById("prof-nombre").value = p.nombre;
+                document.getElementById("prof-edad").value = p.edad;
+                document.getElementById("prof-peso").value = p.peso_kg;
+                document.getElementById("prof-altura").value = p.altura_cm;
+                document.getElementById("prof-genero").value = p.genero;
+                document.getElementById("prof-actividad").value = p.nivel_actividad;
+                document.getElementById("prof-modo").value = p.modo_objetivo;
+
+                document.getElementById("prof-prot").value = p.objetivos_diarios.proteinas_objetivo;
+                document.getElementById("prof-carb").value = p.objetivos_diarios.carbohidratos_objetivo;
+                document.getElementById("prof-gras").value = p.objetivos_diarios.grasas_objetivo;
+                document.getElementById("prof-cal-tot").value = p.objetivos_diarios.calorias_objetivo;
+
+                document.getElementById("badge-modo").innerText = p.modo_objetivo.replace("_", " ").toUpperCase();
+                actualizarModoVisibilidad();
             } catch (e) {
-                console.error("Error cargando despensa", e);
+                console.error("Error cargando perfil", e);
             }
         }
+
+        function actualizarModoVisibilidad() {
+            const modo = document.getElementById("prof-modo").value;
+            document.getElementById("campo-macros-exactos").classList.toggle("hidden", modo !== "manual_macros");
+            document.getElementById("campo-calorias-totales").classList.toggle("hidden", modo !== "manual_calorias");
+            document.getElementById("campo-info-mifflin").classList.toggle("hidden", modo !== "mifflin_st_jeor");
+        }
+
+        document.getElementById("perfilForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById("btnGuardarPerfil");
+            btn.disabled = true;
+
+            const datos = {
+                nombre: document.getElementById("prof-nombre").value,
+                edad: parseInt(document.getElementById("prof-edad").value),
+                peso_kg: parseFloat(document.getElementById("prof-peso").value),
+                altura_cm: parseFloat(document.getElementById("prof-altura").value),
+                genero: document.getElementById("prof-genero").value,
+                nivel_actividad: document.getElementById("prof-actividad").value,
+                modo_objetivo: document.getElementById("prof-modo").value,
+                proteinas_g: parseFloat(document.getElementById("prof-prot").value),
+                carbohidratos_g: parseFloat(document.getElementById("prof-carb").value),
+                grasas_g: parseFloat(document.getElementById("prof-gras").value),
+                calorias_totales: parseFloat(document.getElementById("prof-cal-tot").value)
+            };
+
+            await fetch(`${API_BASE}/perfil`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+
+            btn.disabled = false;
+            alert("✅ Perfil y límites diarios actualizados con éxito.");
+            cargarPerfil();
+            cargarResumenDiario();
+        });
+
+        async function cargarGraficasTendencia() {
+            const dias = document.getElementById("select-dias-tendencia")?.value || 7;
+            try {
+                const res = await fetch(`${API_BASE}/analitica/tendencias?dias=${dias}`);
+                const data = await res.json();
+
+                document.getElementById("kpi-prom-cal").innerText = data.promedio_calorias;
+                document.getElementById("kpi-prom-prot").innerText = data.promedio_proteinas;
+
+                // 1. Gráfico de Barras (Tendencias Diarias)
+                const ctxBars = document.getElementById("chartTendencias").getContext("2d");
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctxBars, {
+                    type: 'bar',
+                    data: {
+                        labels: data.etiquetas,
+                        datasets: [
+                            { label: 'Calorías (kcal)', data: data.calorias, backgroundColor: '#A3E635', borderRadius: 4 },
+                            { label: 'Proteínas (g)', data: data.proteinas, backgroundColor: '#F59E0B', borderRadius: 4 }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } } } },
+                        scales: {
+                            x: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } },
+                            y: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: '#1E222A' } }
+                        }
+                    }
+                });
+
+                // 2. Gráfico Donut (Distribución Real de Macronutrientes)
+                const totProt = data.proteinas.reduce((a, b) => a + b, 0);
+                const totCal = data.calorias.reduce((a, b) => a + b, 0) || 1;
+                
+                const protKcal = totProt * 4;
+                const carbsKcal = Math.max(0, totCal * 0.45);
+                const grasasKcal = Math.max(0, totCal - protKcal - carbsKcal);
+
+                const ctxDonut = document.getElementById("chartDonutMacros").getContext("2d");
+                if (chartDonutInstance) chartDonutInstance.destroy();
+
+                chartDonutInstance = new Chart(ctxDonut, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Proteínas', 'Carbohidratos', 'Grasas'],
+                        datasets: [{
+                            data: [Math.round(protKcal), Math.round(carbsKcal), Math.round(grasasKcal)],
+                            backgroundColor: ['#A3E635', '#60A5FA', '#F87171'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } } }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Error cargando gráficas", e);
+            }
+        }
+
+        // --- SUBMIT OBJETIVOS Y ESCÁNER OCR ---
+        document.getElementById("objetivosForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const metas = {
+                calorias_objetivo: parseFloat(document.getElementById("obj-cal").value),
+                proteinas_objetivo: parseFloat(document.getElementById("obj-prot").value),
+                carbohidratos_objetivo: parseFloat(document.getElementById("obj-carb").value),
+                grasas_objetivo: parseFloat(document.getElementById("obj-gras").value)
+            };
+            await fetch(`${API_BASE}/diario/objetivos`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(metas)
+            });
+            toggleModalObjetivos();
+            cargarResumenDiario();
+        });
 
         function mostrarNombreArchivo(input) {
             const preview = document.getElementById("file-name-preview");
@@ -852,8 +1065,7 @@
             }
         }
 
-        // OCR Submit
-        document.getElementById("ocrForm").addEventListener("submit", async (e) => {
+        document.getElementById("ocrForm")?.addEventListener("submit", async (e) => {
             e.preventDefault();
             const input = document.getElementById("ocrInput");
             const status = document.getElementById("ocrStatus");
@@ -900,8 +1112,8 @@
             }
         });
 
-        // Chat Submit
-        document.getElementById("chatForm").addEventListener("submit", async (e) => {
+        // --- CHAT AGENTE ---
+        document.getElementById("chatForm")?.addEventListener("submit", async (e) => {
             e.preventDefault();
             const input = document.getElementById("chatInput");
             const history = document.getElementById("chatHistory");
@@ -942,7 +1154,6 @@
                     </div>
                 `;
 
-                // Refrescar diario por si el agente registró consumo
                 if (data.herramientas_usadas.includes("herramienta_registrar_comida_consumida")) {
                     cargarResumenDiario();
                 }
@@ -955,7 +1166,8 @@
             }
         });
 
-        // Inicialización
+        // Inicializar
+        verificarSesion();
         cargarResumenDiario();
     </script>
 </body>

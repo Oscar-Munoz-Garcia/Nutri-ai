@@ -9,12 +9,18 @@ def _fecha_hoy() -> str:
     return date.today().isoformat()
 
 
-def establecer_objetivos(objetivos: ObjetivosMacros) -> ObjetivosMacros:
+def establecer_objetivos(objetivos: ObjetivosMacros, usuario_id: int = None) -> ObjetivosMacros:
     db = SessionLocal()
     try:
-        pdb = db.query(PerfilDB).filter(PerfilDB.id == 1).first()
+        if usuario_id:
+            pdb = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
+        else:
+            pdb = db.query(PerfilDB).first()
+
         if not pdb:
-            pdb = PerfilDB(id=1)
+            user = db.query(UsuarioDB).first()
+            uid = user.id if user else None
+            pdb = PerfilDB(usuario_id=uid)
             db.add(pdb)
 
         pdb.calorias_objetivo = objetivos.calorias_objetivo
@@ -46,6 +52,17 @@ def registrar_consumo(registro: RegistroConsumo, fecha: Optional[str] = None) ->
     finally:
         db.close()
 
+def eliminar_registro_consumo(registro_id: int) -> bool:
+    db = SessionLocal()
+    try:
+        registro = db.query(RegistroConsumoDB).filter(RegistroConsumoDB.id == registro_id).first()
+        if registro:
+            db.delete(registro)
+            db.commit()
+            return True
+        return False
+    finally:
+        db.close()
 
 def obtener_resumen_diario(fecha: Optional[str] = None) -> ResumenDiario:
     fecha_target = fecha or _fecha_hoy()
