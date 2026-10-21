@@ -1,7 +1,12 @@
-from typing import List
+from datetime import date
+from typing import List, Optional
 from app.models.daily import ObjetivosMacros, RegistroConsumo, ResumenDiario
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB, PerfilDB
+
+
+def _fecha_hoy() -> str:
+    return date.today().isoformat()
 
 
 def establecer_objetivos(objetivos: ObjetivosMacros) -> ObjetivosMacros:
@@ -23,10 +28,12 @@ def establecer_objetivos(objetivos: ObjetivosMacros) -> ObjetivosMacros:
         db.close()
 
 
-def registrar_consumo(registro: RegistroConsumo) -> RegistroConsumo:
+def registrar_consumo(registro: RegistroConsumo, fecha: Optional[str] = None) -> RegistroConsumo:
+    fecha_target = fecha or _fecha_hoy()
     db = SessionLocal()
     try:
         nuevo = RegistroConsumoDB(
+            fecha=fecha_target,
             nombre=registro.nombre,
             calorias=registro.calorias,
             proteinas=registro.proteinas,
@@ -40,7 +47,8 @@ def registrar_consumo(registro: RegistroConsumo) -> RegistroConsumo:
         db.close()
 
 
-def obtener_resumen_diario() -> ResumenDiario:
+def obtener_resumen_diario(fecha: Optional[str] = None) -> ResumenDiario:
+    fecha_target = fecha or _fecha_hoy()
     db = SessionLocal()
     try:
         pdb = db.query(PerfilDB).filter(PerfilDB.id == 1).first()
@@ -57,7 +65,7 @@ def obtener_resumen_diario() -> ResumenDiario:
             grasas_objetivo=pdb.grasas_objetivo
         )
 
-        registros_db = db.query(RegistroConsumoDB).all()
+        registros_db = db.query(RegistroConsumoDB).filter(RegistroConsumoDB.fecha == fecha_target).all()
         registros = [
             RegistroConsumo(
                 nombre=r.nombre,

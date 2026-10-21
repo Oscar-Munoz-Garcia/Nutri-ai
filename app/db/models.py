@@ -1,5 +1,5 @@
-from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Column, String, Float, Integer, Text, Date
+from datetime import date
 from app.db.session import Base
 
 
@@ -19,6 +19,14 @@ class PerfilDB(Base):
     proteinas_objetivo = Column(Float, default=160.0)
     carbohidratos_objetivo = Column(Float, default=210.0)
     grasas_objetivo = Column(Float, default=70.0)
+
+
+class PesoHistorialDB(Base):
+    __tablename__ = "peso_historial"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    fecha = Column(String, index=True)  # YYYY-MM-DD
+    peso_kg = Column(Float)
 
 
 class PantryDB(Base):
@@ -44,13 +52,14 @@ class RecetaDB(Base):
     carbohidratos_totales = Column(Float, default=0.0)
     grasas_totales = Column(Float, default=0.0)
     tiempo_preparacion_min = Column(Integer, default=15)
-    utensilios_necesarios = Column(Text, default="Sartén")  # Comma separated
+    utensilios_necesarios = Column(Text, default="Sartén")
 
 
 class RegistroConsumoDB(Base):
     __tablename__ = "registros_consumo"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
+    fecha = Column(String, index=True)  # Formato: YYYY-MM-DD
     nombre = Column(String, index=True)
     calorias = Column(Float, default=0.0)
     proteinas = Column(Float, default=0.0)
