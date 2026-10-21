@@ -14,6 +14,10 @@ import app.services.agent_service as agent_service
 from app.models.pantry import AlimentoPantry, AlimentoPantryEntrada
 from app.models.vision import ProductoOCR
 
+from app.models.profile import PerfilUsuario, PerfilActualizar
+import app.services.profile_service as profile_service
+
+
 app = FastAPI(
     title="NutriAI Engine API",
     version="1.2.0",
@@ -110,3 +114,13 @@ async def procesar_imagen_ocr(file: UploadFile = File(...)):
 @app.post("/api/v1/chat/planificar", response_model=RespuestaChat, tags=["Agente AI"])
 async def chat_agente(solicitud: SolicitudChat):
     return await agent_service.procesar_chat_agente(solicitud)
+
+# --- ENDPOINTS DE PERFIL DE USUARIO ---
+@app.get("/api/v1/perfil", response_model=PerfilUsuario, tags=["Perfil"])
+def obtener_perfil():
+    return profile_service.obtener_perfil()
+
+
+@app.put("/api/v1/perfil", response_model=PerfilUsuario, tags=["Perfil"])
+def actualizar_perfil(datos: PerfilActualizar):
+    return profile_service.actualizar_perfil(datos)
