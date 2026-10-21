@@ -591,7 +591,6 @@
             document.getElementById("lbl-toggle-auth").innerText = modoRegistro ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?";
             document.getElementById("btn-toggle-auth").innerText = modoRegistro ? "Inicia Sesión" : "Regístrate gratis";
         }
-
         async function procesarAuth(e) {
             e.preventDefault();
             const username = document.getElementById("auth-username").value;
@@ -600,7 +599,7 @@
             const errorDiv = document.getElementById("auth-error");
 
             errorDiv.classList.add("hidden");
-            const endpoint = modoRegistro ? "/api/v1/auth/registro" : "/api/v1/auth/login";
+            const endpoint = modoRegistro ? "/auth/registro" : "/auth/login";
             const body = modoRegistro ? { username, email, password } : { username_or_email: username, password };
 
             try {
