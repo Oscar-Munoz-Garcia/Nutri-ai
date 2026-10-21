@@ -19,6 +19,8 @@
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -307,112 +309,148 @@
             </div>
         </section>
         <!-- PESTAÑA 05: PERFIL Y CONFIGURACIÓN DE OBJETIVOS -->
-        <section id="sec-perfil" class="tab-content hidden space-y-6">
-            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
-                <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
+<section id="sec-perfil" class="tab-content hidden space-y-6">
+    
+    <!-- BLOQUE 1: FORMULARIO DE CONFIGURACIÓN -->
+    <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
+        <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
+            <div>
+                <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CONFIGURACIÓN DE USUARIO</span>
+                <h2 class="font-display font-semibold text-lg text-zinc-100">Perfil & Límites Diarios</h2>
+            </div>
+            <span id="badge-modo" class="font-mono text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded uppercase font-semibold">
+                Manual Macros
+            </span>
+        </div>
+
+        <form id="perfilForm" class="space-y-4 font-mono text-xs">
+            <!-- Datos Personales -->
+            <div class="space-y-3">
+                <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Datos Antropométricos</span>
+                <div>
+                    <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
+                    <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                </div>
+                <div class="grid grid-cols-3 gap-2">
                     <div>
-                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CONFIGURACIÓN DE USUARIO</span>
-                        <h2 class="font-display font-semibold text-lg text-zinc-100">Perfil & Límites Diarios</h2>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
+                        <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                     </div>
-                    <span id="badge-modo" class="font-mono text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded uppercase font-semibold">
-                        Manual Macros
-                    </span>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
+                        <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                    </div>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
+                        <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
+                        <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            <option value="hombre">Hombre</option>
+                            <option value="mujer">Mujer</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
+                        <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            <option value="sedentario">Sedentario</option>
+                            <option value="ligero">Ligero</option>
+                            <option value="moderado">Moderado</option>
+                            <option value="intenso">Intenso</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modo de Configuración de Límites -->
+            <div class="space-y-3 pt-3 border-t border-panelBorder">
+                <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
+                <div>
+                    <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
+                        <option value="manual_macros">⚙️ Macros Exactos (Personalizado)</option>
+                        <option value="manual_calorias">🔥 Calorías Totales (Reparto automático)</option>
+                        <option value="mifflin_st_jeor">🧮 Calculadora Automática (Mifflin-St Jeor)</option>
+                    </select>
                 </div>
 
-                <form id="perfilForm" class="space-y-4 font-mono text-xs">
-                    <!-- Datos Personales -->
-                    <div class="space-y-3">
-                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Datos Antropométricos</span>
+                <!-- Campos para Macros Exactos -->
+                <div id="campo-macros-exactos" class="space-y-2 pt-2">
+                    <span class="text-zinc-400 text-[10px] block">Define los gramos exactos deseados para todos los días:</span>
+                    <div class="grid grid-cols-3 gap-2">
                         <div>
-                            <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
-                            <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
+                            <input type="number" step="0.1" id="prof-prot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                         </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
-                                <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
-                                <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
-                                <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
+                            <input type="number" step="0.1" id="prof-carb" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                         </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
-                                <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                    <option value="hombre">Hombre</option>
-                                    <option value="mujer">Mujer</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
-                                <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                    <option value="sedentario">Sedentario</option>
-                                    <option value="ligero">Ligero</option>
-                                    <option value="moderado">Moderado</option>
-                                    <option value="intenso">Intenso</option>
-                                </select>
-                            </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
+                            <input type="number" step="0.1" id="prof-gras" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                         </div>
                     </div>
+                </div>
 
-                    <!-- Modo de Configuración de Límites -->
-                    <div class="space-y-3 pt-3 border-t border-panelBorder">
-                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
-                        <div>
-                            <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
-                                <option value="manual_macros">⚙️ Macros Exactos (Personalizado)</option>
-                                <option value="manual_calorias">🔥 Calorías Totales (Reparto automático)</option>
-                                <option value="mifflin_st_jeor">🧮 Calculadora Automática (Mifflin-St Jeor)</option>
-                            </select>
-                        </div>
-
-                        <!-- Campos para Macros Exactos -->
-                        <div id="campo-macros-exactos" class="space-y-2 pt-2">
-                            <span class="text-zinc-400 text-[10px] block">Define los gramos exactos deseados para todos los días:</span>
-                            <div class="grid grid-cols-3 gap-2">
-                                <div>
-                                    <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
-                                    <input type="number" step="0.1" id="prof-prot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                </div>
-                                <div>
-                                    <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
-                                    <input type="number" step="0.1" id="prof-carb" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                </div>
-                                <div>
-                                    <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
-                                    <input type="number" step="0.1" id="prof-gras" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Campos para Calorías Totales -->
-                        <div id="campo-calorias-totales" class="space-y-2 pt-2 hidden">
-                            <span class="text-zinc-400 text-[10px] block">Introduce las calorías totales diarias. Se repartirán automáticamente (30% Prot / 40% Carb / 30% Grasas):</span>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Límite Calorías Totales (kcal)</label>
-                                <input type="number" step="1" id="prof-cal-tot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                        </div>
-
-                        <!-- Info Mifflin St Jeor -->
-                        <div id="campo-info-mifflin" class="p-3 bg-canvas border border-panelBorder rounded-xl text-zinc-400 text-[10px] leading-relaxed hidden">
-                            💡 Se calcularán automáticamente tus necesidades metabólicas diarias y gramos óptimos según tu peso, altura, edad y nivel de actividad.
-                        </div>
+                <!-- Campos para Calorías Totales -->
+                <div id="campo-calorias-totales" class="space-y-2 pt-2 hidden">
+                    <span class="text-zinc-400 text-[10px] block">Introduce las calorías totales diarias. Se repartirán automáticamente (30% Prot / 40% Carb / 30% Grasas):</span>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Límite Calorías Totales (kcal)</label>
+                        <input type="number" step="1" id="prof-cal-tot" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                     </div>
+                </div>
 
-                    <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
-                        Guardar Perfil & Actualizar Diario
-                    </button>
-                </form>
+                <!-- Info Mifflin St Jeor -->
+                <div id="campo-info-mifflin" class="p-3 bg-canvas border border-panelBorder rounded-xl text-zinc-400 text-[10px] leading-relaxed hidden">
+                    💡 Se calcularán automáticamente tus necesidades metabólicas diarias y gramos óptimos según tu peso, altura, edad y nivel de actividad.
+                </div>
             </div>
-        </section>
-    </main>
+
+            <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
+                Guardar Perfil & Actualizar Diario
+            </button>
+        </form>
+    </div>
+
+    <!-- BLOQUE 2: ANALÍTICA Y TENDENCIAS HISTÓRICAS CON GRÁFICAS -->
+    <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+        <div class="flex justify-between items-center border-b border-panelBorder pb-3">
+            <div>
+                <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA HISTÓRICA</span>
+                <h3 class="font-display font-semibold text-base text-zinc-100">Tendencia de Calorías & Proteínas</h3>
+            </div>
+            <select id="select-dias-tendencia" onchange="cargarGraficasTendencia()" class="bg-canvas border border-panelBorder text-matcha font-mono text-[10px] px-2.5 py-1 rounded focus:outline-none focus:border-matcha">
+                <option value="7">7 Días</option>
+                <option value="14">14 Días</option>
+                <option value="30">30 Días</option>
+            </select>
+        </div>
+
+        <!-- KPIs Resumen -->
+        <div class="grid grid-cols-2 gap-3 font-mono text-xs">
+            <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                <span class="text-[9px] text-zinc-500 uppercase block">Promedio Calórico</span>
+                <span id="kpi-prom-cal" class="text-lg font-bold text-matcha">0</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
+            </div>
+            <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                <span class="text-[9px] text-zinc-500 uppercase block">Promedio Proteína</span>
+                <span id="kpi-prom-prot" class="text-lg font-bold text-amberAccent">0</span> <span class="text-[10px] text-zinc-500">g/día</span>
+            </div>
+        </div>
+
+        <!-- Lienzo de Chart.js -->
+        <div class="h-56 relative pt-2">
+            <canvas id="chartTendencias"></canvas>
+        </div>
+    </div>
+
+</section>
+</main>
+
     
 
     <!-- MODAL DE CONFIGURACIÓN DE METAS DE MACROS -->
@@ -608,6 +646,78 @@
                 console.error("Error cargando resumen", e);
             }
         }
+        let fechaSeleccionada = new Date().toISOString().split('T')[0];
+        let chartInstance = null;
+
+        function cambiarFecha(deltaDias) {
+            const d = new Date(fechaSeleccionada);
+            d.setDate(d.getDate() + deltaDias);
+            fechaSeleccionada = d.toISOString().split('T')[0];
+
+            const hoyISO = new Date().toISOString().split('T')[0];
+            document.getElementById("lbl-fecha-actual").innerText = (fechaSeleccionada === hoyISO) ? "HOY" : fechaSeleccionada;
+            document.getElementById("lbl-fecha-iso").innerText = fechaSeleccionada;
+
+            cargarResumenDiario(fechaSeleccionada);
+        }
+
+        async function cargarGraficasTendencia() {
+            const dias = document.getElementById("select-dias-tendencia")?.value || 7;
+            try {
+                const res = await fetch(`${API_BASE}/analitica/tendencias?dias=${dias}`);
+                const data = await res.json();
+
+                document.getElementById("kpi-prom-cal").innerText = data.promedio_calorias;
+                document.getElementById("kpi-prom-prot").innerText = data.promedio_proteinas;
+
+                const ctx = document.getElementById("chartTendencias").getContext("2d");
+                if (chartInstance) chartInstance.destroy();
+
+                chartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.etiquetas,
+                        datasets: [
+                            {
+                                label: 'Calorías (kcal)',
+                                data: data.calorias,
+                                backgroundColor: '#A3E635',
+                                borderRadius: 4
+                            },
+                            {
+                                label: 'Proteínas (g)',
+                                data: data.proteinas,
+                                backgroundColor: '#F59E0B',
+                                borderRadius: 4
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { labels: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 10 } } }
+                        },
+                        scales: {
+                            x: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 9 } }, grid: { display: false } },
+                            y: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 9 } }, grid: { color: '#1E222A' } }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error cargando gráficas", e);
+            }
+        }
+
+        // Enganchar carga de gráficas al cambiar a la pestaña de perfil
+        const origCambiarPestana = cambiarPestana;
+        cambiarPestana = function(secId) {
+            origCambiarPestana(secId);
+            if (secId === 'sec-perfil') {
+                cargarPerfil();
+                cargarGraficasTendencia();
+            }
+        };
 
         // Guardar Metas Diarias Submit
         document.getElementById("objetivosForm").addEventListener("submit", async (e) => {

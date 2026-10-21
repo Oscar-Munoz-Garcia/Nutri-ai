@@ -17,6 +17,9 @@ from app.models.vision import ProductoOCR
 from app.models.profile import PerfilUsuario, PerfilActualizar
 import app.services.profile_service as profile_service
 from app.db.session import init_db
+
+from typing import Optional
+import app.services.analytics_service as analytics_service
 # Inicializar tablas de SQLite al arrancar la app
 init_db()
 app = FastAPI(
@@ -125,3 +128,12 @@ def obtener_perfil():
 @app.put("/api/v1/perfil", response_model=PerfilUsuario, tags=["Perfil"])
 def actualizar_perfil(datos: PerfilActualizar):
     return profile_service.actualizar_perfil(datos)
+
+@app.get("/api/v1/diario/resumen", response_model=ResumenDiario, tags=["Diario"])
+def obtener_resumen_diario(fecha: Optional[str] = None):
+    return daily_service.obtener_resumen_diario(fecha=fecha)
+
+
+@app.get("/api/v1/analitica/tendencias", tags=["Analítica"])
+def obtener_tendencias(dias: int = 7):
+    return analytics_service.obtener_tendencias(dias=dias)
