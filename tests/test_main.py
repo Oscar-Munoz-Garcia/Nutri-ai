@@ -83,3 +83,30 @@ def test_consumir_receta():
         res_consumo = client.post(f"/api/v1/recetas/{rec_id}/consumir")
         assert res_consumo.status_code == 200
         assert "status" in res_consumo.json()
+
+def test_obtener_perfil():
+    response = client.get("/api/v1/perfil")
+    assert response.status_code == 200
+    data = response.json()
+    assert "nombre" in data
+    assert "objetivos_diarios" in data
+
+
+def test_actualizar_perfil_macros_exactos():
+    datos = {
+        "nombre": "Oscar Test",
+        "edad": 25,
+        "peso_kg": 78.0,
+        "altura_cm": 180.0,
+        "genero": "hombre",
+        "nivel_actividad": "intenso",
+        "modo_objetivo": "manual_macros",
+        "proteinas_g": 180.0,
+        "carbohidratos_g": 200.0,
+        "grasas_g": 60.0
+    }
+    response = client.put("/api/v1/perfil", json=datos)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["nombre"] == "Oscar Test"
+    assert data["objetivos_diarios"]["proteinas_objetivo"] == 180.0
