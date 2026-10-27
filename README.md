@@ -2,7 +2,7 @@
 
 ## Privacidad multiusuario
 
-Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y analítica: todas las rutas `/api/v1/*` (salvo registro y login) exigen `Authorization: Bearer <token>` y filtran por `usuario_id`. Sin token la API responde `401`. Los datos antiguos sin dueño (`usuario_id` vacío) se asignan al primer usuario registrado al arrancar.
+Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y analítica: todas las rutas `/api/v1/*` (salvo registro y login) exigen `Authorization: Bearer <token>` y filtran por `usuario_id`. Sin token la API responde `401`. Los datos antiguos sin dueño (`usuario_id` vacío) se asignan al primer usuario registrado una sola vez (la primera vez que arranca esta versión); una fila sin dueño que aparezca después no se asigna a nadie.
 
 ## Copias de seguridad de `nutri_ai.db`
 

@@ -22,17 +22,41 @@ def _anadir_columnas_faltantes(conn) -> None:
                 conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))
 
 
+def _migracion_aplicada(conn, nombre: str) -> bool:
+    conn.execute(text("CREATE TABLE IF NOT EXISTS migraciones_aplicadas (nombre VARCHAR PRIMARY KEY)"))
+    return conn.execute(
+        text("SELECT 1 FROM migraciones_aplicadas WHERE nombre = :n"), {"n": nombre}
+    ).first() is not None
+
+
+def _marcar_migracion(conn, nombre: str) -> None:
+    conn.execute(text("INSERT INTO migraciones_aplicadas (nombre) VALUES (:n)"), {"n": nombre})
+
+
 def _asignar_filas_huerfanas(conn) -> None:
-    """Las filas creadas antes del modo multiusuario no tienen usuario_id.
-    Se asignan al primer usuario registrado para que no queden visibles para todos ni se pierdan."""
+    """Migración de UNA SOLA VEZ: las filas creadas antes del modo multiusuario no tienen usuario_id
+    y se asignan al primer usuario registrado (el único que usaba la app entonces).
+    Queda registrada en migraciones_aplicadas, así que una fila sin dueño que aparezca más adelante
+    nunca se asigna a nadie: queda invisible para todos."""
+    nombre = "asignar_filas_huerfanas_v1"
+    if _migracion_aplicada(conn, nombre):
+        return
+
     primer_usuario = conn.execute(text("SELECT MIN(id) FROM usuarios")).scalar()
     if primer_usuario is None:
-        return
-    for tabla in TABLAS_POR_USUARIO:
-        conn.execute(
-            text(f"UPDATE {tabla} SET usuario_id = :uid WHERE usuario_id IS NULL"),
-            {"uid": primer_usuario}
+        hay_huerfanas = any(
+            conn.execute(text(f"SELECT 1 FROM {tabla} WHERE usuario_id IS NULL LIMIT 1")).first()
+            for tabla in TABLAS_POR_USUARIO
         )
+        if hay_huerfanas:
+            return  # Datos antiguos sin ningún usuario aún: se asignarán al primero que se registre
+    else:
+        for tabla in TABLAS_POR_USUARIO:
+            conn.execute(
+                text(f"UPDATE {tabla} SET usuario_id = :uid WHERE usuario_id IS NULL"),
+                {"uid": primer_usuario}
+            )
+    _marcar_migracion(conn, nombre)
 
 
 def aplicar_migraciones(engine) -> None:

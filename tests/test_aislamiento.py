@@ -125,3 +125,27 @@ def test_backup_crea_copia_y_limpia_antiguas(tmp_path):
     with sqlite3.connect(archivo) as conn:
         tablas = {t for (t,) in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     assert {"usuarios", "pantry", "recetas", "registros_consumo"} <= tablas
+
+
+def test_filas_sin_dueno_solo_se_asignan_una_vez(tmp_path):
+    from sqlalchemy import create_engine, text
+    from app.db.session import Base
+    from app.db.migrations import aplicar_migraciones
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'legacy.db'}")
+    Base.metadata.create_all(bind=engine)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO usuarios (username, email, password_hash) VALUES ('oscar', 'o@x.com', 'h')"))
+        conn.execute(text("INSERT INTO registros_consumo (fecha, nombre, calorias, proteinas, carbohidratos, grasas) "
+                          "VALUES ('2026-01-01', 'antigua', 100, 1, 1, 1)"))
+
+    aplicar_migraciones(engine)
+    with engine.begin() as conn:
+        conn.execute(text("INSERT INTO usuarios (username, email, password_hash) VALUES ('ana', 'a@x.com', 'h')"))
+        conn.execute(text("INSERT INTO registros_consumo (fecha, nombre, calorias, proteinas, carbohidratos, grasas) "
+                          "VALUES ('2026-02-01', 'nueva_sin_dueno', 100, 1, 1, 1)"))
+    aplicar_migraciones(engine)
+
+    with engine.connect() as conn:
+        filas = dict(conn.execute(text("SELECT nombre, usuario_id FROM registros_consumo")).all())
+    assert filas == {"antigua": 1, "nueva_sin_dueno": None}
