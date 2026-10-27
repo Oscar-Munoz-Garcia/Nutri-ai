@@ -1,6 +1,6 @@
 // Dashboard 360°: calendario de constancia, registro rápido por voz y modo cocina.
 // Usa API_BASE y el wrapper de fetch con JWT definidos en index.html.
-// Los colores salen de variables CSS (--color-1/2/3, --nx-*) para que el tema claro/oscuro las pueda redefinir.
+// Los colores salen de las variables CSS del tema (--color-1/2/3, --c-*, --zinc-*), así cambian con el modo claro/oscuro.
 (function () {
     const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
@@ -10,11 +10,12 @@
             --nx-accent: var(--color-1, #49C6D4);
             --nx-accent-2: var(--color-2, #4981D4);
             --nx-accent-3: var(--color-3, #5749D4);
-            --nx-surface: var(--surface, #121418);
-            --nx-surface-2: var(--surface-2, #0B0C0E);
-            --nx-border: var(--border, #1E222A);
-            --nx-text: var(--text, #F4F4F5);
-            --nx-muted: var(--text-muted, #A1A1AA);
+            /* Tokens RGB del tema claro/oscuro (--c-*, --zinc-*); los valores tras la coma son el tema antiguo */
+            --nx-surface: rgb(var(--c-panel, 18 20 24));
+            --nx-surface-2: rgb(var(--c-canvas, 11 12 14));
+            --nx-border: rgb(var(--c-border, 30 34 42));
+            --nx-text: rgb(var(--zinc-100, 244 244 245));
+            --nx-muted: rgb(var(--zinc-400, 161 161 170));
             --nx-heat-0: var(--heat-0, rgba(161, 161, 170, 0.18));
             --nx-heat-1: var(--heat-1, rgba(161, 161, 170, 0.45));
             --nx-heat-2: var(--heat-2, #2E8B57);
