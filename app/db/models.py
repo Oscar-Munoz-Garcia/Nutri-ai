@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, Text, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -93,3 +93,14 @@ class RegistroConsumoDB(Base):
     proteinas = Column(Float, default=0.0)
     carbohidratos = Column(Float, default=0.0)
     grasas = Column(Float, default=0.0)
+
+class AmistadDB(Base):
+    """Solicitud de amistad entre dos usuarios. estado: 'pendiente' o 'aceptada' (una rechazada se borra)."""
+    __tablename__ = "amistades"
+    __table_args__ = (UniqueConstraint("solicitante_id", "destinatario_id", name="uq_amistad_par"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    solicitante_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    destinatario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    estado = Column(String, default="pendiente", nullable=False)
+    fecha = Column(String)

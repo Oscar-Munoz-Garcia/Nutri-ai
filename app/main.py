@@ -29,6 +29,8 @@ from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
 from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
 import app.services.metabolic_service as metabolic_service
+from app.models.friends import Amigos, SolicitudAmistadEntrada
+import app.services.friends_service as friends_service
 
 
 
@@ -219,3 +221,37 @@ def obtener_tdee_dinamico(dias: int = 28, current_user: UsuarioDB = Depends(obte
 @app.get("/api/v1/versus", response_model=Versus, tags=["Versus"])
 def obtener_versus(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return metabolic_service.obtener_versus(current_user.id)
+
+
+# --- ENDPOINTS DE AMISTADES (el Versus solo incluye amigos aceptados) ---
+@app.get("/api/v1/amigos", response_model=Amigos, tags=["Versus"])
+def listar_amigos(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return friends_service.listar(current_user.id)
+
+
+@app.post("/api/v1/amigos/solicitudes", tags=["Versus"])
+def enviar_solicitud_amistad(datos: SolicitudAmistadEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    resultado = friends_service.enviar_solicitud(current_user.id, datos.usuario)
+    mensaje = "Ya sois amigos: tenía una solicitud tuya pendiente." if resultado == "aceptada" else "Solicitud enviada."
+    return {"status": resultado, "message": mensaje}
+
+
+@app.post("/api/v1/amigos/solicitudes/{solicitud_id}/aceptar", tags=["Versus"])
+def aceptar_solicitud_amistad(solicitud_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.aceptar_solicitud(current_user.id, solicitud_id):
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return {"status": "ok", "message": "Solicitud aceptada"}
+
+
+@app.delete("/api/v1/amigos/solicitudes/{solicitud_id}", tags=["Versus"])
+def borrar_solicitud_amistad(solicitud_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.borrar_solicitud(current_user.id, solicitud_id):
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return {"status": "ok", "message": "Solicitud eliminada"}
+
+
+@app.delete("/api/v1/amigos/{amigo_id}", tags=["Versus"])
+def eliminar_amigo(amigo_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.eliminar_amigo(current_user.id, amigo_id):
+        raise HTTPException(status_code=404, detail="Amigo no encontrado")
+    return {"status": "ok", "message": "Amigo eliminado"}

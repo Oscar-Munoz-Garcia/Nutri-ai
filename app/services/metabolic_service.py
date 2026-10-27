@@ -7,6 +7,7 @@ from app.models.metabolic import (
 )
 from app.models.profile import PerfilUsuario
 from app.services.profile_service import calcular_mifflin_st_jeor
+from app.services.friends_service import ids_amigos
 
 # Energía aproximada de 1 kg de tejido corporal (mezcla grasa/magro)
 KCAL_POR_KG = 7700.0
@@ -250,8 +251,10 @@ def obtener_versus(usuario_actual_id: int) -> Versus:
     lunes_anterior = lunes - timedelta(days=7)
     db = SessionLocal()
     try:
+        # El duelo es solo entre tú y tus amigos aceptados
+        ids = [usuario_actual_id] + ids_amigos(db, usuario_actual_id)
         participantes = []
-        for usuario in db.query(UsuarioDB).order_by(UsuarioDB.id).all():
+        for usuario in db.query(UsuarioDB).filter(UsuarioDB.id.in_(ids)).order_by(UsuarioDB.id).all():
             perfil = _perfil_de(db, usuario.id)
             meta_cal = perfil.calorias_objetivo if perfil else 2200.0
             meta_prot = perfil.proteinas_objetivo if perfil else 160.0

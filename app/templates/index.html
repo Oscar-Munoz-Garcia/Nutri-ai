@@ -574,8 +574,24 @@
                 </div>
                 <div id="versus-lista" class="space-y-3"></div>
                 <p class="font-mono text-[10px] text-zinc-500 leading-relaxed">
-                    Cada día puntúa de 0 a 100: la mitad por clavar las calorías (100% dentro de ±10% de tu meta, 0% a partir de ±30%) y la otra mitad por llegar a tu proteína. Un día sin registros cuenta 0. Del resto solo se comparte la puntuación, nunca lo que come.
+                    Solo compites con tus amigos. Cada día puntúa de 0 a 100: la mitad por clavar las calorías (100% dentro de ±10% de tu meta, 0% a partir de ±30%) y la otra mitad por llegar a tu proteína. Un día sin registros cuenta 0. De tus amigos solo ves la puntuación, nunca lo que comen.
                 </p>
+            </div>
+
+            <!-- AMIGOS Y SOLICITUDES -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="border-b border-panelBorder pb-3">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TU CÍRCULO</span>
+                    <h3 class="font-display font-semibold text-base text-zinc-100">Amigos</h3>
+                </div>
+                <form id="amigoForm" class="flex gap-2 font-mono text-xs">
+                    <input type="text" id="amigo-usuario" placeholder="Usuario o email" required class="flex-1 bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded-xl focus:outline-none focus:border-matcha">
+                    <button type="submit" class="px-4 py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded-xl uppercase">Agregar</button>
+                </form>
+                <p id="amigo-mensaje" class="font-mono text-[10px] text-zinc-400 hidden"></p>
+                <div id="amigos-recibidas" class="space-y-1.5 font-mono text-[11px]"></div>
+                <div id="amigos-lista" class="space-y-1.5 font-mono text-[11px]"></div>
+                <div id="amigos-enviadas" class="space-y-1.5 font-mono text-[11px]"></div>
             </div>
         </section>
     </main>
@@ -727,7 +743,7 @@
             if (secId === 'sec-despensa') cargarDespensa();
             if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
             if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); cargarTDEE(); }
-            if (secId === 'sec-versus') cargarVersus();
+            if (secId === 'sec-versus') { cargarVersus(); cargarAmigos(); }
         }
 
         function toggleModalObjetivos() {
@@ -1232,11 +1248,70 @@
                                 <span>vs semana pasada (${p.porcentaje_semana_anterior}%): ${deltaTxt}</span>
                             </div>
                         </div>`;
-                }).join("") || `<p class="font-mono text-[10px] text-zinc-500">Aún no hay participantes.</p>`;
+                }).join("") + (data.participantes.length < 2
+                    ? `<p class="font-mono text-[10px] text-zinc-500">Agrega a un amigo abajo para empezar el duelo.</p>` : "");
             } catch (e) {
                 lista.innerHTML = `<p class="font-mono text-[10px] text-rose-400">❌ No se pudo cargar el duelo.</p>`;
             }
         }
+
+        // --- AMIGOS Y SOLICITUDES ---
+        async function cargarAmigos() {
+            try {
+                const res = await fetch(`${API_BASE}/amigos`);
+                const data = await res.json();
+                const fila = (contenido, botones) => `
+                    <div class="flex justify-between items-center bg-canvas border border-panelBorder px-3 py-1.5 rounded-xl">
+                        <span class="text-zinc-200">${contenido}</span>
+                        <span class="flex gap-3">${botones}</span>
+                    </div>`;
+                const titulo = t => `<span class="text-[9px] text-zinc-500 uppercase block mb-1">${t}</span>`;
+
+                document.getElementById("amigos-recibidas").innerHTML = data.recibidas.length ? titulo(`Solicitudes recibidas (${data.recibidas.length})`) +
+                    data.recibidas.map(s => fila(escaparHtml(s.usuario.username),
+                        `<button onclick="responderSolicitud(${s.id}, true)" class="text-matcha hover:underline">Aceptar</button>
+                         <button onclick="responderSolicitud(${s.id}, false)" class="text-zinc-500 hover:text-rose-400">Rechazar</button>`)).join("") : "";
+
+                document.getElementById("amigos-lista").innerHTML = titulo(`Tus amigos (${data.amigos.length})`) + (data.amigos.length
+                    ? data.amigos.map(a => fila(escaparHtml(a.username),
+                        `<button onclick="eliminarAmigo(${a.usuario_id})" class="text-zinc-500 hover:text-rose-400">✕</button>`)).join("")
+                    : `<p class="text-zinc-500 text-[10px]">Todavía no tienes amigos agregados.</p>`);
+
+                document.getElementById("amigos-enviadas").innerHTML = data.enviadas.length ? titulo("Solicitudes enviadas") +
+                    data.enviadas.map(s => fila(`${escaparHtml(s.usuario.username)} <span class="text-zinc-500">· pendiente</span>`,
+                        `<button onclick="responderSolicitud(${s.id}, false)" class="text-zinc-500 hover:text-rose-400">Cancelar</button>`)).join("") : "";
+            } catch (e) {
+                console.error("Error cargando amigos", e);
+            }
+        }
+
+        async function responderSolicitud(id, aceptar) {
+            await fetch(`${API_BASE}/amigos/solicitudes/${id}${aceptar ? "/aceptar" : ""}`, { method: aceptar ? "POST" : "DELETE" });
+            cargarAmigos();
+            cargarVersus();
+        }
+
+        async function eliminarAmigo(id) {
+            if (!confirm("¿Eliminar a esta persona de tus amigos?")) return;
+            await fetch(`${API_BASE}/amigos/${id}`, { method: "DELETE" });
+            cargarAmigos();
+            cargarVersus();
+        }
+
+        document.getElementById("amigoForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("amigo-usuario");
+            const aviso = document.getElementById("amigo-mensaje");
+            const res = await fetch(`${API_BASE}/amigos/solicitudes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario: input.value })
+            });
+            const data = await res.json();
+            aviso.innerText = res.ok ? `✅ ${data.message}` : `❌ ${data.detail}`;
+            aviso.classList.remove("hidden");
+            if (res.ok) { input.value = ""; cargarAmigos(); cargarVersus(); }
+        });
 
         // --- SUBMIT OBJETIVOS Y ESCÁNER OCR ---
         document.getElementById("objetivosForm")?.addEventListener("submit", async (e) => {

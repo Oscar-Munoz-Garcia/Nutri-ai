@@ -103,3 +103,61 @@ def test_pesos_aislados_por_usuario():
     assert client.get("/api/v1/peso", headers=b).json() == []
     assert client.delete(f"/api/v1/peso/{peso_id}", headers=b).status_code == 404
     assert len(client.get("/api/v1/peso", headers=a).json()) == 1
+
+
+def _usuario_nuevo():
+    nombre = f"amigo_{uuid.uuid4().hex[:8]}"
+    token = client.post("/api/v1/auth/registro", json={
+        "username": nombre, "email": f"{nombre}@nutri.ai", "password": "secreta123"
+    }).json()["access_token"]
+    return nombre, {"Authorization": f"Bearer {token}"}
+
+
+def _ids_versus(headers):
+    return {p["nombre"] for p in client.get("/api/v1/versus", headers=headers).json()["participantes"]}
+
+
+def test_versus_solo_entre_amigos():
+    (a, ha), (b, hb), (c, hc) = _usuario_nuevo(), _usuario_nuevo(), _usuario_nuevo()
+
+    # Sin amigos, solo apareces tú
+    assert _ids_versus(ha) == {a}
+
+    # A envía solicitud a B: pendiente, B aún no aparece
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": b}, headers=ha).json()["status"] == "enviada"
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": b}, headers=ha).status_code == 400
+    assert _ids_versus(ha) == {a}
+    recibidas = client.get("/api/v1/amigos", headers=hb).json()["recibidas"]
+    assert [r["usuario"]["username"] for r in recibidas] == [a]
+
+    # Solo el destinatario puede aceptar
+    assert client.post(f"/api/v1/amigos/solicitudes/{recibidas[0]['id']}/aceptar", headers=ha).status_code == 404
+    assert client.post(f"/api/v1/amigos/solicitudes/{recibidas[0]['id']}/aceptar", headers=hb).status_code == 200
+    assert _ids_versus(ha) == {a, b}
+    assert _ids_versus(hb) == {a, b}
+    assert c not in _ids_versus(ha)
+
+    # Del amigo no se ven calorías ni proteínas
+    for p in client.get("/api/v1/versus", headers=ha).json()["participantes"]:
+        if not p["es_yo"]:
+            assert all(d["calorias"] is None and d["proteinas"] is None for d in p["dias"])
+
+    # C rechaza la solicitud de A
+    client.post("/api/v1/amigos/solicitudes", json={"usuario": c}, headers=ha)
+    sol_id = client.get("/api/v1/amigos", headers=hc).json()["recibidas"][0]["id"]
+    assert client.delete(f"/api/v1/amigos/solicitudes/{sol_id}", headers=hc).status_code == 200
+    assert client.get("/api/v1/amigos", headers=ha).json()["enviadas"] == []
+
+    # Si C envía a B y B envía a C, se aceptan sin más pasos
+    client.post("/api/v1/amigos/solicitudes", json={"usuario": b}, headers=hc)
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": c}, headers=hb).json()["status"] == "aceptada"
+    assert _ids_versus(hb) == {a, b, c}
+
+    # Eliminar amistad
+    b_id = client.get("/api/v1/amigos", headers=ha).json()["amigos"][0]["usuario_id"]
+    assert client.delete(f"/api/v1/amigos/{b_id}", headers=ha).status_code == 200
+    assert _ids_versus(ha) == {a}
+
+    # Errores
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": a}, headers=ha).status_code == 400
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": "no_existe_xyz"}, headers=ha).status_code == 404
