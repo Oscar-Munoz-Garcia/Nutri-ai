@@ -124,3 +124,18 @@ def test_lista_compra_compara_recetas_con_despensa(monkeypatch):
 
 def test_lista_compra_requiere_recetas():
     assert client.post("/api/v1/compra/lista", json={"recetas": []}).status_code == 422
+
+
+def test_lista_compra_con_recetas_y_despensa_reales():
+    receta = client.post("/api/v1/recetas", json={
+        "nombre": "Gachas de avena", "calorias_totales": 400, "proteinas_totales": 15,
+        "carbohidratos_totales": 60, "grasas_totales": 8,
+        "ingredientes": [{"nombre": "Copos de avena integral", "cantidad_gramos": 80},
+                         {"nombre": "Arándanos", "cantidad_gramos": 50}]
+    }).json()
+    client.post("/api/v1/despensa", json={"nombre": "copos de avena integral", "cantidad_gramos": 100})
+
+    data = client.post("/api/v1/compra/lista", json={"recetas": [{"receta_id": receta["id"], "raciones": 2}]}).json()
+    faltantes = {i["nombre"]: i["comprar_g"] for i in data["faltantes"]}
+    assert faltantes["Copos de avena integral"] == 60.0
+    assert faltantes["Arándanos"] == 100.0

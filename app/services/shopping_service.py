@@ -1,9 +1,8 @@
 import unicodedata
 from typing import Dict, List, Optional
-from app.db.session import SessionLocal
-from app.db.models import PantryDB
 from app.models.shopping import SolicitudListaCompra, ListaCompra, ItemListaCompra
 import app.services.recipe_service as recipe_service
+import app.services.pantry_service as pantry_service
 
 
 def _normalizar(nombre: str) -> str:
@@ -21,29 +20,16 @@ def _buscar_en_despensa(nombre_norm: str, despensa: Dict[str, float]) -> Optiona
     return min(candidatos, key=lambda n: abs(len(n) - len(nombre_norm))) if candidatos else None
 
 
-def _leer_despensa(usuario_id: Optional[int]) -> Dict[str, float]:
-    db = SessionLocal()
-    try:
-        items = db.query(PantryDB).filter(PantryDB.usuario_id == usuario_id).all()
-        despensa: Dict[str, float] = {}
-        for item in items:
-            clave = _normalizar(item.nombre)
-            despensa[clave] = despensa.get(clave, 0.0) + (item.cantidad_gramos or 0.0)
-        return despensa
-    finally:
-        db.close()
+def _leer_despensa(usuario_id: int) -> Dict[str, float]:
+    despensa: Dict[str, float] = {}
+    for item in pantry_service.obtener_despensa(usuario_id):
+        clave = _normalizar(item.nombre)
+        despensa[clave] = despensa.get(clave, 0.0) + (item.cantidad_gramos or 0.0)
+    return despensa
 
 
-def _recetas_del_usuario(usuario_id: Optional[int]) -> list:
-    # Compatible con recipe_service antes y después del filtrado por usuario_id
-    try:
-        return recipe_service.obtener_todas_las_recetas(usuario_id)
-    except TypeError:
-        return recipe_service.obtener_todas_las_recetas()
-
-
-def generar_lista_compra(solicitud: SolicitudListaCompra, usuario_id: Optional[int] = None) -> ListaCompra:
-    recetas = {str(r.id): r for r in _recetas_del_usuario(usuario_id)}
+def generar_lista_compra(solicitud: SolicitudListaCompra, usuario_id: int) -> ListaCompra:
+    recetas = {str(r.id): r for r in recipe_service.obtener_todas_las_recetas(usuario_id)}
 
     necesarios: Dict[str, dict] = {}
     sin_ingredientes: List[str] = []
