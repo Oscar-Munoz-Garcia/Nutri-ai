@@ -23,6 +23,8 @@ import app.services.analytics_service as analytics_service
 from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
 from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
 from app.db.models import UsuarioDB
+from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
+import app.services.metabolic_service as metabolic_service
 
 
 
@@ -174,3 +176,33 @@ def login(datos: UsuarioLogin):
 @app.get("/api/v1/auth/me", response_model=UsuarioOut, tags=["Autenticación"])
 def obtener_mi_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return current_user
+
+# --- ENDPOINTS DE TELEMETRÍA METABÓLICA (PESO, TDEE DINÁMICO Y VERSUS) ---
+@app.get("/api/v1/peso", response_model=List[PesoRegistro], tags=["Metabolismo"])
+def listar_pesos(dias: int = 90, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.listar_pesos(current_user.id, dias=dias)
+
+
+@app.post("/api/v1/peso", response_model=PesoRegistro, tags=["Metabolismo"])
+def registrar_peso(entrada: PesoEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        return metabolic_service.registrar_peso(entrada, current_user.id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Fecha inválida, usa el formato YYYY-MM-DD.")
+
+
+@app.delete("/api/v1/peso/{peso_id}", tags=["Metabolismo"])
+def eliminar_peso(peso_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not metabolic_service.eliminar_peso(peso_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Pesaje no encontrado")
+    return {"status": "ok", "message": "Pesaje eliminado"}
+
+
+@app.get("/api/v1/metabolismo/tdee", response_model=TDEEDinamico, tags=["Metabolismo"])
+def obtener_tdee_dinamico(dias: int = 28, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.obtener_tdee_dinamico(current_user.id, dias=max(7, min(dias, 120)))
+
+
+@app.get("/api/v1/versus", response_model=Versus, tags=["Versus"])
+def obtener_versus(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.obtener_versus(current_user.id)
