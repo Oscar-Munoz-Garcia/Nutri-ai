@@ -25,6 +25,8 @@ def test_exportar_excel_mensual():
     assert len(kpis._charts) == 2
     assert kpis.conditional_formatting
     assert str(kpis["E4"].value).startswith("=IFERROR(AVERAGEIF(")
+    alimentos = [c.value for c in wb["Diario"]["B"]]
+    assert "Avena Export Test" in alimentos
 
 
 def test_exportar_excel_mes_invalido():
@@ -40,6 +42,8 @@ def test_importar_alimentos_csv():
     assert data["tipo"] == "alimentos"
     assert data["importados"] + data["actualizados"] == 1
     assert data["errores"][0]["fila"] == 3
+    despensa = client.get("/api/v1/despensa").json()
+    assert any(i["nombre"] == "Arroz Import Test" for i in despensa)
 
 
 def test_importar_recetas_xlsx():
@@ -54,6 +58,8 @@ def test_importar_recetas_xlsx():
                       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
     assert res.status_code == 200
     assert res.json()["tipo"] == "recetas"
+    receta = next(r for r in client.get("/api/v1/recetas").json() if r["nombre"] == "Bowl Import Test")
+    assert receta["utensilios_necesarios"] == ["Sartén", "Olla"]
 
 
 def test_importar_formato_no_soportado():

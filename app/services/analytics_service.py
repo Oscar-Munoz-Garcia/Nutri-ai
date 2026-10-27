@@ -4,17 +4,20 @@ from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB, PerfilDB, PesoHistorialDB
 
 
-def obtener_tendencias(dias: int = 7) -> Dict[str, Any]:
+def obtener_tendencias(usuario_id: int, dias: int = 7) -> Dict[str, Any]:
     db = SessionLocal()
     try:
         hoy = date.today()
         fechas = [(hoy - timedelta(days=i)).isoformat() for i in range(dias - 1, -1, -1)]
 
-        pdb = db.query(PerfilDB).filter(PerfilDB.id == 1).first()
+        pdb = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
         meta_calorias = pdb.calorias_objetivo if pdb else 2200.0
 
         # Obtener consumos de las fechas solicitadas
-        registros = db.query(RegistroConsumoDB).filter(RegistroConsumoDB.fecha.in_(fechas)).all()
+        registros = db.query(RegistroConsumoDB).filter(
+            RegistroConsumoDB.usuario_id == usuario_id,
+            RegistroConsumoDB.fecha.in_(fechas)
+        ).all()
 
         # Agrupar por fecha
         calorias_por_dia = {f: 0.0 for f in fechas}
@@ -32,7 +35,10 @@ def obtener_tendencias(dias: int = 7) -> Dict[str, Any]:
             etiquetas.append(d.strftime("%d %b"))
 
         # Historial de Peso
-        pesos_db = db.query(PesoHistorialDB).filter(PesoHistorialDB.fecha.in_(fechas)).all()
+        pesos_db = db.query(PesoHistorialDB).filter(
+            PesoHistorialDB.usuario_id == usuario_id,
+            PesoHistorialDB.fecha.in_(fechas)
+        ).all()
         peso_map = {p.fecha: p.peso_kg for p in pesos_db}
         pesos = [peso_map.get(f, pdb.peso_kg if pdb else 75.0) for f in fechas]
 

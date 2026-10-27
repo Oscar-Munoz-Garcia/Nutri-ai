@@ -193,9 +193,9 @@ def _importar_recetas(db, filas, mapa, usuario_id: int, resultado: Dict) -> None
             resultado["errores"].append({"fila": n_fila, "motivo": f"Valor numérico no válido en '{nombre}'."})
             continue
         utensilios = str(_valor(fila, mapa, "utensilios_necesarios") or "Sartén")
-        datos["utensilios_necesarios"] = ", ".join(u.strip() for u in utensilios.replace(";", ",").split(",") if u.strip())
-        if hasattr(RecetaDB, "ingredientes"):
-            datos["ingredientes"] = _ingredientes_json(_valor(fila, mapa, "ingredientes"))
+        datos["utensilios_necesarios"] = json.dumps(
+            [u.strip() for u in utensilios.replace(";", ",").split(",") if u.strip()], ensure_ascii=False)
+        datos["ingredientes"] = _ingredientes_json(_valor(fila, mapa, "ingredientes"))
 
         receta = existentes.get(nombre.lower())
         if receta:

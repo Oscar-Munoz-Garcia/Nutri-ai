@@ -1,20 +1,20 @@
 from typing import List
 from app.models.recommendation import SolicitudRecomendacion, RecomendacionResultado
-from app.services import recipe_service, pantry_service
+from app.services import recipe_service, pantry_service, daily_service
 
 
-def obtener_sugerencias_recetas(solicitud: SolicitudRecomendacion) -> List[RecomendacionResultado]:
+def obtener_sugerencias_recetas(solicitud: SolicitudRecomendacion, usuario_id: int) -> List[RecomendacionResultado]:
     # 1. Obtener ingesta del día actual para calcular macros restantes
-    resumen_diario = pantry_service.obtener_resumen_diario()
+    resumen_diario = daily_service.obtener_resumen_diario(usuario_id)
     
     cal_restantes = max(0.0, solicitud.calorias_objetivo - resumen_diario.calorias_totales)
     prot_restantes = max(0.0, solicitud.proteinas_objetivo - resumen_diario.proteinas_totales)
     
     # 2. Obtener recetas filtradas por utensilios
-    recetas = recipe_service.listar_recetas(utensilios_disponibles=solicitud.utensilios_disponibles)
+    recetas = recipe_service.listar_recetas(usuario_id, utensilios_disponibles=solicitud.utensilios_disponibles)
     
     # 3. Obtener despensa actual
-    despensa = pantry_service.listar_despensa()
+    despensa = pantry_service.obtener_despensa(usuario_id)
     nombres_despensa = [item.nombre.strip().lower() for item in despensa if item.cantidad_gramos > 0]
     
     resultados: List[RecomendacionResultado] = []
