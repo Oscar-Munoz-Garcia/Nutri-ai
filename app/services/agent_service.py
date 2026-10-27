@@ -33,7 +33,8 @@ def herramienta_registrar_comida_consumida(
     calorias: float,
     proteinas: float,
     carbohidratos: float,
-    grasas: float
+    grasas: float,
+    usuario_id: int
 ) -> str:
     registro = RegistroConsumo(
         nombre=nombre,
@@ -42,8 +43,8 @@ def herramienta_registrar_comida_consumida(
         carbohidratos=float(carbohidratos),
         grasas=float(grasas)
     )
-    daily_service.registrar_consumo(registro)
-    resumen = daily_service.obtener_resumen_diario()
+    daily_service.registrar_consumo(registro, usuario_id)
+    resumen = daily_service.obtener_resumen_diario(usuario_id)
 
     return json.dumps({
         "status": "exito",
@@ -114,14 +115,14 @@ async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) 
     return modelos_encontrados
 
 
-async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
+async def procesar_chat_agente(solicitud: SolicitudChat, usuario_id: int) -> RespuestaChat:
     if not settings.GROQ_API_KEY:
         return RespuestaChat(
             respuesta="Configura GROQ_API_KEY en tu archivo .env para interactuar con el agente.",
             herramientas_usadas=[]
         )
 
-    resumen_diario = daily_service.obtener_resumen_diario()
+    resumen_diario = daily_service.obtener_resumen_diario(usuario_id)
 
     prompt_sistema = (
         "Eres NutriAI Agent, un asistente experto e ingenioso en ingeniería nutricional y dietética.\n"
@@ -177,7 +178,9 @@ async def procesar_chat_agente(solicitud: SolicitudChat) -> RespuestaChat:
                             resultado_tool = herramienta_calcular_porcion_exacta(**fn_args)
                         elif fn_name == "herramienta_registrar_comida_consumida":
                             herramientas_ejecutadas.append(fn_name)
-                            resultado_tool = herramienta_registrar_comida_consumida(**fn_args)
+                            # El usuario siempre es el autenticado, nunca el que proponga el modelo
+                            fn_args.pop("usuario_id", None)
+                            resultado_tool = herramienta_registrar_comida_consumida(**fn_args, usuario_id=usuario_id)
 
                         if resultado_tool:
                             mensajes.append(mensaje_respuesta)

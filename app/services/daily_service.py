@@ -1,5 +1,5 @@
 from datetime import date
-from typing import List, Optional
+from typing import Optional
 from app.models.daily import ObjetivosMacros, RegistroConsumo, ResumenDiario
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB, PerfilDB
@@ -9,36 +9,37 @@ def _fecha_hoy() -> str:
     return date.today().isoformat()
 
 
-def establecer_objetivos(objetivos: ObjetivosMacros, usuario_id: int = None) -> ObjetivosMacros:
+def obtener_o_crear_perfil_db(db, usuario_id: int) -> PerfilDB:
+    """Devuelve el perfil del usuario, creándolo con valores por defecto si aún no existe."""
+    pdb = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
+    if not pdb:
+        pdb = PerfilDB(usuario_id=usuario_id, nombre="Usuario")
+        db.add(pdb)
+        db.commit()
+        db.refresh(pdb)
+    return pdb
+
+
+def establecer_objetivos(objetivos: ObjetivosMacros, usuario_id: int) -> ObjetivosMacros:
     db = SessionLocal()
     try:
-        if usuario_id:
-            pdb = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
-        else:
-            pdb = db.query(PerfilDB).first()
-
-        if not pdb:
-            user = db.query(UsuarioDB).first()
-            uid = user.id if user else None
-            pdb = PerfilDB(usuario_id=uid)
-            db.add(pdb)
-
+        pdb = obtener_o_crear_perfil_db(db, usuario_id)
         pdb.calorias_objetivo = objetivos.calorias_objetivo
         pdb.proteinas_objetivo = objetivos.proteinas_objetivo
         pdb.carbohidratos_objetivo = objetivos.carbohidratos_objetivo
         pdb.grasas_objetivo = objetivos.grasas_objetivo
-
         db.commit()
         return objetivos
     finally:
         db.close()
 
 
-def registrar_consumo(registro: RegistroConsumo, fecha: Optional[str] = None) -> RegistroConsumo:
+def registrar_consumo(registro: RegistroConsumo, usuario_id: int, fecha: Optional[str] = None) -> RegistroConsumo:
     fecha_target = fecha or _fecha_hoy()
     db = SessionLocal()
     try:
         nuevo = RegistroConsumoDB(
+            usuario_id=usuario_id,
             fecha=fecha_target,
             nombre=registro.nombre,
             calorias=registro.calorias,
@@ -48,14 +49,18 @@ def registrar_consumo(registro: RegistroConsumo, fecha: Optional[str] = None) ->
         )
         db.add(nuevo)
         db.commit()
-        return registro
+        return registro.model_copy(update={"id": nuevo.id})
     finally:
         db.close()
 
-def eliminar_registro_consumo(registro_id: int) -> bool:
+
+def eliminar_registro_consumo(registro_id: int, usuario_id: int) -> bool:
     db = SessionLocal()
     try:
-        registro = db.query(RegistroConsumoDB).filter(RegistroConsumoDB.id == registro_id).first()
+        registro = db.query(RegistroConsumoDB).filter(
+            RegistroConsumoDB.id == registro_id,
+            RegistroConsumoDB.usuario_id == usuario_id
+        ).first()
         if registro:
             db.delete(registro)
             db.commit()
@@ -64,16 +69,12 @@ def eliminar_registro_consumo(registro_id: int) -> bool:
     finally:
         db.close()
 
-def obtener_resumen_diario(fecha: Optional[str] = None) -> ResumenDiario:
+
+def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> ResumenDiario:
     fecha_target = fecha or _fecha_hoy()
     db = SessionLocal()
     try:
-        pdb = db.query(PerfilDB).filter(PerfilDB.id == 1).first()
-        if not pdb:
-            pdb = PerfilDB(id=1)
-            db.add(pdb)
-            db.commit()
-            db.refresh(pdb)
+        pdb = obtener_o_crear_perfil_db(db, usuario_id)
 
         objetivos = ObjetivosMacros(
             calorias_objetivo=pdb.calorias_objetivo,
@@ -82,9 +83,13 @@ def obtener_resumen_diario(fecha: Optional[str] = None) -> ResumenDiario:
             grasas_objetivo=pdb.grasas_objetivo
         )
 
-        registros_db = db.query(RegistroConsumoDB).filter(RegistroConsumoDB.fecha == fecha_target).all()
+        registros_db = db.query(RegistroConsumoDB).filter(
+            RegistroConsumoDB.usuario_id == usuario_id,
+            RegistroConsumoDB.fecha == fecha_target
+        ).all()
         registros = [
             RegistroConsumo(
+                id=r.id,
                 nombre=r.nombre,
                 calorias=r.calorias,
                 proteinas=r.proteinas,
