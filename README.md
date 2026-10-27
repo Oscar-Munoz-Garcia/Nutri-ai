@@ -1,1 +1,15 @@
 # NutriAI - Asistente Inteligente de Nutrición, Despensa y Macros
+
+## Privacidad multiusuario
+
+Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y analítica: todas las rutas `/api/v1/*` (salvo registro y login) exigen `Authorization: Bearer <token>` y filtran por `usuario_id`. Sin token la API responde `401`. Los datos antiguos sin dueño (`usuario_id` vacío) se asignan al primer usuario registrado al arrancar.
+
+## Copias de seguridad de `nutri_ai.db`
+
+- **Automática:** mientras el servidor está en marcha se hace una copia al arrancar (si no hay una de las últimas 24 h) y otra cada día en `BACKUP_DIR` (por defecto `./backups`). Se guardan `BACKUP_RETENTION_DAYS` días (14 por defecto). Para tenerlas en la nube, apunta `BACKUP_DIR` a una carpeta sincronizada (OneDrive, Google Drive, Dropbox).
+- **Manual:** `python scripts/backup_db.py [--destino CARPETA]`
+- **Programada en Windows** (aunque el servidor esté apagado):
+  ```
+  schtasks /Create /SC DAILY /ST 03:00 /TN "NutriAI Backup" /TR "C:\ruta\nutri-ai\.venv\Scripts\python.exe C:\ruta\nutri-ai\scripts\backup_db.py"
+  ```
+- **Restaurar:** para el servidor y copia el `.db` elegido encima de `nutri_ai.db`.

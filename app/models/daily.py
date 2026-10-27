@@ -10,6 +10,7 @@ class ObjetivosMacros(BaseModel):
 
 
 class RegistroConsumo(BaseModel):
+    id: Optional[int] = Field(default=None, description="ID del registro en el diario (solo en respuestas)")
     nombre: str = Field(..., description="Nombre del alimento o receta consumida")
     calorias: float = Field(..., description="Calorías aportadas")
     proteinas: float = Field(..., description="Proteínas aportadas en gramos")
