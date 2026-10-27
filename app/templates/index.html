@@ -347,7 +347,7 @@
                     <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">OPEN FOOD FACTS</span>
                     <h2 class="font-display font-semibold text-lg text-zinc-100">Código de Barras</h2>
                 </div>
-                <button type="button" id="btnBarcodeCamara" onclick="toggleEscanerBarcode()" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                <button type="button" id="btnBarcodeCamara" onclick="toggleEscanerBarcode()" class="w-full py-2.5 bg-matcha hover:opacity-90 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
                     📷 Escanear con la cámara
                 </button>
                 <div id="barcode-reader" class="hidden rounded-xl overflow-hidden bg-canvas"></div>
@@ -383,7 +383,7 @@
                 <div id="compraRecetas" class="space-y-2">
                     <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Cargando recetas...</p>
                 </div>
-                <button type="button" id="btnGenerarCompra" onclick="generarListaCompra()" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                <button type="button" id="btnGenerarCompra" onclick="generarListaCompra()" class="w-full py-2.5 bg-matcha hover:opacity-90 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
                     🛒 Generar lista de la compra
                 </button>
                 <div id="compraResultado" class="hidden space-y-2"></div>
@@ -1425,7 +1425,7 @@
             cont.innerHTML = `
                 <div class="p-3 bg-canvas border border-panelBorder rounded-xl space-y-3">
                     <div class="flex gap-3 items-start">
-                        ${p.imagen_url ? `<img src="${escaparHtml(p.imagen_url)}" alt="" class="w-14 h-14 object-contain rounded-lg bg-white/5">` : ""}
+                        ${p.imagen_url ? `<img src="${escaparHtml(p.imagen_url)}" alt="" class="w-14 h-14 object-contain rounded-lg bg-panel">` : ""}
                         <div class="min-w-0">
                             <h4 class="font-display font-bold text-sm text-zinc-100">${escaparHtml(p.nombre)}</h4>
                             <p class="font-mono text-[10px] text-zinc-500">${escaparHtml(p.marca)} · ${escaparHtml(p.codigo_barras)}</p>
@@ -1584,7 +1584,7 @@
                     const n = (r.ingredientes || []).length;
                     return `
                     <label class="flex items-center gap-3 p-2.5 bg-canvas border border-panelBorder rounded-xl cursor-pointer">
-                        <input type="checkbox" class="compra-check accent-lime-400" value="${escaparHtml(r.id)}">
+                        <input type="checkbox" class="compra-check accent-current text-matcha" value="${escaparHtml(r.id)}">
                         <span class="flex-1 min-w-0">
                             <span class="block text-xs text-zinc-100 truncate">${escaparHtml(r.nombre)}</span>
                             <span class="block font-mono text-[10px] ${n ? "text-zinc-500" : "text-amberAccent"}">${n ? `${n} ingredientes` : "sin ingredientes guardados"}</span>
@@ -1630,7 +1630,7 @@
         function pintarListaCompra(lista) {
             const fila = (i, comprar) => `
                 <label class="flex items-center gap-3 p-2.5 bg-canvas border border-panelBorder rounded-xl">
-                    ${comprar ? '<input type="checkbox" class="accent-lime-400">' : '<span class="text-matcha text-xs">✓</span>'}
+                    ${comprar ? '<input type="checkbox" class="accent-current text-matcha">' : '<span class="text-matcha text-xs">✓</span>'}
                     <span class="flex-1 min-w-0">
                         <span class="block text-xs text-zinc-100">${escaparHtml(i.nombre)}</span>
                         <span class="block font-mono text-[10px] text-zinc-500 truncate">${escaparHtml(i.recetas.join(", "))}</span>
