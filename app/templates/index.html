@@ -139,6 +139,9 @@
             <button onclick="cambiarPestana('sec-perfil')" id="nav-sec-perfil" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition whitespace-nowrap px-2">
                 05 / Perfil
             </button>
+            <button onclick="cambiarPestana('sec-versus')" id="nav-sec-versus" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition whitespace-nowrap px-2">
+                06 / Versus
+            </button>
         </nav>
 
         <!-- PESTAÑA 01: DIARIO Y METAS DE MACROS -->
@@ -471,6 +474,49 @@
                 </form>
             </div>
 
+            <!-- BLOQUE METABÓLICO: REGISTRO DE PESO Y TDEE DINÁMICO -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="border-b border-panelBorder pb-3">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA METABÓLICA</span>
+                    <h3 class="font-display font-semibold text-base text-zinc-100">Metabolismo Real (TDEE Dinámico)</h3>
+                </div>
+
+                <form id="pesoForm" class="flex gap-2 font-mono text-xs">
+                    <input type="number" id="peso-valor" step="0.1" min="20" max="400" placeholder="Peso (kg)" required class="w-24 bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded-xl focus:outline-none focus:border-matcha">
+                    <input type="date" id="peso-fecha" class="flex-1 bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded-xl focus:outline-none focus:border-matcha">
+                    <button type="submit" class="px-4 py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded-xl uppercase">Pesar</button>
+                </form>
+                <p class="font-mono text-[10px] text-zinc-500">Pésate 2-3 veces por semana, en ayunas. La app cruza tu tendencia de peso con lo que registras en el diario.</p>
+
+                <div class="grid grid-cols-2 gap-3 font-mono text-xs">
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">TDEE Real</span>
+                        <span id="kpi-tdee-real" class="text-lg font-bold text-matcha">—</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
+                    </div>
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">TDEE Fórmula</span>
+                        <span id="kpi-tdee-teorico" class="text-lg font-bold text-zinc-300">—</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
+                    </div>
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">Tendencia</span>
+                        <span id="kpi-tdee-tendencia" class="text-lg font-bold text-amberAccent">—</span> <span class="text-[10px] text-zinc-500">kg/sem</span>
+                    </div>
+                    <div class="p-3 bg-canvas border border-panelBorder rounded-xl">
+                        <span class="text-[9px] text-zinc-500 uppercase block">Ingesta Media</span>
+                        <span id="kpi-tdee-ingesta" class="text-lg font-bold text-zinc-300">—</span> <span class="text-[10px] text-zinc-500">kcal/día</span>
+                    </div>
+                </div>
+                <p id="tdee-mensaje" class="font-mono text-[10px] text-zinc-400"></p>
+
+                <div class="h-48 relative bg-canvas p-3 rounded-xl border border-panelBorder">
+                    <span class="text-[9px] font-mono text-zinc-400 uppercase block mb-1">Peso (últimos 28 días) y recta de regresión</span>
+                    <div class="h-36 relative">
+                        <canvas id="chartPeso"></canvas>
+                    </div>
+                </div>
+                <div id="lista-pesos" class="space-y-1.5 font-mono text-[11px] max-h-40 overflow-y-auto no-scrollbar"></div>
+            </div>
+
             <!-- BLOQUE 2: ANALÍTICA CON GRÁFICOS PARALELOS (BARRAS Y DONUT) -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
                 <div class="flex justify-between items-center border-b border-panelBorder pb-3">
@@ -515,6 +561,39 @@
             </div>
 
         </section>
+
+        <!-- PESTAÑA 06: VERSUS / DUELO AMISTOSO -->
+        <section id="sec-versus" class="tab-content hidden space-y-6">
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="border-b border-panelBorder pb-3 flex justify-between items-center">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">GAMIFICACIÓN PRIVADA</span>
+                        <h2 class="font-display font-semibold text-lg text-zinc-100">Duelo Semanal</h2>
+                    </div>
+                    <span id="versus-semana" class="font-mono text-[9px] text-zinc-400 bg-canvas border border-panelBorder px-2 py-0.5 rounded-lg"></span>
+                </div>
+                <div id="versus-lista" class="space-y-3"></div>
+                <p class="font-mono text-[10px] text-zinc-500 leading-relaxed">
+                    Solo compites con tus amigos. Cada día puntúa de 0 a 100: la mitad por clavar las calorías (100% dentro de ±10% de tu meta, 0% a partir de ±30%) y la otra mitad por llegar a tu proteína. Un día sin registros cuenta 0. De tus amigos solo ves la puntuación, nunca lo que comen.
+                </p>
+            </div>
+
+            <!-- AMIGOS Y SOLICITUDES -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="border-b border-panelBorder pb-3">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TU CÍRCULO</span>
+                    <h3 class="font-display font-semibold text-base text-zinc-100">Amigos</h3>
+                </div>
+                <form id="amigoForm" class="flex gap-2 font-mono text-xs">
+                    <input type="text" id="amigo-usuario" placeholder="Usuario o email" required class="flex-1 bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded-xl focus:outline-none focus:border-matcha">
+                    <button type="submit" class="px-4 py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded-xl uppercase">Agregar</button>
+                </form>
+                <p id="amigo-mensaje" class="font-mono text-[10px] text-zinc-400 hidden"></p>
+                <div id="amigos-recibidas" class="space-y-1.5 font-mono text-[11px]"></div>
+                <div id="amigos-lista" class="space-y-1.5 font-mono text-[11px]"></div>
+                <div id="amigos-enviadas" class="space-y-1.5 font-mono text-[11px]"></div>
+            </div>
+        </section>
     </main>
 
     <!-- MODAL DE CONFIGURACIÓN RÁPIDA DE METAS -->
@@ -556,6 +635,7 @@
         let listaPantryCache = [];
         let chartInstance = null;
         let chartDonutInstance = null;
+        let chartPesoInstance = null;
 
         // Inyectar Authorization Header JWT en todas las peticiones fetch
         const fetchOriginal = window.fetch;
@@ -662,7 +742,8 @@
             if (secId === 'sec-inicio') cargarResumenDiario();
             if (secId === 'sec-despensa') cargarDespensa();
             if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
-            if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); }
+            if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); cargarTDEE(); }
+            if (secId === 'sec-versus') { cargarVersus(); cargarAmigos(); }
         }
 
         function toggleModalObjetivos() {
@@ -1053,6 +1134,184 @@
                 console.error("Error cargando gráficas", e);
             }
         }
+
+        // --- TELEMETRÍA METABÓLICA: PESO Y TDEE DINÁMICO ---
+        // Usa los colores del tema (colorTema) cuando existe; si no, los colores actuales
+        const colorGraficaPeso = (variable, porDefecto) =>
+            (typeof colorTema === "function" && colorTema(variable)) || porDefecto;
+
+        window.addEventListener("nutri:tema", () => {
+            if (!document.getElementById("sec-perfil").classList.contains("hidden")) cargarTDEE();
+        });
+
+        async function cargarTDEE() {
+            try {
+                const res = await fetch(`${API_BASE}/metabolismo/tdee?dias=28`);
+                const data = await res.json();
+
+                document.getElementById("kpi-tdee-teorico").innerText = data.tdee_teorico;
+                document.getElementById("kpi-tdee-real").innerText = data.tdee_real ?? "—";
+                document.getElementById("kpi-tdee-tendencia").innerText =
+                    data.tendencia_kg_semana != null ? (data.tendencia_kg_semana > 0 ? "+" : "") + data.tendencia_kg_semana : "—";
+                document.getElementById("kpi-tdee-ingesta").innerText = data.ingesta_media ?? "—";
+                const fiabilidad = data.r2 != null ? ` Fiabilidad del ajuste (R²): ${data.r2}.` : "";
+                document.getElementById("tdee-mensaje").innerText =
+                    `${data.mensaje}${fiabilidad} (${data.num_pesajes} pesajes, ${data.dias_con_registro}/${data.dias_ventana} días registrados)`;
+
+                const lista = document.getElementById("lista-pesos");
+                lista.innerHTML = [...data.pesajes].reverse().map(p => `
+                    <div class="flex justify-between items-center bg-canvas border border-panelBorder px-3 py-1.5 rounded-xl">
+                        <span class="text-zinc-400">${p.fecha}</span>
+                        <span class="text-zinc-200 font-semibold">${p.peso_kg} kg</span>
+                        <button onclick="eliminarPeso(${p.id})" class="text-zinc-500 hover:text-rose-400">✕</button>
+                    </div>`).join("") || `<p class="text-zinc-500 text-[10px]">Aún no hay pesajes en las últimas 4 semanas.</p>`;
+
+                const ctx = document.getElementById("chartPeso").getContext("2d");
+                if (chartPesoInstance) chartPesoInstance.destroy();
+                const datasets = [{
+                    label: 'Peso (kg)', data: data.pesajes.map(p => p.peso_kg),
+                    borderColor: colorGraficaPeso('--color-1', '#A3E635'), backgroundColor: colorGraficaPeso('--color-1', '#A3E635'), pointRadius: 3, tension: 0.3
+                }];
+                if (data.recta.length) {
+                    datasets.push({
+                        label: 'Tendencia', data: data.recta,
+                        borderColor: colorGraficaPeso('--color-3', '#F59E0B'), borderDash: [4, 4], pointRadius: 0
+                    });
+                }
+                chartPesoInstance = new Chart(ctx, {
+                    type: 'line',
+                    data: { labels: data.pesajes.map(p => p.fecha.slice(5)), datasets },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { labels: { color: colorGraficaPeso('--zinc-400', '#A1A1AA'), font: { family: 'JetBrains Mono', size: 9 } } } },
+                        scales: {
+                            x: { ticks: { color: colorGraficaPeso('--zinc-400', '#71717A'), font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } },
+                            y: { ticks: { color: colorGraficaPeso('--zinc-400', '#71717A'), font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: colorGraficaPeso('--c-border', '#1E222A') } }
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Error cargando TDEE dinámico", e);
+            }
+        }
+
+        async function eliminarPeso(id) {
+            await fetch(`${API_BASE}/peso/${id}`, { method: "DELETE" });
+            cargarTDEE();
+        }
+
+        document.getElementById("pesoForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const body = { peso_kg: parseFloat(document.getElementById("peso-valor").value) };
+            const fecha = document.getElementById("peso-fecha").value;
+            if (fecha) body.fecha = fecha;
+            const res = await fetch(`${API_BASE}/peso`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if (!res.ok) { alert("❌ No se pudo guardar el pesaje."); return; }
+            document.getElementById("peso-valor").value = "";
+            cargarTDEE();
+            cargarPerfil();
+        });
+
+        // --- VERSUS / DUELO SEMANAL ---
+        const escaparHtml = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+        async function cargarVersus() {
+            const lista = document.getElementById("versus-lista");
+            try {
+                const res = await fetch(`${API_BASE}/versus`);
+                const data = await res.json();
+                const fmt = f => f.slice(8, 10) + "/" + f.slice(5, 7);
+                document.getElementById("versus-semana").innerText = `${fmt(data.semana_inicio)} – ${fmt(data.semana_fin)}`;
+
+                lista.innerHTML = data.participantes.map(p => {
+                    const delta = Math.round((p.porcentaje_semana - p.porcentaje_semana_anterior) * 10) / 10;
+                    const deltaTxt = delta === 0 ? "=" : (delta > 0 ? `▲ ${delta}` : `▼ ${Math.abs(delta)}`);
+                    const corona = p.usuario_id === data.lider_id ? "👑 " : "";
+                    const dias = p.dias.map(d => `<span title="${d.fecha}: ${d.puntuacion}%" class="flex-1 h-2 rounded-full ${d.puntuacion >= 90 ? 'bg-matcha' : d.puntuacion >= 50 ? 'bg-amberAccent' : 'bg-zinc-700'}"></span>`).join("");
+                    return `
+                        <div class="p-4 bg-canvas border ${p.es_yo ? 'border-matcha/40' : 'border-panelBorder'} rounded-2xl space-y-2">
+                            <div class="flex justify-between items-baseline">
+                                <span class="font-display font-semibold text-sm text-zinc-100">${corona}${escaparHtml(p.nombre)}${p.es_yo ? ' <span class="font-mono text-[9px] text-matcha">(tú)</span>' : ''}</span>
+                                <span class="font-mono text-2xl font-bold ${p.es_yo ? 'text-matcha' : 'text-zinc-200'}">${p.porcentaje_semana}%</span>
+                            </div>
+                            <div class="h-2 bg-panel rounded-full overflow-hidden">
+                                <div class="h-full bg-matcha rounded-full" style="width:${Math.min(100, p.porcentaje_semana)}%"></div>
+                            </div>
+                            <div class="flex gap-1">${dias}</div>
+                            <div class="flex justify-between font-mono text-[10px] text-zinc-500">
+                                <span>${p.dias_cumplidos}/${p.dias_evaluados} días ≥90%</span>
+                                <span>vs semana pasada (${p.porcentaje_semana_anterior}%): ${deltaTxt}</span>
+                            </div>
+                        </div>`;
+                }).join("") + (data.participantes.length < 2
+                    ? `<p class="font-mono text-[10px] text-zinc-500">Agrega a un amigo abajo para empezar el duelo.</p>` : "");
+            } catch (e) {
+                lista.innerHTML = `<p class="font-mono text-[10px] text-rose-400">❌ No se pudo cargar el duelo.</p>`;
+            }
+        }
+
+        // --- AMIGOS Y SOLICITUDES ---
+        async function cargarAmigos() {
+            try {
+                const res = await fetch(`${API_BASE}/amigos`);
+                const data = await res.json();
+                const fila = (contenido, botones) => `
+                    <div class="flex justify-between items-center bg-canvas border border-panelBorder px-3 py-1.5 rounded-xl">
+                        <span class="text-zinc-200">${contenido}</span>
+                        <span class="flex gap-3">${botones}</span>
+                    </div>`;
+                const titulo = t => `<span class="text-[9px] text-zinc-500 uppercase block mb-1">${t}</span>`;
+
+                document.getElementById("amigos-recibidas").innerHTML = data.recibidas.length ? titulo(`Solicitudes recibidas (${data.recibidas.length})`) +
+                    data.recibidas.map(s => fila(escaparHtml(s.usuario.username),
+                        `<button onclick="responderSolicitud(${s.id}, true)" class="text-matcha hover:underline">Aceptar</button>
+                         <button onclick="responderSolicitud(${s.id}, false)" class="text-zinc-500 hover:text-rose-400">Rechazar</button>`)).join("") : "";
+
+                document.getElementById("amigos-lista").innerHTML = titulo(`Tus amigos (${data.amigos.length})`) + (data.amigos.length
+                    ? data.amigos.map(a => fila(escaparHtml(a.username),
+                        `<button onclick="eliminarAmigo(${a.usuario_id})" class="text-zinc-500 hover:text-rose-400">✕</button>`)).join("")
+                    : `<p class="text-zinc-500 text-[10px]">Todavía no tienes amigos agregados.</p>`);
+
+                document.getElementById("amigos-enviadas").innerHTML = data.enviadas.length ? titulo("Solicitudes enviadas") +
+                    data.enviadas.map(s => fila(`${escaparHtml(s.usuario.username)} <span class="text-zinc-500">· pendiente</span>`,
+                        `<button onclick="responderSolicitud(${s.id}, false)" class="text-zinc-500 hover:text-rose-400">Cancelar</button>`)).join("") : "";
+            } catch (e) {
+                console.error("Error cargando amigos", e);
+            }
+        }
+
+        async function responderSolicitud(id, aceptar) {
+            await fetch(`${API_BASE}/amigos/solicitudes/${id}${aceptar ? "/aceptar" : ""}`, { method: aceptar ? "POST" : "DELETE" });
+            cargarAmigos();
+            cargarVersus();
+        }
+
+        async function eliminarAmigo(id) {
+            if (!confirm("¿Eliminar a esta persona de tus amigos?")) return;
+            await fetch(`${API_BASE}/amigos/${id}`, { method: "DELETE" });
+            cargarAmigos();
+            cargarVersus();
+        }
+
+        document.getElementById("amigoForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const input = document.getElementById("amigo-usuario");
+            const aviso = document.getElementById("amigo-mensaje");
+            const res = await fetch(`${API_BASE}/amigos/solicitudes`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ usuario: input.value })
+            });
+            const data = await res.json();
+            aviso.innerText = res.ok ? `✅ ${data.message}` : `❌ ${data.detail}`;
+            aviso.classList.remove("hidden");
+            if (res.ok) { input.value = ""; cargarAmigos(); cargarVersus(); }
+        });
 
         // --- SUBMIT OBJETIVOS Y ESCÁNER OCR ---
         document.getElementById("objetivosForm")?.addEventListener("submit", async (e) => {
