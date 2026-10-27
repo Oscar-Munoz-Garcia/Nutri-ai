@@ -89,3 +89,17 @@ def test_endpoint_versus():
         assert 0 <= p["porcentaje_semana"] <= 100
         if not p["es_yo"]:
             assert all(d["calorias"] is None for d in p["dias"])
+
+
+def test_pesos_aislados_por_usuario():
+    def token_nuevo():
+        nombre = f"user_{uuid.uuid4().hex[:8]}"
+        return {"Authorization": "Bearer " + client.post("/api/v1/auth/registro", json={
+            "username": nombre, "email": f"{nombre}@nutri.ai", "password": "secreta123"
+        }).json()["access_token"]}
+
+    a, b = token_nuevo(), token_nuevo()
+    peso_id = client.post("/api/v1/peso", json={"peso_kg": 70.0}, headers=a).json()["id"]
+    assert client.get("/api/v1/peso", headers=b).json() == []
+    assert client.delete(f"/api/v1/peso/{peso_id}", headers=b).status_code == 404
+    assert len(client.get("/api/v1/peso", headers=a).json()) == 1

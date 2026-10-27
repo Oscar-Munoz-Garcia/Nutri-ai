@@ -1,6 +1,5 @@
 from datetime import date, timedelta
 from typing import Dict, List, Optional, Tuple
-from sqlalchemy import or_
 from app.db.session import SessionLocal
 from app.db.models import UsuarioDB, PerfilDB, PesoHistorialDB, RegistroConsumoDB
 from app.models.metabolic import (
@@ -85,30 +84,15 @@ def puntuar_dia(calorias: float, proteinas: float, meta_cal: float, meta_prot: f
 
 # --- ACCESO A DATOS ---
 
-def _propietario_legado(db) -> Optional[int]:
-    """Los registros antiguos sin usuario_id se atribuyen al primer usuario (mismo criterio que el fallback de auth)."""
-    primero = db.query(UsuarioDB).order_by(UsuarioDB.id).first()
-    return primero.id if primero else None
+def _perfil_de(db, usuario_id: int) -> Optional[PerfilDB]:
+    return db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
 
 
-def _filtro_usuario(modelo, usuario_id: int, propietario_legado: Optional[int]):
-    if usuario_id == propietario_legado:
-        return or_(modelo.usuario_id == usuario_id, modelo.usuario_id.is_(None))
-    return modelo.usuario_id == usuario_id
-
-
-def _perfil_de(db, usuario_id: int, propietario_legado: Optional[int]) -> Optional[PerfilDB]:
-    perfil = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
-    if not perfil and usuario_id == propietario_legado:
-        perfil = db.query(PerfilDB).filter(PerfilDB.usuario_id.is_(None)).first()
-    return perfil
-
-
-def _ingestas_por_dia(db, usuario_id: int, propietario: Optional[int], fechas: List[str]) -> Dict[str, Tuple[float, float]]:
+def _ingestas_por_dia(db, usuario_id: int, fechas: List[str]) -> Dict[str, Tuple[float, float]]:
     totales = {f: [0.0, 0.0] for f in fechas}
     registros = db.query(RegistroConsumoDB).filter(
         RegistroConsumoDB.fecha.in_(fechas),
-        _filtro_usuario(RegistroConsumoDB, usuario_id, propietario)
+        RegistroConsumoDB.usuario_id == usuario_id
     ).all()
     for r in registros:
         totales[r.fecha][0] += r.calorias or 0.0
@@ -137,7 +121,7 @@ def registrar_peso(entrada: PesoEntrada, usuario_id: int) -> PesoRegistro:
         ultimo = db.query(PesoHistorialDB).filter(PesoHistorialDB.usuario_id == usuario_id) \
             .order_by(PesoHistorialDB.fecha.desc()).first()
         if not ultimo or fecha >= ultimo.fecha:
-            perfil = _perfil_de(db, usuario_id, _propietario_legado(db))
+            perfil = _perfil_de(db, usuario_id)
             if perfil:
                 perfil.peso_kg = entrada.peso_kg
 
@@ -182,15 +166,14 @@ def obtener_tdee_dinamico(usuario_id: int, dias: int = 28) -> TDEEDinamico:
     fechas = [(hoy - timedelta(days=i)).isoformat() for i in range(dias - 1, -1, -1)]
     db = SessionLocal()
     try:
-        propietario = _propietario_legado(db)
-        perfil = _perfil_de(db, usuario_id, propietario)
+        perfil = _perfil_de(db, usuario_id)
         perfil_modelo = PerfilUsuario(
             nombre=perfil.nombre, edad=perfil.edad, peso_kg=perfil.peso_kg, altura_cm=perfil.altura_cm,
             genero=perfil.genero, nivel_actividad=perfil.nivel_actividad
         ) if perfil else PerfilUsuario()
         tdee_teorico = calcular_mifflin_st_jeor(perfil_modelo).calorias_objetivo
 
-        ingestas = {f: c for f, (c, _) in _ingestas_por_dia(db, usuario_id, propietario, fechas).items()}
+        ingestas = {f: c for f, (c, _) in _ingestas_por_dia(db, usuario_id, fechas).items()}
         filas = db.query(PesoHistorialDB).filter(
             PesoHistorialDB.usuario_id == usuario_id, PesoHistorialDB.fecha >= fechas[0]
         ).order_by(PesoHistorialDB.fecha).all()
@@ -239,12 +222,12 @@ def obtener_tdee_dinamico(usuario_id: int, dias: int = 28) -> TDEEDinamico:
 
 # --- VERSUS / CUMPLIMIENTO SEMANAL ---
 
-def _cumplimiento_semana(db, usuario_id: int, propietario: Optional[int], lunes: date, hasta: date,
+def _cumplimiento_semana(db, usuario_id: int, lunes: date, hasta: date,
                          meta_cal: float, meta_prot: float) -> List[DiaCumplimiento]:
     """Días de lunes a `hasta`. El día de hoy solo cuenta si ya tiene comidas registradas."""
     hoy = date.today()
     fechas = [(lunes + timedelta(days=i)).isoformat() for i in range((hasta - lunes).days + 1)]
-    ingestas = _ingestas_por_dia(db, usuario_id, propietario, fechas)
+    ingestas = _ingestas_por_dia(db, usuario_id, fechas)
     dias = []
     for f in fechas:
         cal, prot = ingestas[f]
@@ -267,15 +250,14 @@ def obtener_versus(usuario_actual_id: int) -> Versus:
     lunes_anterior = lunes - timedelta(days=7)
     db = SessionLocal()
     try:
-        propietario = _propietario_legado(db)
         participantes = []
         for usuario in db.query(UsuarioDB).order_by(UsuarioDB.id).all():
-            perfil = _perfil_de(db, usuario.id, propietario)
+            perfil = _perfil_de(db, usuario.id)
             meta_cal = perfil.calorias_objetivo if perfil else 2200.0
             meta_prot = perfil.proteinas_objetivo if perfil else 160.0
 
-            dias = _cumplimiento_semana(db, usuario.id, propietario, lunes, hoy, meta_cal, meta_prot)
-            dias_ant = _cumplimiento_semana(db, usuario.id, propietario, lunes_anterior,
+            dias = _cumplimiento_semana(db, usuario.id, lunes, hoy, meta_cal, meta_prot)
+            dias_ant = _cumplimiento_semana(db, usuario.id, lunes_anterior,
                                             lunes - timedelta(days=1), meta_cal, meta_prot)
             es_yo = usuario.id == usuario_actual_id
             if not es_yo:
