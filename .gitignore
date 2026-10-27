@@ -19,3 +19,5 @@ data/
 # Archivos del sistema
 Thumbs.db
 Desktop.ini
+# Copias de seguridad locales de la base de datos
+backups/

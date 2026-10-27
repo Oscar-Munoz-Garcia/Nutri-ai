@@ -28,4 +28,6 @@ def get_db():
 def init_db():
     """Crea todas las tablas en la base de datos si no existen."""
     import app.db.models  # Importar modelos para registrarlos en el ORM
+    from app.db.migrations import aplicar_migraciones
     Base.metadata.create_all(bind=engine)
+    aplicar_migraciones(engine)

@@ -1,25 +1,7 @@
 from app.models.profile import PerfilUsuario, PerfilActualizar
 from app.models.daily import ObjetivosMacros
 from app.db.session import SessionLocal
-from app.db.models import PerfilDB, UsuarioDB
 from app.services import daily_service
-
-
-def _obtener_o_crear_perfil_db(db, usuario_id: int = None) -> PerfilDB:
-    if usuario_id:
-        perfil = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
-    else:
-        perfil = db.query(PerfilDB).first()
-
-    if not perfil:
-        user = db.query(UsuarioDB).first()
-        uid = user.id if user else None
-        perfil = PerfilDB(usuario_id=uid, nombre="Usuario")
-        db.add(perfil)
-        db.commit()
-        db.refresh(perfil)
-
-    return perfil
 
 
 def calcular_mifflin_st_jeor(perfil: PerfilUsuario) -> ObjetivosMacros:
@@ -45,10 +27,10 @@ def calcular_mifflin_st_jeor(perfil: PerfilUsuario) -> ObjetivosMacros:
     )
 
 
-def obtener_perfil() -> PerfilUsuario:
+def obtener_perfil(usuario_id: int) -> PerfilUsuario:
     db = SessionLocal()
     try:
-        pdb = _obtener_o_crear_perfil_db(db)
+        pdb = daily_service.obtener_o_crear_perfil_db(db, usuario_id)
         macros = ObjetivosMacros(
             calorias_objetivo=pdb.calorias_objetivo,
             proteinas_objetivo=pdb.proteinas_objetivo,
@@ -69,10 +51,10 @@ def obtener_perfil() -> PerfilUsuario:
         db.close()
 
 
-def actualizar_perfil(datos: PerfilActualizar) -> PerfilUsuario:
+def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario:
     db = SessionLocal()
     try:
-        pdb = _obtener_o_crear_perfil_db(db)
+        pdb = daily_service.obtener_o_crear_perfil_db(db, usuario_id)
 
         if datos.nombre is not None: pdb.nombre = datos.nombre
         if datos.edad is not None: pdb.edad = datos.edad
@@ -112,7 +94,6 @@ def actualizar_perfil(datos: PerfilActualizar) -> PerfilUsuario:
         db.commit()
         db.refresh(pdb)
 
-        daily_service.establecer_objetivos(nuevos_macros)
-        return obtener_perfil()
+        return obtener_perfil(usuario_id)
     finally:
         db.close()
