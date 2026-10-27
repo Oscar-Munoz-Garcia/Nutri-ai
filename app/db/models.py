@@ -59,6 +59,7 @@ class PantryDB(Base):
     proteinas_100g = Column(Float, default=0.0)
     carbohidratos_100g = Column(Float, default=0.0)
     grasas_100g = Column(Float, default=0.0)
+    fecha_registro = Column(String, nullable=True)
 
 
 class RecetaDB(Base):
@@ -76,6 +77,8 @@ class RecetaDB(Base):
     grasas_totales = Column(Float, default=0.0)
     tiempo_preparacion_min = Column(Integer, default=15)
     utensilios_necesarios = Column(Text, default="Sartén")
+    ingredientes = Column(Text, default="[]")
+    pasos = Column(Text, default="[]")
 
 
 class RegistroConsumoDB(Base):

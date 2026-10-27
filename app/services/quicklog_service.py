@@ -104,7 +104,7 @@ async def _estimar_con_groq(segmentos: List[str]) -> List[ItemInterpretado]:
     return []
 
 
-async def interpretar_texto(texto: str) -> RespuestaRegistroRapido:
+async def interpretar_texto(texto: str, usuario_id: int) -> RespuestaRegistroRapido:
     """Convierte una frase en entradas del diario sin guardarlas: el usuario las revisa antes."""
     comida, resto = separar_comida(texto)
     segmentos = separar_alimentos(resto)
@@ -112,7 +112,7 @@ async def interpretar_texto(texto: str) -> RespuestaRegistroRapido:
 
     db = SessionLocal()
     try:
-        despensa = db.query(PantryDB).all()
+        despensa = db.query(PantryDB).filter(PantryDB.usuario_id == usuario_id).all()
     finally:
         db.close()
 

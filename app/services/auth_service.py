@@ -1,3 +1,4 @@
+import os
 from fastapi import HTTPException, status, Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
@@ -70,10 +71,15 @@ def autenticar_usuario(datos: UsuarioLogin) -> TokenResponse:
 def obtener_usuario_actual(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)) -> UsuarioDB:
     """Dependencia FastAPI para proteger endpoints y obtener el usuario activo."""
     if not token:
-        # Fallback para no romper tests antiguos de Pytest sin auth
-        user = db.query(UsuarioDB).first()
+        if os.getenv("AUTH_DEMO_FALLBACK", "0") != "1":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Debes iniciar sesión.",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        # Modo demo (solo tests/desarrollo con AUTH_DEMO_FALLBACK=1): usa el primer usuario
+        user = db.query(UsuarioDB).order_by(UsuarioDB.id).first()
         if not user:
-            # Crear usuario demo por defecto para testing
             pwd_hash = security.hash_password("123456")
             user = UsuarioDB(username="oscar", email="oscar@nutri.ai", password_hash=pwd_hash)
             db.add(user)
@@ -88,9 +94,12 @@ def obtener_usuario_actual(token: str = Depends(oauth2_scheme), db: Session = De
     if not payload:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
 
-    user_id = int(payload.get("sub"))
+    try:
+        user_id = int(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token inválido o expirado")
     user = db.query(UsuarioDB).filter(UsuarioDB.id == user_id).first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no encontrado")
 
     return user

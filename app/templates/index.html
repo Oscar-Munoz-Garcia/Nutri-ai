@@ -585,7 +585,14 @@
                     config.headers["Authorization"] = `Bearer ${token}`;
                 }
             }
-            return await fetchOriginal(resource, config);
+            const res = await fetchOriginal(resource, config);
+            // Token caducado o inválido: volver a pedir inicio de sesión
+            if (res.status === 401 && token) {
+                localStorage.removeItem("nutri_token");
+                localStorage.removeItem("nutri_user");
+                verificarSesion();
+            }
+            return res;
         };
 
         function verificarSesion() {

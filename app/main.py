@@ -1,3 +1,6 @@
+import asyncio
+import os
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
@@ -24,6 +27,7 @@ import app.services.analytics_service as analytics_service
 from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
 from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
 from app.db.models import UsuarioDB
+import app.services.backup_service as backup_service
 import app.services.streak_service as streak_service
 import app.services.quicklog_service as quicklog_service
 from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
@@ -32,10 +36,24 @@ from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
 
 # Inicializar tablas de SQLite al arrancar la app
 init_db()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Copia de seguridad diaria de nutri_ai.db mientras el servidor está en marcha (BACKUP_AUTO=0 la desactiva)
+    tarea_backup = None
+    if os.getenv("BACKUP_AUTO", "1") == "1":
+        tarea_backup = asyncio.create_task(backup_service.bucle_backup_diario())
+    yield
+    if tarea_backup:
+        tarea_backup.cancel()
+
+
 app = FastAPI(
     title="NutriAI Engine API",
     version="1.2.0",
-    description="Backend de Ingeniería Nutricional con Visión OCR, Agente IA y Diario de Macros."
+    description="Backend de Ingeniería Nutricional con Visión OCR, Agente IA y Diario de Macros.",
+    lifespan=lifespan
 )
 
 app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
@@ -62,45 +80,44 @@ def get_manifest():
 
 # --- ENDPOINTS DE DIARIO Y MACROS ---
 @app.get("/api/v1/diario/resumen", response_model=ResumenDiario, tags=["Diario"])
-def obtener_resumen_diario():
-    return daily_service.obtener_resumen_diario()
+def obtener_resumen_diario(fecha: Optional[str] = None, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return daily_service.obtener_resumen_diario(current_user.id, fecha=fecha)
 
 
 @app.post("/api/v1/diario/consumo", response_model=RegistroConsumo, tags=["Diario"])
-def registrar_consumo(registro: RegistroConsumo):
-    return daily_service.registrar_consumo(registro)
+def registrar_consumo(registro: RegistroConsumo, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return daily_service.registrar_consumo(registro, current_user.id)
 
 
 @app.get("/api/v1/diario/racha", tags=["Diario"])
-def obtener_racha(dias: int = 112):
-    return streak_service.obtener_racha(dias=dias)
+def obtener_racha(dias: int = 112, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return streak_service.obtener_racha(current_user.id, dias=dias)
 
 
 @app.post("/api/v1/diario/interpretar", response_model=RespuestaRegistroRapido, tags=["Diario"])
-async def interpretar_registro_rapido(solicitud: SolicitudRegistroRapido):
-    return await quicklog_service.interpretar_texto(solicitud.texto)
+async def interpretar_registro_rapido(solicitud: SolicitudRegistroRapido, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return await quicklog_service.interpretar_texto(solicitud.texto, current_user.id)
 
 
 @app.put("/api/v1/diario/objetivos", response_model=ObjetivosMacros, tags=["Diario"])
-def actualizar_objetivos(objetivos: ObjetivosMacros):
-    return daily_service.establecer_objetivos(objetivos)
+def actualizar_objetivos(objetivos: ObjetivosMacros, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return daily_service.establecer_objetivos(objetivos, current_user.id)
 
 
 # --- ENDPOINTS DE RECETAS ---
 @app.get("/api/v1/recetas", response_model=List[Receta], tags=["Recetas"])
-def listar_recetas():
-    return recipe_service.obtener_todas_las_recetas()
+def listar_recetas(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return recipe_service.obtener_todas_las_recetas(current_user.id)
 
 
 @app.post("/api/v1/recetas", response_model=Receta, tags=["Recetas"])
-def guardar_receta(receta: RecetaCrear):
-    return recipe_service.crear_nueva_receta(receta)
+def guardar_receta(receta: RecetaCrear, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return recipe_service.crear_nueva_receta(receta, current_user.id)
 
 
 @app.post("/api/v1/recetas/{receta_id}/consumir", tags=["Recetas"])
-def consumir_receta(receta_id: str):
-    recetas = recipe_service.obtener_todas_las_recetas()
-    receta = next((r for r in recetas if str(r.id) == str(receta_id)), None)
+def consumir_receta(receta_id: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    receta = recipe_service.obtener_receta(receta_id, current_user.id)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada.")
     
@@ -111,7 +128,7 @@ def consumir_receta(receta_id: str):
         carbohidratos=receta.carbohidratos_totales,
         grasas=receta.grasas_totales
     )
-    daily_service.registrar_consumo(registro)
+    registro = daily_service.registrar_consumo(registro, current_user.id)
     return {
         "status": "ok",
         "mensaje": f"Receta '{receta.nombre}' registrada en tu diario.",
@@ -121,57 +138,53 @@ def consumir_receta(receta_id: str):
 
 # --- ENDPOINTS DE DESPENSA Y VISION OCR ---
 @app.get("/api/v1/despensa", response_model=List[AlimentoPantry], tags=["Despensa"])
-def listar_despensa():
-    return pantry_service.obtener_despensa()
+def listar_despensa(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return pantry_service.obtener_despensa(current_user.id)
 
 
 @app.post("/api/v1/despensa", response_model=AlimentoPantry, tags=["Despensa"])
-def agregar_alimento_despensa(alimento: AlimentoPantryEntrada):
-    return pantry_service.agregar_alimento(alimento)
+def agregar_alimento_despensa(alimento: AlimentoPantryEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return pantry_service.agregar_alimento(alimento, current_user.id)
 
 
 @app.post("/api/v1/alimentos/vision-ocr", response_model=ProductoOCR, tags=["Visión OCR"])
-async def procesar_imagen_ocr(file: UploadFile = File(...)):
+async def procesar_imagen_ocr(file: UploadFile = File(...), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     contenido = await file.read()
     return await vision_service.analizar_etiqueta_nutricional(contenido, file.filename or "etiqueta.jpg")
 
 
 # --- ENDPOINT DE CHAT AGENTE ---
 @app.post("/api/v1/chat/planificar", response_model=RespuestaChat, tags=["Agente AI"])
-async def chat_agente(solicitud: SolicitudChat):
-    return await agent_service.procesar_chat_agente(solicitud)
+async def chat_agente(solicitud: SolicitudChat, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return await agent_service.procesar_chat_agente(solicitud, current_user.id)
 
 # --- ENDPOINTS DE PERFIL DE USUARIO ---
 @app.get("/api/v1/perfil", response_model=PerfilUsuario, tags=["Perfil"])
-def obtener_perfil():
-    return profile_service.obtener_perfil()
+def obtener_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return profile_service.obtener_perfil(current_user.id)
 
 
 @app.put("/api/v1/perfil", response_model=PerfilUsuario, tags=["Perfil"])
-def actualizar_perfil(datos: PerfilActualizar):
-    return profile_service.actualizar_perfil(datos)
-
-@app.get("/api/v1/diario/resumen", response_model=ResumenDiario, tags=["Diario"])
-def obtener_resumen_diario(fecha: Optional[str] = None):
-    return daily_service.obtener_resumen_diario(fecha=fecha)
+def actualizar_perfil(datos: PerfilActualizar, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return profile_service.actualizar_perfil(datos, current_user.id)
 
 
 @app.get("/api/v1/analitica/tendencias", tags=["Analítica"])
-def obtener_tendencias(dias: int = 7):
-    return analytics_service.obtener_tendencias(dias=dias)
+def obtener_tendencias(dias: int = 7, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return analytics_service.obtener_tendencias(current_user.id, dias=dias)
 
 
 @app.delete("/api/v1/diario/consumo/{registro_id}", tags=["Diario"])
-def eliminar_consumo(registro_id: int):
-    exito = daily_service.eliminar_registro_consumo(registro_id)
+def eliminar_consumo(registro_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    exito = daily_service.eliminar_registro_consumo(registro_id, current_user.id)
     if not exito:
         raise HTTPException(status_code=404, detail="Registro no encontrado")
     return {"status": "ok", "message": "Registro eliminado con éxito"}
 
 
 @app.delete("/api/v1/pantry/{item_id}", tags=["Despensa"])
-def eliminar_pantry_item(item_id: str):
-    exito = pantry_service.eliminar_item_pantry(item_id)
+def eliminar_pantry_item(item_id: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    exito = pantry_service.eliminar_item_pantry(item_id, current_user.id)
     if not exito:
         raise HTTPException(status_code=404, detail="Ítem no encontrado en despensa")
     return {"status": "ok", "message": "Ítem eliminado de la despensa"}
