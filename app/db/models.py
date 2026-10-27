@@ -59,6 +59,7 @@ class PantryDB(Base):
     proteinas_100g = Column(Float, default=0.0)
     carbohidratos_100g = Column(Float, default=0.0)
     grasas_100g = Column(Float, default=0.0)
+    fecha_registro = Column(String, nullable=True)
 
 
 class RecetaDB(Base):

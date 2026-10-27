@@ -29,3 +29,21 @@ def init_db():
     """Crea todas las tablas en la base de datos si no existen."""
     import app.db.models  # Importar modelos para registrarlos en el ORM
     Base.metadata.create_all(bind=engine)
+    _agregar_columnas_nuevas()
+
+
+# Columnas añadidas después de crear la BD: create_all no altera tablas existentes
+COLUMNAS_NUEVAS = {
+    "pantry": {"fecha_registro": "VARCHAR"},
+}
+
+
+def _agregar_columnas_nuevas():
+    from sqlalchemy import inspect, text
+    inspector = inspect(engine)
+    with engine.begin() as conn:
+        for tabla, columnas in COLUMNAS_NUEVAS.items():
+            existentes = {c["name"] for c in inspector.get_columns(tabla)}
+            for nombre, tipo in columnas.items():
+                if nombre not in existentes:
+                    conn.execute(text(f"ALTER TABLE {tabla} ADD COLUMN {nombre} {tipo}"))

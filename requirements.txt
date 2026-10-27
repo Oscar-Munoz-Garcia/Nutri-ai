@@ -10,3 +10,4 @@ pyjwt
 passlib[bcrypt]
 python-multipart
 email-validator
+openpyxl>=3.1.0
