@@ -213,6 +213,9 @@
                 </div>
             </div>
 
+            <!-- CALENDARIO DE CONSTANCIA (se rellena desde /static/dashboard360.js) -->
+            <div id="dash-racha"></div>
+
             <!-- REGISTRO DEL DÍA CON PAPELERA DE BORRADO -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
                 <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
@@ -286,6 +289,16 @@
                     <div>
                         <label class="font-mono text-[10px] text-zinc-400 block mb-1">Descripción</label>
                         <input type="text" id="rec-desc" placeholder="Instrucciones breves..." class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div class="col-span-2">
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Pasos (uno por línea, "5 min" crea temporizador)</label>
+                            <textarea id="rec-pasos" rows="3" placeholder="Hervir el arroz 20 min&#10;Dorar el pollo 8 min" class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-sans focus:outline-none focus:border-matcha"></textarea>
+                        </div>
+                        <div>
+                            <label class="font-mono text-[10px] text-zinc-400 block mb-1">Tiempo (min)</label>
+                            <input type="number" id="rec-tiempo" value="15" min="1" class="w-full bg-canvas border border-panelBorder text-zinc-200 text-xs rounded px-3 py-2 font-mono focus:outline-none focus:border-matcha">
+                        </div>
                     </div>
                     <button type="submit" id="btnGuardarReceta" class="w-full py-2 bg-matcha hover:bg-lime-400 text-black font-semibold font-mono text-xs rounded transition uppercase">
                         Guardar Receta
@@ -556,6 +569,7 @@
         let listaPantryCache = [];
         let chartInstance = null;
         let chartDonutInstance = null;
+        let ingredientesRecetaActual = [];
 
         // Inyectar Authorization Header JWT en todas las peticiones fetch
         const fetchOriginal = window.fetch;
@@ -826,6 +840,7 @@
             inputProt.value = Math.round(((parseFloat(inputProt.value) || 0) + (item.proteinas_100g * f)) * 10) / 10;
             inputCarb.value = Math.round(((parseFloat(inputCarb.value) || 0) + (item.carbohidratos_100g * f)) * 10) / 10;
             inputGras.value = Math.round(((parseFloat(inputGras.value) || 0) + (item.grasas_100g * f)) * 10) / 10;
+            ingredientesRecetaActual.push({ nombre: item.nombre, cantidad_gramos: gramos });
 
             document.getElementById("cant-ingrediente-g").value = "";
             select.value = "";
@@ -854,9 +869,14 @@
                             <span>CARBS: <strong class="text-zinc-200">${r.carbohidratos_totales}g</strong></span>
                             <span>GRASAS: <strong class="text-zinc-200">${r.grasas_totales}g</strong></span>
                         </div>
-                        <button onclick="consumirReceta('${r.id}')" class="w-full py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded uppercase transition">
-                            [ + CONSUMIR RECETA ]
-                        </button>
+                        <div class="flex gap-2">
+                            <button onclick="abrirModoCocina('${r.id}')" class="flex-1 py-2 bg-panel border border-panelBorder hover:border-matcha text-zinc-200 font-mono text-[11px] font-semibold rounded uppercase transition">
+                                👨‍🍳 Modo cocina
+                            </button>
+                            <button onclick="consumirReceta('${r.id}')" class="flex-1 py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded uppercase transition">
+                                [ + CONSUMIR ]
+                            </button>
+                        </div>
                     </div>
                 `).join("");
             } catch (e) {
@@ -899,8 +919,10 @@
                 proteinas_totales: parseFloat(document.getElementById("rec-prot").value),
                 carbohidratos_totales: parseFloat(document.getElementById("rec-carb").value),
                 grasas_totales: parseFloat(document.getElementById("rec-gras").value),
-                tiempo_preparacion_min: 15,
-                utensilios_necesarios: utensilios
+                tiempo_preparacion_min: parseInt(document.getElementById("rec-tiempo").value) || 15,
+                utensilios_necesarios: utensilios,
+                ingredientes: ingredientesRecetaActual,
+                pasos: document.getElementById("rec-pasos").value.split("\n").map(p => p.trim()).filter(Boolean)
             };
 
             await fetch(`${API_BASE}/recetas`, {
@@ -910,6 +932,7 @@
             });
 
             document.getElementById("recetaForm").reset();
+            ingredientesRecetaActual = [];
             toggleFormReceta();
             cargarRecetas();
             btn.disabled = false;
@@ -1178,5 +1201,6 @@
         verificarSesion();
         cargarResumenDiario();
     </script>
+    <script src="/static/dashboard360.js"></script>
 </body>
 </html>

@@ -17,6 +17,7 @@ class RecetaCrear(BaseModel):
     tiempo_preparacion_min: int = Field(default=15, description="Tiempo de preparación en minutos")
     utensilios_necesarios: List[str] = Field(default=["Sartén"], description="Lista de utensilios o electrodomésticos necesarios")
     ingredientes: Optional[List[IngredienteReceta]] = Field(default=[], description="Lista opcional de ingredientes")
+    pasos: Optional[List[str]] = Field(default=[], description="Pasos de elaboración para el modo cocina (si un paso menciona 'X min' se ofrece un temporizador)")
 
 
 class Receta(RecetaCrear):

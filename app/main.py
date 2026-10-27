@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
 from pathlib import Path
 
@@ -23,6 +24,9 @@ import app.services.analytics_service as analytics_service
 from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
 from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
 from app.db.models import UsuarioDB
+import app.services.streak_service as streak_service
+import app.services.quicklog_service as quicklog_service
+from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
 
 
 
@@ -33,6 +37,8 @@ app = FastAPI(
     version="1.2.0",
     description="Backend de Ingeniería Nutricional con Visión OCR, Agente IA y Diario de Macros."
 )
+
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -63,6 +69,16 @@ def obtener_resumen_diario():
 @app.post("/api/v1/diario/consumo", response_model=RegistroConsumo, tags=["Diario"])
 def registrar_consumo(registro: RegistroConsumo):
     return daily_service.registrar_consumo(registro)
+
+
+@app.get("/api/v1/diario/racha", tags=["Diario"])
+def obtener_racha(dias: int = 112):
+    return streak_service.obtener_racha(dias=dias)
+
+
+@app.post("/api/v1/diario/interpretar", response_model=RespuestaRegistroRapido, tags=["Diario"])
+async def interpretar_registro_rapido(solicitud: SolicitudRegistroRapido):
+    return await quicklog_service.interpretar_texto(solicitud.texto)
 
 
 @app.put("/api/v1/diario/objetivos", response_model=ObjetivosMacros, tags=["Diario"])
