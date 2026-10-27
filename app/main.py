@@ -23,8 +23,9 @@ from app.db.session import init_db
 
 from typing import Optional
 import app.services.analytics_service as analytics_service
-from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
-from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
+from app.models.auth import UsuarioRegistro, UsuarioLogin, LoginGoogle, TokenResponse, UsuarioOut
+from app.services.auth_service import registrar_usuario, autenticar_usuario, login_google, obtener_usuario_actual
+from app.core.config import settings
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
 
@@ -182,6 +183,17 @@ def registro(datos: UsuarioRegistro):
 @app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Autenticación"])
 def login(datos: UsuarioLogin):
     return autenticar_usuario(datos)
+
+
+@app.post("/api/v1/auth/google", response_model=TokenResponse, tags=["Autenticación"])
+def login_con_google(datos: LoginGoogle):
+    return login_google(datos.credential)
+
+
+@app.get("/api/v1/auth/config", tags=["Autenticación"])
+def configuracion_auth():
+    # El Client ID de Google es público (va en la página); no es un secreto
+    return {"google_client_id": settings.GOOGLE_CLIENT_ID}
 
 
 @app.get("/api/v1/auth/me", response_model=UsuarioOut, tags=["Autenticación"])
