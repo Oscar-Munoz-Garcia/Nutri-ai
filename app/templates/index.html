@@ -1113,6 +1113,14 @@
         }
 
         // --- TELEMETRÍA METABÓLICA: PESO Y TDEE DINÁMICO ---
+        // Usa los colores del tema (colorTema) cuando existe; si no, los colores actuales
+        const colorGraficaPeso = (variable, porDefecto) =>
+            (typeof colorTema === "function" && colorTema(variable)) || porDefecto;
+
+        window.addEventListener("nutri:tema", () => {
+            if (!document.getElementById("sec-perfil").classList.contains("hidden")) cargarTDEE();
+        });
+
         async function cargarTDEE() {
             try {
                 const res = await fetch(`${API_BASE}/metabolismo/tdee?dias=28`);
@@ -1139,12 +1147,12 @@
                 if (chartPesoInstance) chartPesoInstance.destroy();
                 const datasets = [{
                     label: 'Peso (kg)', data: data.pesajes.map(p => p.peso_kg),
-                    borderColor: '#A3E635', backgroundColor: '#A3E635', pointRadius: 3, tension: 0.3
+                    borderColor: colorGraficaPeso('--color-1', '#A3E635'), backgroundColor: colorGraficaPeso('--color-1', '#A3E635'), pointRadius: 3, tension: 0.3
                 }];
                 if (data.recta.length) {
                     datasets.push({
                         label: 'Tendencia', data: data.recta,
-                        borderColor: '#F59E0B', borderDash: [4, 4], pointRadius: 0
+                        borderColor: colorGraficaPeso('--color-3', '#F59E0B'), borderDash: [4, 4], pointRadius: 0
                     });
                 }
                 chartPesoInstance = new Chart(ctx, {
@@ -1153,10 +1161,10 @@
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { labels: { color: '#A1A1AA', font: { family: 'JetBrains Mono', size: 9 } } } },
+                        plugins: { legend: { labels: { color: colorGraficaPeso('--zinc-400', '#A1A1AA'), font: { family: 'JetBrains Mono', size: 9 } } } },
                         scales: {
-                            x: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } },
-                            y: { ticks: { color: '#71717A', font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: '#1E222A' } }
+                            x: { ticks: { color: colorGraficaPeso('--zinc-400', '#71717A'), font: { family: 'JetBrains Mono', size: 8 } }, grid: { display: false } },
+                            y: { ticks: { color: colorGraficaPeso('--zinc-400', '#71717A'), font: { family: 'JetBrains Mono', size: 8 } }, grid: { color: colorGraficaPeso('--c-border', '#1E222A') } }
                         }
                     }
                 });
