@@ -22,14 +22,14 @@ from app.models.shopping import SolicitudListaCompra, ListaCompra
 import app.services.openfoodfacts_service as openfoodfacts_service
 import app.services.shopping_service as shopping_service
 
-from app.models.profile import PerfilUsuario, PerfilActualizar
+from app.models.profile import PerfilUsuario, PerfilActualizar, CuestionarioRegistro
 import app.services.profile_service as profile_service
 from app.db.session import init_db
 
 from typing import Optional
 import app.services.analytics_service as analytics_service
-from app.models.auth import UsuarioRegistro, UsuarioLogin, LoginGoogle, TokenResponse, UsuarioOut
-from app.services.auth_service import registrar_usuario, autenticar_usuario, login_google, obtener_usuario_actual
+from app.models.auth import LoginGoogle, TokenResponse, UsuarioOut
+from app.services.auth_service import login_google, obtener_usuario_actual, registro_completo
 from app.core.config import settings
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
@@ -232,16 +232,6 @@ def eliminar_pantry_item(item_id: str, current_user: UsuarioDB = Depends(obtener
     return {"status": "ok", "message": "Ítem eliminado de la despensa"}
 
 
-@app.post("/api/v1/auth/registro", response_model=TokenResponse, tags=["Autenticación"])
-def registro(datos: UsuarioRegistro):
-    return registrar_usuario(datos)
-
-
-@app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Autenticación"])
-def login(datos: UsuarioLogin):
-    return autenticar_usuario(datos)
-
-
 @app.post("/api/v1/auth/google", response_model=TokenResponse, tags=["Autenticación"])
 def login_con_google(datos: LoginGoogle):
     return login_google(datos.credential)
@@ -255,7 +245,16 @@ def configuracion_auth():
 
 @app.get("/api/v1/auth/me", response_model=UsuarioOut, tags=["Autenticación"])
 def obtener_mi_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    return current_user
+    return UsuarioOut(
+        id=current_user.id, username=current_user.username, email=current_user.email,
+        registro_completo=registro_completo(current_user)
+    )
+
+
+@app.post("/api/v1/auth/completar-registro", response_model=PerfilUsuario, tags=["Autenticación"])
+def completar_registro(datos: CuestionarioRegistro, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Cuestionario de alta de un usuario nuevo: nombre, apellidos, edad, peso y objetivo."""
+    return profile_service.completar_registro(datos, current_user.id)
 
 # --- ENDPOINTS DE EXCEL, IMPORTACIÓN Y GOOGLE SHEETS ---
 @app.get("/api/v1/exportar/excel", tags=["Excel"])

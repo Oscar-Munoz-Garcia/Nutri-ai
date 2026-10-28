@@ -7,6 +7,7 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.core.config import settings
 from app.services import auth_service
+from tests.usuarios import crear_usuario
 
 client = TestClient(app)
 
@@ -36,36 +37,63 @@ def test_google_sin_configurar_devuelve_503(monkeypatch):
     assert res.status_code == 503
 
 
-def test_google_crea_cuenta_sin_password_y_da_jwt(google_configurado, monkeypatch):
+def test_google_crea_cuenta_pendiente_de_cuestionario(google_configurado, monkeypatch):
     email = f"ana_{uuid.uuid4().hex[:6]}@gmail.com"
-    _simular_google(monkeypatch, email=email, email_verified=True, given_name="Ana")
+    _simular_google(monkeypatch, email=email, email_verified=True, given_name="Ana", family_name="López")
 
     res = client.post("/api/v1/auth/google", json={"credential": "token-valido"})
     assert res.status_code == 200, res.text
-    token = res.json()["access_token"]
+    assert res.json()["registro_completo"] is False
+    headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
 
-    me = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"})
-    assert me.json()["email"] == email
+    me = client.get("/api/v1/auth/me", headers=headers).json()
+    assert me["email"] == email and me["registro_completo"] is False
+    perfil = client.get("/api/v1/perfil", headers=headers).json()
+    assert (perfil["nombre"], perfil["apellidos"]) == ("Ana", "López")
 
-    # La cuenta no tiene contraseña: el login clásico la rechaza
-    res = client.post("/api/v1/auth/login", json={"username_or_email": email, "password": auth_service.SIN_PASSWORD_GOOGLE})
-    assert res.status_code == 401
-
-    # Segundo inicio de sesión: misma cuenta, no se duplica
+    # Segundo inicio de sesión sin rellenar el cuestionario: misma cuenta y se vuelve a pedir
     res2 = client.post("/api/v1/auth/google", json={"credential": "token-valido"})
-    me2 = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {res2.json()['access_token']}"})
-    assert me2.json()["id"] == me.json()["id"]
+    assert res2.json()["registro_completo"] is False
+    me2 = client.get("/api/v1/auth/me", headers={"Authorization": f"Bearer {res2.json()['access_token']}"}).json()
+    assert me2["id"] == me["id"]
+
+
+def test_cuestionario_completa_registro_y_calcula_objetivos(google_configurado, monkeypatch):
+    _simular_google(monkeypatch, email=f"luis_{uuid.uuid4().hex[:6]}@gmail.com", email_verified=True)
+    token = client.post("/api/v1/auth/google", json={"credential": "token-valido"}).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    datos = {"nombre": "Luis", "apellidos": "García Pérez", "edad": 30, "peso_kg": 80, "altura_cm": 180,
+             "genero": "hombre", "nivel_actividad": "moderado", "objetivo": "perder_grasa"}
+    assert client.post("/api/v1/auth/completar-registro", json={**datos, "edad": 5}, headers=headers).status_code == 422
+
+    res = client.post("/api/v1/auth/completar-registro", json=datos, headers=headers)
+    assert res.status_code == 200, res.text
+    perfil = res.json()
+    assert perfil["apellidos"] == "García Pérez" and perfil["objetivo"] == "perder_grasa"
+    # Mifflin-St Jeor: (800 + 1125 - 150 + 5) * 1.55 = 2759 kcal de mantenimiento, -400 por perder grasa
+    assert perfil["objetivos_diarios"]["calorias_objetivo"] == 2359.0
+
+    assert client.get("/api/v1/auth/me", headers=headers).json()["registro_completo"] is True
+    assert [p["peso_kg"] for p in client.get("/api/v1/peso", headers=headers).json()] == [80.0]
+    otra = client.post("/api/v1/auth/google", json={"credential": "token-valido"}).json()
+    assert otra["registro_completo"] is True
+
+
+def test_ya_no_existe_login_con_contrasena():
+    assert client.post("/api/v1/auth/login", json={"username_or_email": "a", "password": "b"}).status_code in (404, 405)
+    assert client.post("/api/v1/auth/registro", json={"username": "a", "email": "a@a.com", "password": "b"}).status_code in (404, 405)
 
 
 def test_google_entra_en_cuenta_existente_con_mismo_correo(google_configurado, monkeypatch):
     nombre = f"luis_{uuid.uuid4().hex[:6]}"
-    email = f"{nombre}@test.com"
-    reg = client.post("/api/v1/auth/registro", json={"username": nombre, "email": email, "password": "secreto123"})
-    _simular_google(monkeypatch, email=email.upper(), email_verified=True)
+    crear_usuario(nombre, email=f"{nombre}@test.com")
+    _simular_google(monkeypatch, email=f"{nombre}@TEST.com", email_verified=True)
 
     res = client.post("/api/v1/auth/google", json={"credential": "token-valido"})
     assert res.status_code == 200
-    assert res.json()["username"] == reg.json()["username"]
+    assert res.json()["username"] == nombre
+    assert res.json()["registro_completo"] is True
 
 
 def test_google_rechaza_token_invalido_y_correo_no_verificado(google_configurado, monkeypatch):

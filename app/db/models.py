@@ -25,6 +25,10 @@ class PerfilDB(Base):
     usuario = relationship("UsuarioDB", back_populates="perfil")
 
     nombre = Column(String, default="Usuario")
+    apellidos = Column(String, default="")
+    objetivo = Column(String, default="mantenimiento")
+    # 0 hasta que el usuario nuevo rellena el cuestionario de alta
+    registro_completo = Column(Integer, default=0)
     edad = Column(Integer, default=24)
     peso_kg = Column(Float, default=75.0)
     altura_cm = Column(Float, default=178.0)

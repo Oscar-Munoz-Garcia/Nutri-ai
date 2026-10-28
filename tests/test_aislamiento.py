@@ -8,16 +8,15 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services import backup_service
 
+from tests.usuarios import crear_usuario
+
 client = TestClient(app)
 
 
 def _registrar_usuario() -> dict:
     nombre = f"user_{uuid.uuid4().hex[:8]}"
-    res = client.post("/api/v1/auth/registro", json={
-        "username": nombre, "email": f"{nombre}@test.com", "password": "secreto123"
-    })
-    assert res.status_code == 200, res.text
-    return {"Authorization": f"Bearer {res.json()['access_token']}"}
+    token = crear_usuario(nombre)
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture

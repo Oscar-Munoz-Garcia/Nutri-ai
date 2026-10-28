@@ -5,6 +5,8 @@ from sqlalchemy import inspect, text
 COLUMNAS_NUEVAS = {
     "pantry": {"fecha_registro": "VARCHAR"},
     "recetas": {"ingredientes": "TEXT DEFAULT '[]'", "pasos": "TEXT DEFAULT '[]'"},
+    # DEFAULT 1: los usuarios que ya existían no tienen que rellenar el cuestionario de alta
+    "perfil": {"apellidos": "VARCHAR DEFAULT ''", "objetivo": "VARCHAR DEFAULT 'mantenimiento'", "registro_completo": "INTEGER DEFAULT 1"},
 }
 
 # Tablas cuyos datos pertenecen a un usuario concreto
@@ -59,7 +61,19 @@ def _asignar_filas_huerfanas(conn) -> None:
     _marcar_migracion(conn, nombre)
 
 
+def _borrar_contrasenas(conn) -> None:
+    """Migración de UNA SOLA VEZ: ya solo se entra con Google, así que se borran los hashes de
+    contraseña antiguos para que la base de datos no guarde ninguno."""
+    nombre = "borrar_contrasenas_v1"
+    if _migracion_aplicada(conn, nombre):
+        return
+    if inspect(conn).has_table("usuarios"):
+        conn.execute(text("UPDATE usuarios SET password_hash = '!google'"))
+    _marcar_migracion(conn, nombre)
+
+
 def aplicar_migraciones(engine) -> None:
     with engine.begin() as conn:
         _anadir_columnas_faltantes(conn)
         _asignar_filas_huerfanas(conn)
+        _borrar_contrasenas(conn)
