@@ -350,6 +350,23 @@
                     <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>
                 </div>
             </div>
+            <!-- EXPORTAR A EXCEL Y SINCRONIZAR CON GOOGLE SHEETS -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
+                <div class="pb-2 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">REPORTES</span>
+                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Excel & Google Sheets</h3>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="month" id="exportMes" class="flex-1 bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-200">
+                    <button onclick="descargarExcelMensual()" id="btnExportExcel" class="py-2 px-4 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                        ⬇ Descargar Excel
+                    </button>
+                </div>
+                <button onclick="cerrarJornadaSheets()" id="btnCerrarJornada" class="w-full py-2 border border-matcha/40 hover:border-matcha text-matcha font-mono text-xs rounded-xl transition uppercase">
+                    ✔ Cerrar jornada y enviar a Google Sheets
+                </button>
+                <p id="reporteStatus" class="font-mono text-[11px] text-center text-zinc-500 hidden"></p>
+            </div>
         </section>
 
         <!-- PESTAÑA 02: RECETAS CON CREADOR Y INGREDIENTES DE DESPENSA -->
@@ -451,6 +468,25 @@
                 <div id="ocrStatus" class="font-mono text-[11px] text-center hidden"></div>
             </div>
 
+            <!-- IMPORTADOR MASIVO EXCEL / CSV -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
+                <div class="pb-2 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">IMPORTACIÓN MASIVA</span>
+                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Alimentos o recetas desde Excel / CSV</h3>
+                </div>
+                <label id="importDropzone" class="flex flex-col items-center justify-center p-6 border border-dashed border-matcha/40 hover:border-matcha rounded-xl bg-canvas transition cursor-pointer text-center">
+                    <span class="font-mono text-2xl mb-1 text-matcha">📥</span>
+                    <span class="font-mono text-xs text-zinc-200 uppercase font-semibold">Arrastra aquí tu .xlsx o .csv</span>
+                    <span class="font-mono text-[10px] text-zinc-500 mt-1">Primera fila = cabecera. Alimentos: nombre, cantidad, calorias, proteinas, carbohidratos, grasas (por 100 g)</span>
+                    <span class="font-mono text-[10px] text-zinc-500">Recetas: nombre, calorias_totales, proteinas_totales, carbohidratos_totales, grasas_totales, tiempo, utensilios</span>
+                    <input type="file" id="importInput" accept=".xlsx,.xlsm,.csv,.tsv,.txt" class="hidden" onchange="importarArchivo(this.files[0])">
+                </label>
+                <select id="importTipo" class="w-full bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-200">
+                    <option value="">Detectar automáticamente</option>
+                    <option value="alimentos">Alimentos → Despensa</option>
+                    <option value="recetas">Recetas</option>
+                </select>
+                <div id="importStatus" class="font-mono text-[11px] text-center hidden"></div>
             <!-- ESCÁNER 2.0: PLATOS REALES -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
                 <div class="pb-2 border-b border-panelBorder">
@@ -1666,6 +1702,100 @@
                 btn.disabled = false;
             }
         });
+
+        // --- EXCEL, GOOGLE SHEETS E IMPORTACIÓN ---
+        function mostrarEstado(id, texto, tipo) {
+            const el = document.getElementById(id);
+            const colores = { ok: "text-matcha font-semibold", error: "text-rose-400", info: "text-amberAccent" };
+            el.className = `font-mono text-[11px] text-center ${colores[tipo] || "text-zinc-500"}`;
+            el.innerText = texto;
+        }
+
+        async function descargarExcelMensual() {
+            const input = document.getElementById("exportMes");
+            if (!input.value) input.value = new Date().toISOString().slice(0, 7);
+            const [anio, mes] = input.value.split("-").map(Number);
+            const btn = document.getElementById("btnExportExcel");
+            btn.disabled = true;
+            mostrarEstado("reporteStatus", "⏳ Generando reporte...", "info");
+            try {
+                const res = await fetch(`${API_BASE}/exportar/excel?anio=${anio}&mes=${mes}`);
+                if (!res.ok) throw new Error((await res.json()).detail || "Error al generar el Excel");
+                const blob = await res.blob();
+                const nombre = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || `nutriai_${input.value}.xlsx`;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = nombre;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                URL.revokeObjectURL(url);
+                mostrarEstado("reporteStatus", `✅ Descargado ${nombre}`, "ok");
+            } catch (err) {
+                mostrarEstado("reporteStatus", `❌ ${err.message}`, "error");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function cerrarJornadaSheets() {
+            const btn = document.getElementById("btnCerrarJornada");
+            btn.disabled = true;
+            mostrarEstado("reporteStatus", "⏳ Enviando resumen a Google Sheets...", "info");
+            try {
+                const res = await fetch(`${API_BASE}/sheets/cerrar-jornada`, { method: "POST" });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "No se pudo sincronizar");
+                const r = data.enviado;
+                mostrarEstado("reporteStatus", `✅ Jornada ${r.fecha} enviada: ${r.calorias} kcal, ${r.proteinas} g proteína ${r.meta_cumplida ? "🎯" : ""}`, "ok");
+            } catch (err) {
+                mostrarEstado("reporteStatus", `❌ ${err.message}`, "error");
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        async function importarArchivo(archivo) {
+            if (!archivo) return;
+            const formData = new FormData();
+            formData.append("file", archivo);
+            const tipo = document.getElementById("importTipo").value;
+            if (tipo) formData.append("tipo", tipo);
+            mostrarEstado("importStatus", `⏳ Importando ${archivo.name}...`, "info");
+            try {
+                const res = await fetch(`${API_BASE}/importar`, { method: "POST", body: formData });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Error al importar");
+                const destino = data.tipo === "recetas" ? "recetas" : "alimentos";
+                let texto = `✅ ${data.importados} ${destino} nuevos, ${data.actualizados} actualizados`;
+                if (data.errores.length) {
+                    texto += `\n⚠ ${data.errores.length} filas omitidas: ` + data.errores.slice(0, 3).map(e => `fila ${e.fila} (${e.motivo})`).join(", ");
+                }
+                mostrarEstado("importStatus", texto, data.errores.length ? "info" : "ok");
+                if (data.tipo === "recetas") cargarRecetas(); else cargarDespensa();
+            } catch (err) {
+                mostrarEstado("importStatus", `❌ ${err.message}`, "error");
+            } finally {
+                document.getElementById("importInput").value = "";
+            }
+        }
+
+        (function configurarDropzone() {
+            const zona = document.getElementById("importDropzone");
+            if (!zona) return;
+            ["dragenter", "dragover"].forEach(ev => zona.addEventListener(ev, (e) => {
+                e.preventDefault();
+                zona.classList.add("border-matcha");
+            }));
+            ["dragleave", "drop"].forEach(ev => zona.addEventListener(ev, (e) => {
+                e.preventDefault();
+                zona.classList.remove("border-matcha");
+            }));
+            zona.addEventListener("drop", (e) => importarArchivo(e.dataTransfer.files[0]));
+            const mes = document.getElementById("exportMes");
+            if (mes) mes.value = new Date().toISOString().slice(0, 7);
+        })();
 
         // --- CHAT AGENTE ---
         document.getElementById("chatForm")?.addEventListener("submit", async (e) => {

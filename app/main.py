@@ -1,7 +1,7 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile, Depends
+from fastapi import FastAPI, HTTPException, Request, Response, File, Form, UploadFile, Depends
 from fastapi.responses import HTMLResponse
 from typing import List, Optional
 from pathlib import Path
@@ -32,6 +32,10 @@ from app.services.auth_service import registrar_usuario, autenticar_usuario, log
 from app.core.config import settings
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
+from datetime import date
+import app.services.export_service as export_service
+import app.services.import_service as import_service
+import app.services.sheets_service as sheets_service
 from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
 import app.services.metabolic_service as metabolic_service
 from app.models.friends import Amigos, SolicitudAmistadEntrada
@@ -49,9 +53,13 @@ async def lifespan(app: FastAPI):
     tarea_backup = None
     if os.getenv("BACKUP_AUTO", "1") == "1":
         tarea_backup = asyncio.create_task(backup_service.bucle_backup_diario())
+    # Cierre de jornada automático en Google Sheets (solo si GOOGLE_SHEETS_HORA_CIERRE está configurado)
+    tarea_sheets = sheets_service.iniciar_cierre_automatico()
     yield
     if tarea_backup:
         tarea_backup.cancel()
+    if tarea_sheets:
+        tarea_sheets.cancel()
 
 
 app = FastAPI(
@@ -233,6 +241,50 @@ def configuracion_auth():
 def obtener_mi_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return current_user
 
+# --- ENDPOINTS DE EXCEL, IMPORTACIÓN Y GOOGLE SHEETS ---
+@app.get("/api/v1/exportar/excel", tags=["Excel"])
+def exportar_excel(anio: Optional[int] = None, mes: Optional[int] = None,
+                   current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    hoy = date.today()
+    anio, mes = anio or hoy.year, mes or hoy.month
+    try:
+        contenido = export_service.generar_reporte_mensual(current_user.id, anio, mes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    nombre = f"nutriai_{current_user.username}_{anio}-{mes:02d}.xlsx"
+    return Response(
+        content=contenido,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
+    )
+
+
+@app.post("/api/v1/importar", tags=["Excel"])
+async def importar_archivo(file: UploadFile = File(...), tipo: Optional[str] = Form(None),
+                           current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    contenido = await file.read()
+    if len(contenido) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="El archivo supera 5 MB.")
+    try:
+        return import_service.importar_archivo(contenido, file.filename or "", current_user.id, tipo or None)
+    except import_service.ErrorImportacion as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+
+@app.get("/api/v1/sheets/estado", tags=["Google Sheets"])
+def estado_sheets(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return sheets_service.estado()
+
+
+@app.post("/api/v1/sheets/cerrar-jornada", tags=["Google Sheets"])
+async def cerrar_jornada_sheets(fecha: Optional[str] = None,
+                                current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        return await sheets_service.enviar_resumen(current_user, fecha)
+    except sheets_service.SheetsNoConfigurado as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"No se pudo enviar a Google Sheets: {exc}")
 # --- ENDPOINTS DE TELEMETRÍA METABÓLICA (PESO, TDEE DINÁMICO Y VERSUS) ---
 @app.get("/api/v1/peso", response_model=List[PesoRegistro], tags=["Metabolismo"])
 def listar_pesos(dias: int = 90, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
