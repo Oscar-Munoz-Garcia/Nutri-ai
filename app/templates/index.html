@@ -171,8 +171,8 @@
         <div class="bg-panel border border-panelBorder rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl">
             <div class="text-center space-y-1">
                 <span class="font-mono text-[9px] text-matcha uppercase tracking-widest block">SISTEMA MULTIUSUARIO</span>
-                <h2 id="auth-title" class="font-display text-xl font-bold text-zinc-100">Iniciar Sesión</h2>
-                <p id="auth-subtitle" class="text-zinc-400 text-xs font-mono">Entra a tu cuenta personal de NutriAI con Google</p>
+                <h2 class="font-display text-xl font-bold text-zinc-100">Entra en NutriAI</h2>
+                <p class="text-zinc-400 text-xs font-mono">Usa tu cuenta de Google. Si es tu primera vez, te ayudamos a crear tu cuenta.</p>
             </div>
 
             <div id="btn-google" class="flex justify-center min-h-[44px]"></div>
@@ -180,20 +180,27 @@
             <div id="google-no-config" class="hidden text-amber-400 text-[10px] text-center font-mono">
                 El inicio de sesión con Google no está configurado: falta GOOGLE_CLIENT_ID en el archivo .env del servidor.
             </div>
-
-            <div class="text-center font-mono text-[11px] pt-2 border-t border-panelBorder">
-                <span id="lbl-toggle-auth" class="text-zinc-400">¿No tienes cuenta?</span>
-                <button onclick="toggleModoAuth()" id="btn-toggle-auth" class="text-matcha font-bold ml-1 hover:underline">Regístrate con Google</button>
-            </div>
         </div>
     </div>
 
-    <!-- CUESTIONARIO DE ALTA: se muestra a las cuentas nuevas tras entrar con Google -->
+    <!-- PRIMERA VEZ: aviso de cuenta nueva y cuestionario de alta tras entrar con Google -->
     <div id="modal-registro" class="hidden fixed inset-0 bg-zinc-950/70 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-panel border border-panelBorder rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl my-auto">
+        <div id="registro-bienvenida" class="bg-panel border border-panelBorder rounded-2xl p-6 w-full max-w-sm space-y-4 shadow-2xl my-auto text-center">
+            <div class="text-4xl">👋</div>
+            <div class="space-y-1">
+                <span class="font-mono text-[9px] text-matcha uppercase tracking-widest block">PRIMERA VEZ EN NUTRIAI</span>
+                <h2 id="bienvenida-titulo" class="font-display text-xl font-bold text-zinc-100">¡Hola! Es tu primera vez aquí</h2>
+                <p class="text-zinc-400 text-xs font-mono">No tienes cuenta todavía. Vamos a crearla: solo tienes que responder unas preguntas rápidas para calcular tus objetivos.</p>
+            </div>
+            <button onclick="empezarCuestionarioRegistro()" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold rounded uppercase transition font-mono text-xs">
+                Crear mi cuenta
+            </button>
+        </div>
+
+        <div id="registro-formulario" class="hidden bg-panel border border-panelBorder rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl my-auto">
             <div class="text-center space-y-1">
-                <span class="font-mono text-[9px] text-matcha uppercase tracking-widest block">BIENVENIDO A NUTRIAI</span>
-                <h2 class="font-display text-xl font-bold text-zinc-100">Completa tu perfil</h2>
+                <span class="font-mono text-[9px] text-matcha uppercase tracking-widest block">CREA TU CUENTA</span>
+                <h2 class="font-display text-xl font-bold text-zinc-100">Cuéntanos sobre ti</h2>
                 <p class="text-zinc-400 text-xs font-mono">Con estos datos calculamos tus objetivos diarios</p>
             </div>
 
@@ -839,6 +846,19 @@
                 </div>
             </div>
 
+            <!-- ZONA DE PELIGRO: ELIMINAR CUENTA -->
+            <div class="bg-panel p-5 rounded-2xl border border-rose-400/40 space-y-3">
+                <div>
+                    <span class="font-mono text-[9px] text-rose-400 uppercase tracking-widest block">ZONA DE PELIGRO</span>
+                    <h3 class="font-display font-semibold text-base text-zinc-100">Eliminar cuenta</h3>
+                    <p class="text-zinc-400 text-xs font-mono mt-1">Se borran para siempre tu perfil, diario, despensa, recetas, pesajes y amistades. No se puede deshacer.</p>
+                </div>
+                <div id="eliminar-cuenta-error" class="text-rose-400 text-[10px] hidden font-mono"></div>
+                <button onclick="eliminarCuenta()" class="w-full py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/40 text-rose-400 font-semibold text-xs rounded transition uppercase font-mono">
+                    Eliminar mi cuenta
+                </button>
+            </div>
+
         </section>
 
         <!-- PESTAÑA 06: VERSUS / DUELO AMISTOSO -->
@@ -910,7 +930,6 @@
     <script>
         const API_BASE = "/api/v1";
         let historialMensajes = [];
-        let modoRegistro = false;
         let listaPantryCache = [];
         let ingredientesRecetaActual = [];
         let chartInstance = null;
@@ -996,19 +1015,6 @@
             }
         }
 
-        // Iniciar sesión y registrarse usan el mismo botón de Google: solo cambia el texto.
-        // Si la cuenta es nueva, después se muestra el cuestionario de alta.
-        function toggleModoAuth() {
-            modoRegistro = !modoRegistro;
-            document.getElementById("auth-title").innerText = modoRegistro ? "Crear Cuenta" : "Iniciar Sesión";
-            document.getElementById("auth-subtitle").innerText = modoRegistro
-                ? "Regístrate con tu cuenta de Google en un clic"
-                : "Entra a tu cuenta personal de NutriAI con Google";
-            document.getElementById("lbl-toggle-auth").innerText = modoRegistro ? "¿Ya tienes cuenta?" : "¿No tienes cuenta?";
-            document.getElementById("btn-toggle-auth").innerText = modoRegistro ? "Inicia sesión con Google" : "Regístrate con Google";
-            pintarBotonGoogle();
-        }
-
         // ---- Inicio de sesión con Google (Google Identity Services) ----
         let googleListo = false;
 
@@ -1018,7 +1024,7 @@
             contenedor.innerHTML = "";
             google.accounts.id.renderButton(contenedor, {
                 theme: document.documentElement.classList.contains("dark") ? "filled_black" : "outline",
-                size: "large", text: modoRegistro ? "signup_with" : "signin_with", shape: "pill", locale: "es"
+                size: "large", text: "continue_with", shape: "pill", locale: "es"
             });
         }
 
@@ -1078,18 +1084,28 @@
         }
 
         // ---- Cuestionario de alta para cuentas nuevas ----
+        // Primero el aviso de "es tu primera vez" y, al pulsar "Crear mi cuenta", el cuestionario
         async function mostrarCuestionarioRegistro() {
             document.getElementById("modal-registro").classList.remove("hidden");
+            document.getElementById("registro-bienvenida").classList.remove("hidden");
+            document.getElementById("registro-formulario").classList.add("hidden");
             try {
                 // Nombre y apellidos precargados desde Google
                 const res = await fetch(`${API_BASE}/perfil`);
                 if (!res.ok) return;
                 const perfil = await res.json();
                 if (!document.getElementById("reg-nombre").value) document.getElementById("reg-nombre").value = perfil.nombre || "";
+                if (perfil.nombre) document.getElementById("bienvenida-titulo").innerText = `¡Hola, ${perfil.nombre}! Es tu primera vez aquí`;
                 if (!document.getElementById("reg-apellidos").value) document.getElementById("reg-apellidos").value = perfil.apellidos || "";
             } catch (err) {
                 console.warn("No se pudo precargar el perfil", err);
             }
+        }
+
+        function empezarCuestionarioRegistro() {
+            document.getElementById("registro-bienvenida").classList.add("hidden");
+            document.getElementById("registro-formulario").classList.remove("hidden");
+            document.getElementById("reg-edad").focus();
         }
 
         async function enviarCuestionarioRegistro(e) {
@@ -1126,6 +1142,27 @@
 
         window.addEventListener("nutri:tema", pintarBotonGoogle);
         iniciarBotonGoogle();
+
+        async function eliminarCuenta() {
+            const errorDiv = document.getElementById("eliminar-cuenta-error");
+            errorDiv.classList.add("hidden");
+            const confirmacion = prompt("Esto borrará tu cuenta y TODOS tus datos para siempre.\nEscribe ELIMINAR para confirmar:");
+            if (confirmacion === null) return;
+            if (confirmacion.trim().toUpperCase() !== "ELIMINAR") {
+                errorDiv.innerText = "No se ha eliminado nada: tenías que escribir ELIMINAR.";
+                errorDiv.classList.remove("hidden");
+                return;
+            }
+            try {
+                const res = await fetch(`${API_BASE}/auth/cuenta`, { method: "DELETE" });
+                if (!res.ok) throw new Error((await res.json()).detail || "No se pudo eliminar la cuenta");
+                alert("Tu cuenta se ha eliminado. ¡Hasta pronto!");
+                cerrarSesion();
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove("hidden");
+            }
+        }
 
         function cerrarSesion() {
             localStorage.removeItem("nutri_token");

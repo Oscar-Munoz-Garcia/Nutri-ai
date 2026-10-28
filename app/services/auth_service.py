@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from app.db.session import SessionLocal, get_db
-from app.db.models import UsuarioDB, PerfilDB
+from app.db.models import UsuarioDB, PerfilDB, PesoHistorialDB, AmistadDB
 from app.models.auth import TokenResponse
 from app.core import security
 from app.core.config import settings
@@ -67,6 +67,24 @@ def login_google(credential: str) -> TokenResponse:
 
         token = security.create_access_token({"sub": str(user.id), "username": user.username})
         return TokenResponse(access_token=token, username=user.username, registro_completo=registro_completo(user))
+    finally:
+        db.close()
+
+
+def eliminar_cuenta(usuario_id: int) -> None:
+    """Borra el usuario y todos sus datos. Perfil, despensa, recetas y diario caen en cascada;
+    pesajes y amistades no cuelgan de la relación y se borran aparte."""
+    db = SessionLocal()
+    try:
+        user = db.query(UsuarioDB).filter(UsuarioDB.id == usuario_id).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+        db.query(PesoHistorialDB).filter(PesoHistorialDB.usuario_id == usuario_id).delete()
+        db.query(AmistadDB).filter(
+            (AmistadDB.solicitante_id == usuario_id) | (AmistadDB.destinatario_id == usuario_id)
+        ).delete()
+        db.delete(user)
+        db.commit()
     finally:
         db.close()
 
