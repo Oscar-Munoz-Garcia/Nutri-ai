@@ -177,11 +177,12 @@ def _construir_analisis(nombre_plato: str, ingredientes: list, confianza: float,
     )
 
 
-async def analizar_plato(contenido_imagen: bytes, nombre_archivo: str = "plato.jpg") -> AnalisisPlato:
+async def analizar_plato(contenido_imagen: bytes, nombre_archivo: str = "plato.jpg", idioma: str = "es") -> AnalisisPlato:
     """
     Analiza la foto de un plato preparado con Groq Vision y estima los ingredientes,
-    el peso de cada uno y sus macros aproximados.
+    el peso de cada uno y sus macros aproximados. Los nombres y las notas salen en el idioma pedido ('es' o 'en').
     """
+    lengua = "inglés" if idioma == "en" else "español"
     if not settings.GROQ_API_KEY:
         ingredientes = [
             IngredientePlato(nombre="Arroz blanco cocido", peso_estimado_g=150, calorias=195, proteinas=4.1, carbohidratos=42.0, grasas=0.4),
@@ -204,13 +205,14 @@ async def analizar_plato(contenido_imagen: bytes, nombre_archivo: str = "plato.j
         "las calorías y macros de esa cantidad (no por 100g). Ten en cuenta aceites y salsas visibles.\n"
         "Responde ÚNICAMENTE con un objeto JSON válido con este formato exacto:\n"
         "{\n"
-        '  "nombre_plato": "Nombre corto del plato en español",\n'
+        f'  "nombre_plato": "Nombre corto del plato en {lengua}",\n'
         '  "ingredientes": [\n'
         '    {"nombre": "Ingrediente", "peso_estimado_g": 0.0, "calorias": 0.0, "proteinas": 0.0, "carbohidratos": 0.0, "grasas": 0.0}\n'
         "  ],\n"
         '  "confianza": 0.0,\n'
         '  "notas": "Supuestos de la estimación en una frase"\n'
         "}\n"
+        f"Escribe los nombres de los ingredientes y las notas en {lengua}.\n"
         "confianza va de 0 a 1. Si la imagen no muestra comida, devuelve ingredientes vacío y explícalo en notas.\n"
         "No incluyas explicaciones ni marcas de formato markdown fuera del objeto JSON."
     )

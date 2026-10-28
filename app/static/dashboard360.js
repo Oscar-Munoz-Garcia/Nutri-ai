@@ -146,7 +146,7 @@
         if (reconocedor) { reconocedor.stop(); return; }
 
         reconocedor = new Reconocimiento();
-        reconocedor.lang = "es-ES";
+        reconocedor.lang = window.idiomaActual?.() === "en" ? "en-US" : "es-ES";
         reconocedor.interimResults = true;
         reconocedor.continuous = false;
         let textoFinal = "";
@@ -423,7 +423,8 @@
         } catch (e) { /* sin audio */ }
         navigator.vibrate?.([300, 150, 300]);
         if (document.hidden && "Notification" in window && Notification.permission === "granted") {
-            new Notification("NutriAI · Temporizador", { body: `${etiqueta}: ¡tiempo!` });
+            const t = window.t || (texto => texto);
+            new Notification(t("NutriAI · Temporizador"), { body: t(`${etiqueta}: ¡tiempo!`) });
         }
     }
 
