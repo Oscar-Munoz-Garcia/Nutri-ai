@@ -21,3 +21,10 @@ Thumbs.db
 Desktop.ini
 # Copias de seguridad locales de la base de datos
 backups/
+
+# Base de datos local (cada uno tiene la suya; la app la crea sola al arrancar)
+nutri_ai.db
+nutri_ai.db-journal
+
+# Caché de pytest
+.pytest_cache/
