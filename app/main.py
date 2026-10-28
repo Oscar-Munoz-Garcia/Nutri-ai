@@ -32,6 +32,10 @@ from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, Usuari
 from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
+from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
+import app.services.metabolic_service as metabolic_service
+from app.models.friends import Amigos, SolicitudAmistadEntrada
+import app.services.friends_service as friends_service
 import app.services.streak_service as streak_service
 import app.services.quicklog_service as quicklog_service
 from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido

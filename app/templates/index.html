@@ -983,7 +983,6 @@
             inputProt.value = Math.round(((parseFloat(inputProt.value) || 0) + (item.proteinas_100g * f)) * 10) / 10;
             inputCarb.value = Math.round(((parseFloat(inputCarb.value) || 0) + (item.carbohidratos_100g * f)) * 10) / 10;
             inputGras.value = Math.round(((parseFloat(inputGras.value) || 0) + (item.grasas_100g * f)) * 10) / 10;
-            ingredientesRecetaActual.push({ nombre: item.nombre, cantidad_gramos: gramos });
 
             // Guardamos el ingrediente para que la lista de la compra sepa qué pide la receta
             ingredientesRecetaActual.push({ nombre: item.nombre, cantidad_gramos: gramos });
@@ -1073,9 +1072,10 @@
                 proteinas_totales: parseFloat(document.getElementById("rec-prot").value),
                 carbohidratos_totales: parseFloat(document.getElementById("rec-carb").value),
                 grasas_totales: parseFloat(document.getElementById("rec-gras").value),
-                tiempo_preparacion_min: 15,
+                tiempo_preparacion_min: parseInt(document.getElementById("rec-tiempo").value) || 15,
                 utensilios_necesarios: utensilios,
-                ingredientes: ingredientesRecetaActual
+                ingredientes: ingredientesRecetaActual,
+                pasos: document.getElementById("rec-pasos").value.split("\n").map(p => p.trim()).filter(Boolean)
             };
 
             await fetch(`${API_BASE}/recetas`, {
@@ -1307,7 +1307,7 @@
         });
 
         // --- VERSUS / DUELO SEMANAL ---
-        const escaparHtml = t => String(t).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        const escaparHtml = t => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
         async function cargarVersus() {
             const lista = document.getElementById("versus-lista");
@@ -1535,9 +1535,7 @@
     </script>
     <!-- ESCÁNER 2.0: platos, códigos de barras y lista de la compra -->
     <script>
-        function escaparHtml(texto) {
-            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-        }
+        // escaparHtml ya está definido en el script principal; redeclararlo aquí hacía fallar todo este bloque
 
         function mostrarEstado(id, tipo, texto) {
             const el = document.getElementById(id);
@@ -1956,5 +1954,6 @@
             } catch { /* el usuario canceló */ }
         }
     </script>
+    <script src="/static/dashboard360.js"></script>
 </body>
 </html>
