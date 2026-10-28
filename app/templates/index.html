@@ -66,6 +66,17 @@
                 <p class="text-zinc-400 text-xs font-mono">Ingresa a tu cuenta personal de NutriAI</p>
             </div>
 
+            <!-- Inicio de sesión con Google (solo visible si el servidor tiene GOOGLE_CLIENT_ID) -->
+            <div id="group-google" class="hidden space-y-3">
+                <div id="btn-google" class="flex justify-center"></div>
+                <div id="google-error" class="text-rose-400 text-[10px] hidden text-center font-mono"></div>
+                <div class="flex items-center gap-2 font-mono text-[10px] text-zinc-500">
+                    <div class="flex-1 border-t border-panelBorder"></div>
+                    <span>o con usuario y contraseña</span>
+                    <div class="flex-1 border-t border-panelBorder"></div>
+                </div>
+            </div>
+
             <form id="form-auth" onsubmit="procesarAuth(event)" class="space-y-3 font-mono text-xs">
                 <div id="group-email" class="hidden">
                     <label class="text-zinc-400 text-[10px] block mb-1">Correo Electrónico</label>
@@ -772,6 +783,57 @@
                 errorDiv.classList.remove("hidden");
             }
         }
+
+        // ---- Inicio de sesión con Google (Google Identity Services) ----
+        async function iniciarBotonGoogle() {
+            try {
+                const res = await fetchOriginal(`${API_BASE}/auth/config`);
+                const { google_client_id } = await res.json();
+                if (!google_client_id) return;
+
+                await new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src = "https://accounts.google.com/gsi/client";
+                    script.async = true;
+                    script.onload = resolve;
+                    script.onerror = reject;
+                    document.head.appendChild(script);
+                });
+
+                google.accounts.id.initialize({ client_id: google_client_id, callback: procesarLoginGoogle });
+                google.accounts.id.renderButton(document.getElementById("btn-google"), {
+                    theme: document.documentElement.classList.contains("dark") ? "filled_black" : "outline",
+                    size: "large", text: "signin_with", shape: "pill", locale: "es"
+                });
+                document.getElementById("group-google").classList.remove("hidden");
+            } catch (err) {
+                console.warn("No se pudo cargar el inicio de sesión con Google", err);
+            }
+        }
+
+        async function procesarLoginGoogle(respuesta) {
+            const errorDiv = document.getElementById("google-error");
+            errorDiv.classList.add("hidden");
+            try {
+                const res = await fetchOriginal(`${API_BASE}/auth/google`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ credential: respuesta.credential })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || "Error al iniciar sesión con Google");
+
+                localStorage.setItem("nutri_token", data.access_token);
+                localStorage.setItem("nutri_user", data.username);
+                document.getElementById("modal-auth").classList.add("hidden");
+                location.reload();
+            } catch (err) {
+                errorDiv.innerText = err.message;
+                errorDiv.classList.remove("hidden");
+            }
+        }
+
+        iniciarBotonGoogle();
 
         function cerrarSesion() {
             localStorage.removeItem("nutri_token");
