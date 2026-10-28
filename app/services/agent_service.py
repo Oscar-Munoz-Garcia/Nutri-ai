@@ -116,9 +116,11 @@ async def obtener_modelos_disponibles(client: httpx.AsyncClient, headers: dict) 
 
 
 async def procesar_chat_agente(solicitud: SolicitudChat, usuario_id: int) -> RespuestaChat:
+    en_ingles = solicitud.idioma == "en"
     if not settings.GROQ_API_KEY:
         return RespuestaChat(
-            respuesta="Configura GROQ_API_KEY en tu archivo .env para interactuar con el agente.",
+            respuesta="Set GROQ_API_KEY in your .env file to chat with the agent." if en_ingles
+            else "Configura GROQ_API_KEY en tu archivo .env para interactuar con el agente.",
             herramientas_usadas=[]
         )
 
@@ -134,7 +136,8 @@ async def procesar_chat_agente(solicitud: SolicitudChat, usuario_id: int) -> Res
         "REGLAS CRÍTICAS DE HERRAMIENTAS:\n"
         "1. 'herramienta_calcular_porcion_exacta': Usa esta herramienta para calcular la ración matemática exacta si el usuario te lo solicita.\n"
         "2. 'herramienta_registrar_comida_consumida': Usa esta herramienta ÚNICAMENTE cuando el usuario te diga explícitamente que HA COMIDO o QUIERE ANOTAR/REGISTRAR algo (ej: 'He comido 200g de pollo', 'Añade mi almuerzo').\n"
-        "3. PROHIBICIÓN: NUNCA ejecutes 'herramienta_registrar_comida_consumida' si solo estás sugiriendo o recomendando recetas futuras."
+        "3. PROHIBICIÓN: NUNCA ejecutes 'herramienta_registrar_comida_consumida' si solo estás sugiriendo o recomendando recetas futuras.\n\n"
+        + ("IDIOMA: responde SIEMPRE en inglés (English)." if en_ingles else "IDIOMA: responde SIEMPRE en español.")
     )
 
     mensajes = [{"role": "system", "content": prompt_sistema}]

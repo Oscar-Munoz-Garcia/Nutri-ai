@@ -13,10 +13,12 @@ MODELOS_TEXTO = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 COMIDAS = {
     "desayuno": "Desayuno", "almuerzo": "Almuerzo", "comida": "Comida",
-    "merienda": "Merienda", "cena": "Cena", "snack": "Snack", "postre": "Postre"
+    "merienda": "Merienda", "cena": "Cena", "snack": "Snack", "postre": "Postre",
+    # Con la interfaz en inglés
+    "breakfast": "Breakfast", "lunch": "Lunch", "dinner": "Dinner", "dessert": "Dessert"
 }
 
-_PATRON_CANTIDAD = re.compile(r"^(?P<num>\d+(?:[.,]\d+)?)\s*(?P<unidad>kg|g|gr|gramos?)\b\s*(?:de\s+)?(?P<nombre>.+)$")
+_PATRON_CANTIDAD = re.compile(r"^(?P<num>\d+(?:[.,]\d+)?)\s*(?P<unidad>kg|g|gr|gramos?)\b\s*(?:de\s+|of\s+)?(?P<nombre>.+)$")
 
 
 def _normalizar(texto: str) -> str:
@@ -34,7 +36,7 @@ def separar_comida(texto: str) -> Tuple[Optional[str], str]:
 
 
 def separar_alimentos(texto: str) -> List[str]:
-    partes = re.split(r",|\+|;|\s+y\s+|\s+e\s+(?=[hi])", texto, flags=re.IGNORECASE)
+    partes = re.split(r",|\+|;|\s+y\s+|\s+and\s+|\s+e\s+(?=[hi])", texto, flags=re.IGNORECASE)
     return [p.strip(" .") for p in partes if p and p.strip(" .")]
 
 

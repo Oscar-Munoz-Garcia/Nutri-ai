@@ -171,11 +171,11 @@ async def procesar_imagen_ocr(file: UploadFile = File(...), current_user: Usuari
 
 
 @app.post("/api/v1/alimentos/analizar-plato", response_model=AnalisisPlato, tags=["Visión OCR"])
-async def analizar_plato(file: UploadFile = File(...), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+async def analizar_plato(file: UploadFile = File(...), idioma: str = Form("es"), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     contenido = await file.read()
     if not contenido:
         raise HTTPException(status_code=400, detail="La imagen está vacía.")
-    return await vision_service.analizar_plato(contenido, file.filename or "plato.jpg")
+    return await vision_service.analizar_plato(contenido, file.filename or "plato.jpg", idioma)
 
 
 @app.get("/api/v1/alimentos/barcode/{codigo}", response_model=ProductoNutricional, tags=["Visión OCR"])
