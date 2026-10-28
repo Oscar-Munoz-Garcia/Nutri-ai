@@ -15,7 +15,11 @@ import app.services.pantry_service as pantry_service
 import app.services.vision_service as vision_service
 import app.services.agent_service as agent_service
 from app.models.pantry import AlimentoPantry, AlimentoPantryEntrada
-from app.models.vision import ProductoOCR
+from app.models.vision import ProductoOCR, AnalisisPlato
+from app.models.food import ProductoNutricional
+from app.models.shopping import SolicitudListaCompra, ListaCompra
+import app.services.openfoodfacts_service as openfoodfacts_service
+import app.services.shopping_service as shopping_service
 
 from app.models.profile import PerfilUsuario, PerfilActualizar
 import app.services.profile_service as profile_service
@@ -23,14 +27,19 @@ from app.db.session import init_db
 
 from typing import Optional
 import app.services.analytics_service as analytics_service
-from app.models.auth import UsuarioRegistro, UsuarioLogin, TokenResponse, UsuarioOut
-from app.services.auth_service import registrar_usuario, autenticar_usuario, obtener_usuario_actual
+from app.models.auth import UsuarioRegistro, UsuarioLogin, LoginGoogle, TokenResponse, UsuarioOut
+from app.services.auth_service import registrar_usuario, autenticar_usuario, login_google, obtener_usuario_actual
+from app.core.config import settings
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
 from datetime import date
 import app.services.export_service as export_service
 import app.services.import_service as import_service
 import app.services.sheets_service as sheets_service
+from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
+import app.services.metabolic_service as metabolic_service
+from app.models.friends import Amigos, SolicitudAmistadEntrada
+import app.services.friends_service as friends_service
 
 
 
@@ -145,6 +154,31 @@ async def procesar_imagen_ocr(file: UploadFile = File(...), current_user: Usuari
     return await vision_service.analizar_etiqueta_nutricional(contenido, file.filename or "etiqueta.jpg")
 
 
+@app.post("/api/v1/alimentos/analizar-plato", response_model=AnalisisPlato, tags=["Visión OCR"])
+async def analizar_plato(file: UploadFile = File(...), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    contenido = await file.read()
+    if not contenido:
+        raise HTTPException(status_code=400, detail="La imagen está vacía.")
+    return await vision_service.analizar_plato(contenido, file.filename or "plato.jpg")
+
+
+@app.get("/api/v1/alimentos/barcode/{codigo}", response_model=ProductoNutricional, tags=["Visión OCR"])
+async def buscar_por_codigo_barras(codigo: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    codigo = codigo.strip()
+    if not codigo.isdigit() or not 8 <= len(codigo) <= 14:
+        raise HTTPException(status_code=422, detail="El código de barras debe tener entre 8 y 14 dígitos.")
+    producto = await openfoodfacts_service.consultar_open_food_facts(codigo)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado en Open Food Facts.")
+    return producto
+
+
+# --- ENDPOINT DE LISTA DE LA COMPRA ---
+@app.post("/api/v1/compra/lista", response_model=ListaCompra, tags=["Lista de la compra"])
+def generar_lista_compra(solicitud: SolicitudListaCompra, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return shopping_service.generar_lista_compra(solicitud, usuario_id=current_user.id)
+
+
 # --- ENDPOINT DE CHAT AGENTE ---
 @app.post("/api/v1/chat/planificar", response_model=RespuestaChat, tags=["Agente AI"])
 async def chat_agente(solicitud: SolicitudChat, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
@@ -190,6 +224,17 @@ def registro(datos: UsuarioRegistro):
 @app.post("/api/v1/auth/login", response_model=TokenResponse, tags=["Autenticación"])
 def login(datos: UsuarioLogin):
     return autenticar_usuario(datos)
+
+
+@app.post("/api/v1/auth/google", response_model=TokenResponse, tags=["Autenticación"])
+def login_con_google(datos: LoginGoogle):
+    return login_google(datos.credential)
+
+
+@app.get("/api/v1/auth/config", tags=["Autenticación"])
+def configuracion_auth():
+    # El Client ID de Google es público (va en la página); no es un secreto
+    return {"google_client_id": settings.GOOGLE_CLIENT_ID}
 
 
 @app.get("/api/v1/auth/me", response_model=UsuarioOut, tags=["Autenticación"])
@@ -240,3 +285,66 @@ async def cerrar_jornada_sheets(fecha: Optional[str] = None,
         raise HTTPException(status_code=503, detail=str(exc))
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"No se pudo enviar a Google Sheets: {exc}")
+# --- ENDPOINTS DE TELEMETRÍA METABÓLICA (PESO, TDEE DINÁMICO Y VERSUS) ---
+@app.get("/api/v1/peso", response_model=List[PesoRegistro], tags=["Metabolismo"])
+def listar_pesos(dias: int = 90, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.listar_pesos(current_user.id, dias=dias)
+
+
+@app.post("/api/v1/peso", response_model=PesoRegistro, tags=["Metabolismo"])
+def registrar_peso(entrada: PesoEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        return metabolic_service.registrar_peso(entrada, current_user.id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Fecha inválida, usa el formato YYYY-MM-DD.")
+
+
+@app.delete("/api/v1/peso/{peso_id}", tags=["Metabolismo"])
+def eliminar_peso(peso_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not metabolic_service.eliminar_peso(peso_id, current_user.id):
+        raise HTTPException(status_code=404, detail="Pesaje no encontrado")
+    return {"status": "ok", "message": "Pesaje eliminado"}
+
+
+@app.get("/api/v1/metabolismo/tdee", response_model=TDEEDinamico, tags=["Metabolismo"])
+def obtener_tdee_dinamico(dias: int = 28, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.obtener_tdee_dinamico(current_user.id, dias=max(7, min(dias, 120)))
+
+
+@app.get("/api/v1/versus", response_model=Versus, tags=["Versus"])
+def obtener_versus(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return metabolic_service.obtener_versus(current_user.id)
+
+
+# --- ENDPOINTS DE AMISTADES (el Versus solo incluye amigos aceptados) ---
+@app.get("/api/v1/amigos", response_model=Amigos, tags=["Versus"])
+def listar_amigos(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return friends_service.listar(current_user.id)
+
+
+@app.post("/api/v1/amigos/solicitudes", tags=["Versus"])
+def enviar_solicitud_amistad(datos: SolicitudAmistadEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    resultado = friends_service.enviar_solicitud(current_user.id, datos.usuario)
+    mensaje = "Ya sois amigos: tenía una solicitud tuya pendiente." if resultado == "aceptada" else "Solicitud enviada."
+    return {"status": resultado, "message": mensaje}
+
+
+@app.post("/api/v1/amigos/solicitudes/{solicitud_id}/aceptar", tags=["Versus"])
+def aceptar_solicitud_amistad(solicitud_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.aceptar_solicitud(current_user.id, solicitud_id):
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return {"status": "ok", "message": "Solicitud aceptada"}
+
+
+@app.delete("/api/v1/amigos/solicitudes/{solicitud_id}", tags=["Versus"])
+def borrar_solicitud_amistad(solicitud_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.borrar_solicitud(current_user.id, solicitud_id):
+        raise HTTPException(status_code=404, detail="Solicitud no encontrada")
+    return {"status": "ok", "message": "Solicitud eliminada"}
+
+
+@app.delete("/api/v1/amigos/{amigo_id}", tags=["Versus"])
+def eliminar_amigo(amigo_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    if not friends_service.eliminar_amigo(current_user.id, amigo_id):
+        raise HTTPException(status_code=404, detail="Amigo no encontrado")
+    return {"status": "ok", "message": "Amigo eliminado"}

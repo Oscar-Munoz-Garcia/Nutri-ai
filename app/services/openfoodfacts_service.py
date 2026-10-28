@@ -29,7 +29,11 @@ async def consultar_open_food_facts(codigo_barras: str) -> Optional[ProductoNutr
             product = data["product"]
             nutriments = product.get("nutriments", {})
 
-            calorias = nutriments.get("energy-kcal_100g") or nutriments.get("energy-kcal") or 0.0
+            calorias = nutriments.get("energy-kcal_100g") or nutriments.get("energy-kcal")
+            if not calorias:
+                # Algunos productos solo publican la energía en kJ
+                kj = nutriments.get("energy-kj_100g") or nutriments.get("energy_100g") or 0.0
+                calorias = float(kj) / 4.184
             proteinas = nutriments.get("proteins_100g") or nutriments.get("proteins") or 0.0
             carbs = nutriments.get("carbohydrates_100g") or nutriments.get("carbohydrates") or 0.0
             grasas = nutriments.get("fat_100g") or nutriments.get("fat") or 0.0
