@@ -3,6 +3,7 @@ import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Request, Response, File, Form, UploadFile, Depends
 from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
 from pathlib import Path
 
@@ -40,6 +41,9 @@ from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
 import app.services.metabolic_service as metabolic_service
 from app.models.friends import Amigos, SolicitudAmistadEntrada
 import app.services.friends_service as friends_service
+import app.services.streak_service as streak_service
+import app.services.quicklog_service as quicklog_service
+from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
 
 
 
@@ -68,6 +72,8 @@ app = FastAPI(
     description="Backend de Ingeniería Nutricional con Visión OCR, Agente IA y Diario de Macros.",
     lifespan=lifespan
 )
+
+app.mount("/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static")
 
 
 @app.get("/", response_class=HTMLResponse, include_in_schema=False)
@@ -98,6 +104,16 @@ def obtener_resumen_diario(fecha: Optional[str] = None, current_user: UsuarioDB 
 @app.post("/api/v1/diario/consumo", response_model=RegistroConsumo, tags=["Diario"])
 def registrar_consumo(registro: RegistroConsumo, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return daily_service.registrar_consumo(registro, current_user.id)
+
+
+@app.get("/api/v1/diario/racha", tags=["Diario"])
+def obtener_racha(dias: int = 112, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return streak_service.obtener_racha(current_user.id, dias=dias)
+
+
+@app.post("/api/v1/diario/interpretar", response_model=RespuestaRegistroRapido, tags=["Diario"])
+async def interpretar_registro_rapido(solicitud: SolicitudRegistroRapido, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return await quicklog_service.interpretar_texto(solicitud.texto, current_user.id)
 
 
 @app.put("/api/v1/diario/objetivos", response_model=ObjetivosMacros, tags=["Diario"])

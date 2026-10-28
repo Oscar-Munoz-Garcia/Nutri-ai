@@ -4,7 +4,7 @@ from sqlalchemy import inspect, text
 # create_all() no altera tablas existentes, así que se añaden aquí con ALTER TABLE idempotente.
 COLUMNAS_NUEVAS = {
     "pantry": {"fecha_registro": "VARCHAR"},
-    "recetas": {"ingredientes": "TEXT DEFAULT '[]'"},
+    "recetas": {"ingredientes": "TEXT DEFAULT '[]'", "pasos": "TEXT DEFAULT '[]'"},
 }
 
 # Tablas cuyos datos pertenecen a un usuario concreto

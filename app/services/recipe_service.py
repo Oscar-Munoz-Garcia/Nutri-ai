@@ -28,7 +28,8 @@ def _a_modelo(r: RecetaDB) -> Receta:
         grasas_totales=r.grasas_totales,
         tiempo_preparacion_min=r.tiempo_preparacion_min,
         utensilios_necesarios=_cargar_lista_json(r.utensilios_necesarios),
-        ingredientes=_cargar_lista_json(r.ingredientes)
+        ingredientes=_cargar_lista_json(r.ingredientes),
+        pasos=_cargar_lista_json(r.pasos)
     )
 
 
@@ -64,7 +65,8 @@ def crear_nueva_receta(datos: RecetaCrear, usuario_id: int) -> Receta:
             grasas_totales=datos.grasas_totales,
             tiempo_preparacion_min=datos.tiempo_preparacion_min,
             utensilios_necesarios=json.dumps(datos.utensilios_necesarios, ensure_ascii=False),
-            ingredientes=json.dumps([i.model_dump() for i in (datos.ingredientes or [])], ensure_ascii=False)
+            ingredientes=json.dumps([i.model_dump() for i in (datos.ingredientes or [])], ensure_ascii=False),
+            pasos=json.dumps(datos.pasos or [], ensure_ascii=False)
         )
         db.add(nueva)
         db.commit()

@@ -78,6 +78,7 @@ class RecetaDB(Base):
     tiempo_preparacion_min = Column(Integer, default=15)
     utensilios_necesarios = Column(Text, default="Sartén")
     ingredientes = Column(Text, default="[]")
+    pasos = Column(Text, default="[]")
 
 
 class RegistroConsumoDB(Base):
