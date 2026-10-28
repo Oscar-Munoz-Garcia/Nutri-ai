@@ -44,6 +44,8 @@ import app.services.friends_service as friends_service
 import app.services.streak_service as streak_service
 import app.services.quicklog_service as quicklog_service
 from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
+from app.models.plan import AsignacionSemana, CambioPlanDia, Plan, PlanDelDia, PlanEntrada, PlanesUsuario
+import app.services.plan_service as plan_service
 
 
 
@@ -119,6 +121,65 @@ async def interpretar_registro_rapido(solicitud: SolicitudRegistroRapido, curren
 @app.put("/api/v1/diario/objetivos", response_model=ObjetivosMacros, tags=["Diario"])
 def actualizar_objetivos(objetivos: ObjetivosMacros, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return daily_service.establecer_objetivos(objetivos, current_user.id)
+
+
+# --- ENDPOINTS DE PLANES DE NUTRICIÓN (varios planes, asignados por día de la semana o por fecha) ---
+def _validar_fecha(fecha: str) -> str:
+    try:
+        return date.fromisoformat(fecha).isoformat()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Fecha inválida, usa el formato YYYY-MM-DD.")
+
+
+@app.get("/api/v1/planes", response_model=PlanesUsuario, tags=["Planes"])
+def listar_planes(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return plan_service.listar_planes(current_user.id)
+
+
+@app.post("/api/v1/planes", response_model=Plan, tags=["Planes"])
+def crear_plan(datos: PlanEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return plan_service.crear_plan(datos, current_user.id)
+
+
+@app.put("/api/v1/planes/semana", response_model=PlanesUsuario, tags=["Planes"])
+def asignar_planes_semana(datos: AsignacionSemana, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        return plan_service.asignar_semana(datos, current_user.id)
+    except plan_service.PlanNoValido as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.get("/api/v1/planes/calendario", response_model=List[PlanDelDia], tags=["Planes"])
+def calendario_planes(fecha: Optional[str] = None, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Plan de cada día (lunes a domingo) de la semana que contiene `fecha` (por defecto, hoy)."""
+    return plan_service.obtener_semana(current_user.id, _validar_fecha(fecha) if fecha else None)
+
+
+@app.put("/api/v1/planes/calendario/{fecha}", response_model=PlanDelDia, tags=["Planes"])
+def cambiar_plan_dia(fecha: str, datos: CambioPlanDia, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Cambia el plan solo para esa fecha; plan_id null (o el plan que ya toca) vuelve al de la semana."""
+    try:
+        return plan_service.cambiar_plan_fecha(current_user.id, _validar_fecha(fecha), datos.plan_id)
+    except plan_service.PlanNoValido as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@app.put("/api/v1/planes/{plan_id}", response_model=Plan, tags=["Planes"])
+def actualizar_plan(plan_id: int, datos: PlanEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    plan = plan_service.actualizar_plan(plan_id, datos, current_user.id)
+    if not plan:
+        raise HTTPException(status_code=404, detail="Plan no encontrado")
+    return plan
+
+
+@app.delete("/api/v1/planes/{plan_id}", tags=["Planes"])
+def eliminar_plan(plan_id: int, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        if not plan_service.eliminar_plan(plan_id, current_user.id):
+            raise HTTPException(status_code=404, detail="Plan no encontrado")
+    except plan_service.PlanNoValido as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    return {"status": "ok", "message": "Plan eliminado"}
 
 
 # --- ENDPOINTS DE RECETAS ---

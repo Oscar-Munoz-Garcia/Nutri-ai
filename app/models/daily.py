@@ -18,7 +18,15 @@ class RegistroConsumo(BaseModel):
     grasas: float = Field(..., description="Grasas aportadas en gramos")
 
 
+class PlanAplicado(BaseModel):
+    id: int
+    nombre: str
+    es_principal: bool
+
+
 class ResumenDiario(BaseModel):
+    fecha: Optional[str] = None
+    plan: Optional[PlanAplicado] = Field(default=None, description="Plan de nutrición que se aplica ese día")
     calorias_totales: float
     proteinas_totales: float
     carbohidratos_totales: float

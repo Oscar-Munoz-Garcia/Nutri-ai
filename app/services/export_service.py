@@ -13,6 +13,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from app.db.session import SessionLocal
 from app.db.models import PantryDB, PerfilDB, RegistroConsumoDB
+from app.services import plan_service
 
 # Paleta del reporte (tonos suaves, coherentes con la app)
 COLOR_CABECERA = "4981D4"
@@ -31,8 +32,13 @@ MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio",
 
 
 def _metas_usuario(db, usuario_id: int) -> Dict[str, float]:
+    """Metas del perfil (plan principal)."""
     pdb = db.query(PerfilDB).filter(PerfilDB.usuario_id == usuario_id).first()
     pdb = pdb or PerfilDB()
+    return _metas(pdb)
+
+
+def _metas(pdb) -> Dict[str, float]:
     return {
         "calorias": pdb.calorias_objetivo or 2200.0,
         "proteinas": pdb.proteinas_objetivo or 160.0,
@@ -46,7 +52,8 @@ def resumen_dia(usuario_id: int, fecha: Optional[str] = None) -> Dict:
     fecha = fecha or date.today().isoformat()
     db = SessionLocal()
     try:
-        metas = _metas_usuario(db, usuario_id)
+        # Metas del plan de nutrición de ese día
+        metas = _metas(plan_service.plan_de_fecha(db, usuario_id, fecha))
         registros = db.query(RegistroConsumoDB).filter(
             RegistroConsumoDB.usuario_id == usuario_id,
             RegistroConsumoDB.fecha == fecha,
@@ -174,7 +181,9 @@ def _hoja_despensa(wb: Workbook, items: List[PantryDB]) -> None:
     _anchos(ws, [32, 13, 16, 12, 15, 18, 13, 14, 20])
 
 
-def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float], ultima_fila_diario: int) -> None:
+def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float],
+               metas_dia: Dict[str, Dict[str, float]], ultima_fila_diario: int) -> None:
+    """`metas` son las del plan principal; cada día se evalúa con las de su plan (`metas_dia`)."""
     ws = wb.create_sheet("KPIs & Gráficos")
     _titulo(ws, "KPIs del mes", "Verde: 90–110% de la meta calórica y proteína ≥ 100%. Ámbar: cerca. Rojo: fuera.")
 
@@ -204,13 +213,14 @@ def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float], ultim
     fila = fila_cab
     for dia in range(1, ultimo_dia + 1):
         fila += 1
+        meta = metas_dia.get(date(anio, mes, dia).isoformat(), metas)
         ws.cell(row=fila, column=1, value=date(anio, mes, dia)).number_format = "DD/MM"
         for col, letra in zip(range(2, 6), "CDEF"):
             c = ws.cell(row=fila, column=col, value=f"=SUMIFS({rango(letra)},{rango('A')},$A{fila})")
             c.number_format = "0"
-        ws.cell(row=fila, column=6, value="=$B$4").number_format = "0"
-        ws.cell(row=fila, column=7, value=f'=IF(B{fila}=0,"",B{fila}/$B$4)').number_format = "0%"
-        ws.cell(row=fila, column=8, value=f'=IF(B{fila}=0,"",C{fila}/$B$5)').number_format = "0%"
+        ws.cell(row=fila, column=6, value=meta["calorias"]).number_format = "0"
+        ws.cell(row=fila, column=7, value=f'=IF(OR(B{fila}=0,F{fila}=0),"",B{fila}/F{fila})').number_format = "0%"
+        ws.cell(row=fila, column=8, value=f'=IF(B{fila}=0,"",C{fila}/{meta["proteinas"] or 1})').number_format = "0%"
         ws.cell(row=fila, column=9, value=f'=IF(B{fila}=0,"",IF(AND(G{fila}>=0.9,G{fila}<=1.1,H{fila}>=1),"Sí","No"))')
         ws.cell(row=fila, column=9).alignment = Alignment(horizontal="center")
         for col in range(1, 10):
@@ -304,6 +314,8 @@ def generar_reporte_mensual(usuario_id: int, anio: int, mes: int) -> bytes:
         ).order_by(RegistroConsumoDB.fecha, RegistroConsumoDB.id).all()
         despensa = db.query(PantryDB).filter(PantryDB.usuario_id == usuario_id).order_by(PantryDB.nombre).all()
         metas = _metas_usuario(db, usuario_id)
+        fechas_mes = [date(anio, mes, d).isoformat() for d in range(1, calendar.monthrange(anio, mes)[1] + 1)]
+        metas_dia = {f: _metas(p) for f, p in plan_service.planes_por_fecha(db, usuario_id, fechas_mes).items()}
     finally:
         db.close()
 
@@ -311,7 +323,7 @@ def generar_reporte_mensual(usuario_id: int, anio: int, mes: int) -> bytes:
     wb = Workbook()
     ultima_fila_diario = _hoja_diario(wb, registros, f"Reporte mensual {etiqueta_mes}")
     _hoja_despensa(wb, despensa)
-    _hoja_kpis(wb, anio, mes, metas, ultima_fila_diario)
+    _hoja_kpis(wb, anio, mes, metas, metas_dia, ultima_fila_diario)
 
     buffer = BytesIO()
     wb.save(buffer)

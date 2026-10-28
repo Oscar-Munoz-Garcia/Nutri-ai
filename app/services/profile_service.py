@@ -2,7 +2,7 @@ from app.models.profile import PerfilUsuario, PerfilActualizar, CuestionarioRegi
 from app.models.metabolic import PesoEntrada
 from app.models.daily import ObjetivosMacros
 from app.db.session import SessionLocal
-from app.services import daily_service
+from app.services import daily_service, plan_service
 
 # Ajuste sobre el gasto calórico de mantenimiento según la meta del usuario
 AJUSTE_OBJETIVO_KCAL = {"perder_grasa": -400, "mantenimiento": 0, "ganar_masa": 300}
@@ -99,6 +99,7 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
         pdb.proteinas_objetivo = nuevos_macros.proteinas_objetivo
         pdb.carbohidratos_objetivo = nuevos_macros.carbohidratos_objetivo
         pdb.grasas_objetivo = nuevos_macros.grasas_objetivo
+        plan_service.sincronizar_principal(db, pdb)
 
         db.commit()
         db.refresh(pdb)

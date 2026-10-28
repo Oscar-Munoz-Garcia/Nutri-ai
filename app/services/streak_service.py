@@ -2,7 +2,7 @@ from datetime import date, timedelta
 from typing import Dict, Any, Optional
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB
-from app.services.daily_service import obtener_o_crear_perfil_db
+from app.services import plan_service
 
 # Margen aceptado alrededor de la meta calórica y mínimo de proteína para contar el día como cumplido
 MARGEN_CALORIAS = 0.10
@@ -27,7 +27,8 @@ def _evaluar_dia(calorias: float, proteinas: float, meta_cal: float, meta_prot: 
 
 def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) -> Dict[str, Any]:
     """Calendario de constancia: un día cuenta como cumplido si las calorías quedan
-    dentro de ±10% de la meta y las proteínas llegan al 90% de la meta."""
+    dentro de ±10% de la meta y las proteínas llegan al 90% de la meta.
+    La meta de cada día es la del plan de nutrición que tocaba ese día."""
     dias = max(7, min(dias, 371))
     hoy = hoy or date.today()
     # Empezar en lunes para que la cuadrícula semanal quede alineada
@@ -36,9 +37,8 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
 
     db = SessionLocal()
     try:
-        pdb = obtener_o_crear_perfil_db(db, usuario_id)
-        meta_cal = pdb.calorias_objetivo
-        meta_prot = pdb.proteinas_objetivo
+        fechas = [(inicio + timedelta(days=i)).isoformat() for i in range((hoy - inicio).days + 1)]
+        planes = plan_service.planes_por_fecha(db, usuario_id, fechas)
 
         consulta = db.query(RegistroConsumoDB).filter(
             RegistroConsumoDB.usuario_id == usuario_id,
@@ -53,18 +53,18 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
             t["proteinas"] += r.proteinas or 0.0
 
         lista_dias = []
-        d = inicio
-        while d <= hoy:
-            f = d.isoformat()
+        for f in fechas:
             t = totales.get(f, {"calorias": 0.0, "proteinas": 0.0})
-            evaluacion = _evaluar_dia(t["calorias"], t["proteinas"], meta_cal, meta_prot, f in totales)
+            plan = planes[f]
+            evaluacion = _evaluar_dia(t["calorias"], t["proteinas"], plan.calorias_objetivo,
+                                      plan.proteinas_objetivo, f in totales)
             lista_dias.append({
                 "fecha": f,
                 "calorias": round(t["calorias"], 1),
                 "proteinas": round(t["proteinas"], 1),
+                "plan": plan.nombre,
                 **evaluacion
             })
-            d += timedelta(days=1)
 
         # Mejor racha dentro del rango
         mejor = actual_tmp = 0
@@ -85,8 +85,9 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
         return {
             "desde": inicio.isoformat(),
             "hasta": hoy.isoformat(),
-            "meta_calorias": meta_cal,
-            "meta_proteinas": meta_prot,
+            # Metas de hoy (cada día de "dias" se evalúa con las de su plan)
+            "meta_calorias": planes[hoy.isoformat()].calorias_objetivo,
+            "meta_proteinas": planes[hoy.isoformat()].proteinas_objetivo,
             "racha_actual": racha_actual,
             "mejor_racha": mejor,
             "dias_cumplidos": sum(1 for x in lista_dias if x["nivel"] == 3),

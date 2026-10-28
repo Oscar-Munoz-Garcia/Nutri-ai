@@ -15,6 +15,8 @@ class UsuarioDB(Base):
     pantry = relationship("PantryDB", back_populates="usuario", cascade="all, delete-orphan")
     recetas = relationship("RecetaDB", back_populates="usuario", cascade="all, delete-orphan")
     registros = relationship("RegistroConsumoDB", back_populates="usuario", cascade="all, delete-orphan")
+    planes = relationship("PlanNutricionDB", cascade="all, delete-orphan")
+    planes_por_fecha = relationship("PlanFechaDB", cascade="all, delete-orphan")
 
 
 class PerfilDB(Base):
@@ -109,3 +111,32 @@ class AmistadDB(Base):
     destinatario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
     estado = Column(String, default="pendiente", nullable=False)
     fecha = Column(String)
+
+
+class PlanNutricionDB(Base):
+    """Plan de nutrición del usuario (p. ej. «Entrenamiento» 2300 kcal, «Descanso» 2000 kcal).
+    El plan principal refleja los objetivos del perfil y se usa los días sin plan asignado."""
+    __tablename__ = "planes_nutricion"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    nombre = Column(String, nullable=False)
+    es_principal = Column(Integer, default=0)
+    # Días de la semana en los que se aplica: "0,2,4" (0 = lunes ... 6 = domingo)
+    dias_semana = Column(String, default="")
+
+    calorias_objetivo = Column(Float, default=2200.0)
+    proteinas_objetivo = Column(Float, default=160.0)
+    carbohidratos_objetivo = Column(Float, default=210.0)
+    grasas_objetivo = Column(Float, default=70.0)
+
+
+class PlanFechaDB(Base):
+    """Cambio puntual: en esta fecha se usa este plan en lugar del que toca por día de la semana."""
+    __tablename__ = "planes_por_fecha"
+    __table_args__ = (UniqueConstraint("usuario_id", "fecha", name="uq_plan_fecha"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    fecha = Column(String, nullable=False)
+    plan_id = Column(Integer, ForeignKey("planes_nutricion.id"), nullable=False)
