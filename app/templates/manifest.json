@@ -4,8 +4,8 @@
   "description": "Asistente Nutricional Inteligente con Visión OCR y Agente IA",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0F172A",
-  "theme_color": "#10B981",
+  "background_color": "#5E5E5E",
+  "theme_color": "#4981D4",
   "icons": [
     {
       "src": "https://cdn-icons-png.flaticon.com/512/2424/2424849.png",
