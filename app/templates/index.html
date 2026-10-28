@@ -260,6 +260,7 @@
                                 + Sumar
                             </button>
                         </div>
+                        <p id="rec-ingredientes-preview" class="font-mono text-[10px] text-zinc-400 hidden"></p>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -326,6 +327,41 @@
                 <div id="ocrStatus" class="font-mono text-[11px] text-center hidden"></div>
             </div>
 
+            <!-- ESCÁNER 2.0: PLATOS REALES -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="pb-2 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">VISIÓN IA DE COMIDA REAL</span>
+                    <h2 class="font-display font-semibold text-lg text-zinc-100">Escáner de Platos</h2>
+                    <p class="text-[11px] text-zinc-400 mt-1">Haz una foto a tu plato y la IA estimará ingredientes, peso y macros.</p>
+                </div>
+                <label class="flex flex-col items-center justify-center p-6 border border-dashed border-matcha/40 hover:border-matcha rounded-xl bg-canvas transition cursor-pointer text-center">
+                    <span class="font-mono text-2xl mb-1 text-matcha">🍽️</span>
+                    <span class="font-mono text-xs text-zinc-200 uppercase font-semibold">Fotografiar plato</span>
+                    <span id="plato-file-name" class="font-mono text-[10px] text-zinc-500 mt-1">Ej. arroz con pollo y aguacate</span>
+                    <input type="file" id="platoInput" accept="image/*" capture="environment" class="hidden" onchange="analizarPlato(this)">
+                </label>
+                <div id="platoStatus" class="font-mono text-[11px] text-center hidden"></div>
+                <div id="platoResultado" class="hidden space-y-3"></div>
+            </div>
+
+            <!-- ESCÁNER 2.0: CÓDIGOS DE BARRAS -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="pb-2 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">OPEN FOOD FACTS</span>
+                    <h2 class="font-display font-semibold text-lg text-zinc-100">Código de Barras</h2>
+                </div>
+                <button type="button" id="btnBarcodeCamara" onclick="toggleEscanerBarcode()" class="w-full py-2.5 bg-matcha hover:opacity-90 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                    📷 Escanear con la cámara
+                </button>
+                <div id="barcode-reader" class="hidden rounded-xl overflow-hidden bg-canvas"></div>
+                <form id="barcodeForm" class="flex gap-2">
+                    <input type="text" id="barcodeInput" inputmode="numeric" placeholder="O escribe el código (EAN-13)" class="flex-1 bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-100 focus:border-matcha outline-none">
+                    <button type="submit" class="px-4 py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded-xl uppercase transition">Buscar</button>
+                </form>
+                <div id="barcodeStatus" class="font-mono text-[11px] text-center hidden"></div>
+                <div id="barcodeResultado" class="hidden"></div>
+            </div>
+
             <!-- Despensa con Botones de Borrado -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
                 <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
@@ -335,6 +371,25 @@
                 <div id="despensaList" class="space-y-2">
                     <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Cargando despensa...</p>
                 </div>
+            </div>
+
+            <!-- LISTA DE LA COMPRA INTELIGENTE -->
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
+                <div class="flex justify-between items-center pb-2 border-b border-panelBorder">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">RECETAS VS DESPENSA</span>
+                        <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Lista de la Compra</h3>
+                    </div>
+                    <button onclick="cargarRecetasPlanificables()" class="font-mono text-[10px] text-matcha">Refrescar</button>
+                </div>
+                <p class="text-[11px] text-zinc-400">Marca las recetas que vais a cocinar la próxima semana y cuántas veces.</p>
+                <div id="compraRecetas" class="space-y-2">
+                    <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Cargando recetas...</p>
+                </div>
+                <button type="button" id="btnGenerarCompra" onclick="generarListaCompra()" class="w-full py-2.5 bg-matcha hover:opacity-90 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                    🛒 Generar lista de la compra
+                </button>
+                <div id="compraResultado" class="hidden space-y-2"></div>
             </div>
         </section>
 
@@ -633,6 +688,7 @@
         let historialMensajes = [];
         let modoRegistro = false;
         let listaPantryCache = [];
+        let ingredientesRecetaActual = [];
         let chartInstance = null;
         let chartDonutInstance = null;
         let chartPesoInstance = null;
@@ -740,7 +796,7 @@
             }
 
             if (secId === 'sec-inicio') cargarResumenDiario();
-            if (secId === 'sec-despensa') cargarDespensa();
+            if (secId === 'sec-despensa') { cargarDespensa(); cargarRecetasPlanificables(); }
             if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
             if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); cargarTDEE(); }
             if (secId === 'sec-versus') { cargarVersus(); cargarAmigos(); }
@@ -915,8 +971,19 @@
             inputCarb.value = Math.round(((parseFloat(inputCarb.value) || 0) + (item.carbohidratos_100g * f)) * 10) / 10;
             inputGras.value = Math.round(((parseFloat(inputGras.value) || 0) + (item.grasas_100g * f)) * 10) / 10;
 
+            // Guardamos el ingrediente para que la lista de la compra sepa qué pide la receta
+            ingredientesRecetaActual.push({ nombre: item.nombre, cantidad_gramos: gramos });
+            actualizarPreviewIngredientes();
+
             document.getElementById("cant-ingrediente-g").value = "";
             select.value = "";
+        }
+
+        function actualizarPreviewIngredientes() {
+            const preview = document.getElementById("rec-ingredientes-preview");
+            if (!preview) return;
+            preview.classList.toggle("hidden", ingredientesRecetaActual.length === 0);
+            preview.innerText = "Ingredientes: " + ingredientesRecetaActual.map(i => `${i.nombre} (${i.cantidad_gramos}g)`).join(", ");
         }
 
         async function cargarRecetas() {
@@ -988,7 +1055,8 @@
                 carbohidratos_totales: parseFloat(document.getElementById("rec-carb").value),
                 grasas_totales: parseFloat(document.getElementById("rec-gras").value),
                 tiempo_preparacion_min: 15,
-                utensilios_necesarios: utensilios
+                utensilios_necesarios: utensilios,
+                ingredientes: ingredientesRecetaActual
             };
 
             await fetch(`${API_BASE}/recetas`, {
@@ -998,6 +1066,8 @@
             });
 
             document.getElementById("recetaForm").reset();
+            ingredientesRecetaActual = [];
+            actualizarPreviewIngredientes();
             toggleFormReceta();
             cargarRecetas();
             btn.disabled = false;
@@ -1443,6 +1513,429 @@
         // Inicializar
         verificarSesion();
         cargarResumenDiario();
+    </script>
+    <!-- ESCÁNER 2.0: platos, códigos de barras y lista de la compra -->
+    <script>
+        function escaparHtml(texto) {
+            return String(texto ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        function mostrarEstado(id, tipo, texto) {
+            const el = document.getElementById(id);
+            const colores = { ok: "text-matcha font-semibold", info: "text-amberAccent", error: "text-rose-400" };
+            el.className = `font-mono text-[11px] text-center ${colores[tipo] || ""}`;
+            el.innerText = texto;
+        }
+
+        async function leerError(res) {
+            try {
+                const data = await res.json();
+                return data.detail || `Error ${res.status}`;
+            } catch {
+                return `Error ${res.status}`;
+            }
+        }
+
+        async function anadirADespensa(item) {
+            const res = await fetch(`${API_BASE}/despensa`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(item)
+            });
+            if (!res.ok) throw new Error(await leerError(res));
+            cargarDespensa();
+        }
+
+        async function registrarEnDiario(registro) {
+            const res = await fetch(`${API_BASE}/diario/consumo`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(registro)
+            });
+            if (!res.ok) throw new Error(await leerError(res));
+            cargarResumenDiario();
+        }
+
+        // --- PLATOS REALES CON GROQ VISION ---
+        let ultimoAnalisisPlato = null;
+
+        async function analizarPlato(input) {
+            const archivo = input.files && input.files[0];
+            if (!archivo) return;
+            document.getElementById("plato-file-name").innerText = `📄 ${archivo.name}`;
+            document.getElementById("platoResultado").classList.add("hidden");
+            mostrarEstado("platoStatus", "info", "⏳ Analizando el plato con Groq Vision...");
+
+            const formData = new FormData();
+            formData.append("file", archivo);
+            try {
+                const res = await fetch(`${API_BASE}/alimentos/analizar-plato`, { method: "POST", body: formData });
+                if (!res.ok) throw new Error(await leerError(res));
+                ultimoAnalisisPlato = await res.json();
+                if (!ultimoAnalisisPlato.ingredientes.length) {
+                    mostrarEstado("platoStatus", "error", `❌ No se detectó comida. ${ultimoAnalisisPlato.notas || ""}`);
+                    return;
+                }
+                document.getElementById("platoStatus").classList.add("hidden");
+                pintarAnalisisPlato();
+            } catch (err) {
+                mostrarEstado("platoStatus", "error", `❌ ${err.message}`);
+            } finally {
+                input.value = "";
+            }
+        }
+
+        function recalcularTotalesPlato() {
+            const a = ultimoAnalisisPlato;
+            const suma = campo => Math.round(a.ingredientes.reduce((t, i) => t + i[campo], 0) * 10) / 10;
+            a.peso_total_g = suma("peso_estimado_g");
+            a.calorias_totales = suma("calorias");
+            a.proteinas_totales = suma("proteinas");
+            a.carbohidratos_totales = suma("carbohidratos");
+            a.grasas_totales = suma("grasas");
+        }
+
+        // Al corregir el peso de un ingrediente escalamos sus macros en proporción
+        function ajustarPesoIngrediente(indice, nuevoPeso) {
+            const ing = ultimoAnalisisPlato.ingredientes[indice];
+            const peso = parseFloat(nuevoPeso);
+            if (!ing || !(peso >= 0) || ing.peso_estimado_g <= 0) return;
+            const factor = peso / ing.peso_estimado_g;
+            ["calorias", "proteinas", "carbohidratos", "grasas"].forEach(c => ing[c] = Math.round(ing[c] * factor * 10) / 10);
+            ing.peso_estimado_g = peso;
+            recalcularTotalesPlato();
+            pintarAnalisisPlato();
+        }
+
+        function pintarAnalisisPlato() {
+            const a = ultimoAnalisisPlato;
+            const confianza = Math.round((a.confianza || 0) * 100);
+            const filas = a.ingredientes.map((i, idx) => `
+                <div class="flex items-center justify-between gap-2 p-2.5 bg-canvas border border-panelBorder rounded-xl">
+                    <div class="min-w-0">
+                        <p class="text-xs text-zinc-100 truncate">${escaparHtml(i.nombre)}</p>
+                        <p class="font-mono text-[10px] text-zinc-400">${i.calorias} kcal · P ${i.proteinas}g · C ${i.carbohidratos}g · G ${i.grasas}g</p>
+                    </div>
+                    <label class="flex items-center gap-1 font-mono text-[10px] text-zinc-400 shrink-0">
+                        <input type="number" min="0" step="5" value="${i.peso_estimado_g}" onchange="ajustarPesoIngrediente(${idx}, this.value)" class="w-16 bg-panel border border-panelBorder rounded-lg px-2 py-1 text-zinc-100 text-right focus:border-matcha outline-none">g
+                    </label>
+                </div>`).join("");
+
+            const cont = document.getElementById("platoResultado");
+            cont.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <div>
+                        <h4 class="font-display font-bold text-sm text-zinc-100">${escaparHtml(a.nombre_plato)}</h4>
+                        <p class="font-mono text-[10px] text-zinc-500">≈ ${a.peso_total_g} g · confianza ${confianza}%</p>
+                    </div>
+                    <span class="font-mono text-xs bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded-lg font-semibold">${a.calorias_totales} kcal</span>
+                </div>
+                <div class="flex gap-3 font-mono text-[10px] text-zinc-400">
+                    <span>PROT: <strong class="text-zinc-200">${a.proteinas_totales}g</strong></span>
+                    <span>CARBS: <strong class="text-zinc-200">${a.carbohidratos_totales}g</strong></span>
+                    <span>GRASAS: <strong class="text-zinc-200">${a.grasas_totales}g</strong></span>
+                </div>
+                <div class="space-y-2">${filas}</div>
+                ${a.notas ? `<p class="text-[10px] text-zinc-500 italic">${escaparHtml(a.notas)}</p>` : ""}
+                <button type="button" onclick="registrarPlatoEnDiario()" class="w-full py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded-xl uppercase transition">
+                    [ + Registrar en el diario ]
+                </button>`;
+            cont.classList.remove("hidden");
+        }
+
+        async function registrarPlatoEnDiario() {
+            const a = ultimoAnalisisPlato;
+            if (!a) return;
+            try {
+                await registrarEnDiario({
+                    nombre: a.nombre_plato,
+                    calorias: a.calorias_totales,
+                    proteinas: a.proteinas_totales,
+                    carbohidratos: a.carbohidratos_totales,
+                    grasas: a.grasas_totales
+                });
+                mostrarEstado("platoStatus", "ok", `✅ ${a.nombre_plato} registrado en tu diario (${a.calorias_totales} kcal).`);
+                document.getElementById("platoResultado").classList.add("hidden");
+            } catch (err) {
+                mostrarEstado("platoStatus", "error", `❌ ${err.message}`);
+            }
+        }
+
+        // --- CÓDIGOS DE BARRAS CON OPEN FOOD FACTS ---
+        let ultimoProductoBarcode = null;
+        let escanerBarcode = null;   // { detener: async () => {} }
+
+        async function buscarCodigoBarras(codigo) {
+            codigo = String(codigo || "").replace(/\D/g, "");
+            document.getElementById("barcodeResultado").classList.add("hidden");
+            if (codigo.length < 8 || codigo.length > 14) {
+                mostrarEstado("barcodeStatus", "error", "❌ El código debe tener entre 8 y 14 dígitos.");
+                return;
+            }
+            document.getElementById("barcodeInput").value = codigo;
+            mostrarEstado("barcodeStatus", "info", `⏳ Buscando ${codigo} en Open Food Facts...`);
+            try {
+                const res = await fetch(`${API_BASE}/alimentos/barcode/${codigo}`);
+                if (!res.ok) throw new Error(await leerError(res));
+                ultimoProductoBarcode = await res.json();
+                document.getElementById("barcodeStatus").classList.add("hidden");
+                pintarProductoBarcode();
+            } catch (err) {
+                mostrarEstado("barcodeStatus", "error", `❌ ${err.message}`);
+            }
+        }
+
+        function pintarProductoBarcode() {
+            const p = ultimoProductoBarcode;
+            const cont = document.getElementById("barcodeResultado");
+            cont.innerHTML = `
+                <div class="p-3 bg-canvas border border-panelBorder rounded-xl space-y-3">
+                    <div class="flex gap-3 items-start">
+                        ${p.imagen_url ? `<img src="${escaparHtml(p.imagen_url)}" alt="" class="w-14 h-14 object-contain rounded-lg bg-panel">` : ""}
+                        <div class="min-w-0">
+                            <h4 class="font-display font-bold text-sm text-zinc-100">${escaparHtml(p.nombre)}</h4>
+                            <p class="font-mono text-[10px] text-zinc-500">${escaparHtml(p.marca)} · ${escaparHtml(p.codigo_barras)}</p>
+                            <p class="font-mono text-[10px] text-zinc-400 mt-1">Por 100 g: ${p.calorias_100g} kcal · P ${p.proteinas_100g}g · C ${p.carbohidratos_100g}g · G ${p.grasas_100g}g</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" id="barcodeGramos" min="1" value="100" class="w-20 bg-panel border border-panelBorder rounded-lg px-2 py-1.5 font-mono text-xs text-zinc-100 text-right focus:border-matcha outline-none">
+                        <span class="font-mono text-[10px] text-zinc-400">gramos</span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button type="button" onclick="guardarProductoBarcode('despensa')" class="py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[10px] font-semibold rounded-xl uppercase transition">+ Despensa</button>
+                        <button type="button" onclick="guardarProductoBarcode('diario')" class="py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[10px] font-semibold rounded-xl uppercase transition">+ Diario</button>
+                    </div>
+                </div>`;
+            cont.classList.remove("hidden");
+        }
+
+        async function guardarProductoBarcode(destino) {
+            const p = ultimoProductoBarcode;
+            const gramos = parseFloat(document.getElementById("barcodeGramos").value) || 0;
+            if (!p || gramos <= 0) return;
+            const f = gramos / 100;
+            const r = v => Math.round(v * f * 10) / 10;
+            try {
+                if (destino === "despensa") {
+                    await anadirADespensa({
+                        nombre: p.nombre,
+                        cantidad_gramos: gramos,
+                        calorias_100g: p.calorias_100g,
+                        proteinas_100g: p.proteinas_100g,
+                        carbohidratos_100g: p.carbohidratos_100g,
+                        grasas_100g: p.grasas_100g
+                    });
+                    mostrarEstado("barcodeStatus", "ok", `✅ ${p.nombre} (${gramos} g) añadido a la despensa.`);
+                } else {
+                    await registrarEnDiario({
+                        nombre: p.nombre,
+                        calorias: r(p.calorias_100g),
+                        proteinas: r(p.proteinas_100g),
+                        carbohidratos: r(p.carbohidratos_100g),
+                        grasas: r(p.grasas_100g)
+                    });
+                    mostrarEstado("barcodeStatus", "ok", `✅ ${p.nombre} (${gramos} g) registrado en el diario.`);
+                }
+            } catch (err) {
+                mostrarEstado("barcodeStatus", "error", `❌ ${err.message}`);
+            }
+        }
+
+        function cargarScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) return resolve();
+                const s = document.createElement("script");
+                s.src = src;
+                s.onload = resolve;
+                s.onerror = () => reject(new Error("No se pudo cargar el lector de códigos."));
+                document.head.appendChild(s);
+            });
+        }
+
+        // BarcodeDetector nativo (Chrome Android) o, si no existe (iOS/Safari), la librería html5-qrcode
+        async function iniciarEscanerNativo(contenedor, alDetectar) {
+            const formatos = ["ean_13", "ean_8", "upc_a", "upc_e"];
+            const soportados = await BarcodeDetector.getSupportedFormats();
+            const detector = new BarcodeDetector({ formats: formatos.filter(f => soportados.includes(f)) });
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+            const video = document.createElement("video");
+            video.setAttribute("playsinline", "");
+            video.className = "w-full";
+            video.srcObject = stream;
+            contenedor.appendChild(video);
+            await video.play();
+
+            let activo = true;
+            const buscar = async () => {
+                if (!activo) return;
+                try {
+                    const codigos = await detector.detect(video);
+                    if (codigos.length) return alDetectar(codigos[0].rawValue);
+                } catch { /* fotograma no listo */ }
+                requestAnimationFrame(buscar);
+            };
+            buscar();
+            return { detener: async () => { activo = false; stream.getTracks().forEach(t => t.stop()); video.remove(); } };
+        }
+
+        async function iniciarEscanerLibreria(contenedor, alDetectar) {
+            await cargarScript("https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js");
+            const lector = new Html5Qrcode(contenedor.id);
+            await lector.start(
+                { facingMode: "environment" },
+                { fps: 10, qrbox: { width: 260, height: 120 } },
+                texto => alDetectar(texto)
+            );
+            return { detener: async () => { try { await lector.stop(); lector.clear(); } catch { } } };
+        }
+
+        async function detenerEscanerBarcode() {
+            if (escanerBarcode) {
+                const actual = escanerBarcode;
+                escanerBarcode = null;
+                await actual.detener();
+            }
+            document.getElementById("barcode-reader").classList.add("hidden");
+            document.getElementById("btnBarcodeCamara").innerText = "📷 Escanear con la cámara";
+        }
+
+        async function toggleEscanerBarcode() {
+            if (escanerBarcode) return detenerEscanerBarcode();
+
+            const contenedor = document.getElementById("barcode-reader");
+            if (!navigator.mediaDevices?.getUserMedia) {
+                mostrarEstado("barcodeStatus", "error", "❌ La cámara necesita HTTPS (o localhost). Escribe el código a mano.");
+                return;
+            }
+            contenedor.innerHTML = "";
+            contenedor.classList.remove("hidden");
+            document.getElementById("btnBarcodeCamara").innerText = "■ Detener cámara";
+            mostrarEstado("barcodeStatus", "info", "Apunta al código de barras del envoltorio...");
+
+            const alDetectar = async codigo => {
+                if (!escanerBarcode) return;
+                if (navigator.vibrate) navigator.vibrate(80);
+                await detenerEscanerBarcode();
+                buscarCodigoBarras(codigo);
+            };
+
+            try {
+                escanerBarcode = ("BarcodeDetector" in window)
+                    ? await iniciarEscanerNativo(contenedor, alDetectar)
+                    : await iniciarEscanerLibreria(contenedor, alDetectar);
+            } catch (err) {
+                await detenerEscanerBarcode();
+                mostrarEstado("barcodeStatus", "error", `❌ No se pudo abrir la cámara: ${err.message || err}`);
+            }
+        }
+
+        document.getElementById("barcodeForm")?.addEventListener("submit", e => {
+            e.preventDefault();
+            buscarCodigoBarras(document.getElementById("barcodeInput").value);
+        });
+
+        // --- LISTA DE LA COMPRA INTELIGENTE ---
+        async function cargarRecetasPlanificables() {
+            const cont = document.getElementById("compraRecetas");
+            try {
+                const res = await fetch(`${API_BASE}/recetas`);
+                if (!res.ok) throw new Error(await leerError(res));
+                const recetas = await res.json();
+                if (!recetas.length) {
+                    cont.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Crea recetas con ingredientes en la pestaña Recetas.</p>';
+                    return;
+                }
+                cont.innerHTML = recetas.map(r => {
+                    const n = (r.ingredientes || []).length;
+                    return `
+                    <label class="flex items-center gap-3 p-2.5 bg-canvas border border-panelBorder rounded-xl cursor-pointer">
+                        <input type="checkbox" class="compra-check accent-current text-matcha" value="${escaparHtml(r.id)}">
+                        <span class="flex-1 min-w-0">
+                            <span class="block text-xs text-zinc-100 truncate">${escaparHtml(r.nombre)}</span>
+                            <span class="block font-mono text-[10px] ${n ? "text-zinc-500" : "text-amberAccent"}">${n ? `${n} ingredientes` : "sin ingredientes guardados"}</span>
+                        </span>
+                        <input type="number" min="1" step="1" value="1" data-raciones="${escaparHtml(r.id)}" title="Veces que la cocinaréis" class="w-14 bg-panel border border-panelBorder rounded-lg px-2 py-1 font-mono text-xs text-zinc-100 text-right focus:border-matcha outline-none">
+                        <span class="font-mono text-[10px] text-zinc-500">×</span>
+                    </label>`;
+                }).join("");
+            } catch (err) {
+                cont.innerHTML = `<p class="font-mono text-[11px] text-center text-rose-400 py-3">❌ ${escaparHtml(err.message)}</p>`;
+            }
+        }
+
+        async function generarListaCompra() {
+            const seleccion = [...document.querySelectorAll(".compra-check:checked")].map(c => ({
+                receta_id: c.value,
+                raciones: parseFloat(document.querySelector(`[data-raciones="${CSS.escape(c.value)}"]`)?.value) || 1
+            }));
+            const cont = document.getElementById("compraResultado");
+            cont.classList.remove("hidden");
+            if (!seleccion.length) {
+                cont.innerHTML = '<p class="font-mono text-[11px] text-center text-amberAccent">Marca al menos una receta.</p>';
+                return;
+            }
+
+            const btn = document.getElementById("btnGenerarCompra");
+            btn.disabled = true;
+            try {
+                const res = await fetch(`${API_BASE}/compra/lista`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ recetas: seleccion })
+                });
+                if (!res.ok) throw new Error(await leerError(res));
+                pintarListaCompra(await res.json());
+            } catch (err) {
+                cont.innerHTML = `<p class="font-mono text-[11px] text-center text-rose-400">❌ ${escaparHtml(err.message)}</p>`;
+            } finally {
+                btn.disabled = false;
+            }
+        }
+
+        function pintarListaCompra(lista) {
+            const fila = (i, comprar) => `
+                <label class="flex items-center gap-3 p-2.5 bg-canvas border border-panelBorder rounded-xl">
+                    ${comprar ? '<input type="checkbox" class="accent-current text-matcha">' : '<span class="text-matcha text-xs">✓</span>'}
+                    <span class="flex-1 min-w-0">
+                        <span class="block text-xs text-zinc-100">${escaparHtml(i.nombre)}</span>
+                        <span class="block font-mono text-[10px] text-zinc-500 truncate">${escaparHtml(i.recetas.join(", "))}</span>
+                    </span>
+                    <span class="font-mono text-[11px] ${comprar ? "text-zinc-100 font-semibold" : "text-zinc-500"}">
+                        ${comprar ? `${i.comprar_g} g` : `tienes ${i.disponible_g} g`}
+                    </span>
+                </label>`;
+
+            let html = "";
+            if (lista.faltantes.length) {
+                html += `<span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block">Falta por comprar (${lista.faltantes.length})</span>`;
+                html += lista.faltantes.map(i => fila(i, true)).join("");
+            } else if (lista.cubiertos.length) {
+                html += '<p class="font-mono text-[11px] text-center text-matcha font-semibold">✅ Tenéis todo lo necesario en la despensa.</p>';
+            }
+            if (lista.cubiertos.length) {
+                html += `<span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider block pt-2">Ya en la despensa (${lista.cubiertos.length})</span>`;
+                html += lista.cubiertos.map(i => fila(i, false)).join("");
+            }
+            if (lista.recetas_sin_ingredientes.length) {
+                html += `<p class="text-[10px] text-amberAccent">Sin ingredientes guardados, no se han podido comparar: ${escaparHtml(lista.recetas_sin_ingredientes.join(", "))}.</p>`;
+            }
+            if (lista.faltantes.length) {
+                html += `<button type="button" onclick="copiarListaCompra()" class="w-full py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded-xl uppercase transition">Copiar lista</button>`;
+            }
+            window.ultimaListaCompra = lista;
+            document.getElementById("compraResultado").innerHTML = html || '<p class="font-mono text-[11px] text-center text-zinc-500">Nada que mostrar.</p>';
+        }
+
+        async function copiarListaCompra() {
+            const lista = window.ultimaListaCompra;
+            if (!lista) return;
+            const texto = "🛒 Lista de la compra\n" + lista.faltantes.map(i => `- ${i.nombre}: ${i.comprar_g} g`).join("\n");
+            try {
+                if (navigator.share) await navigator.share({ title: "Lista de la compra", text: texto });
+                else { await navigator.clipboard.writeText(texto); alert("Lista copiada al portapapeles."); }
+            } catch { /* el usuario canceló */ }
+        }
     </script>
 </body>
 </html>

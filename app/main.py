@@ -15,7 +15,11 @@ import app.services.pantry_service as pantry_service
 import app.services.vision_service as vision_service
 import app.services.agent_service as agent_service
 from app.models.pantry import AlimentoPantry, AlimentoPantryEntrada
-from app.models.vision import ProductoOCR
+from app.models.vision import ProductoOCR, AnalisisPlato
+from app.models.food import ProductoNutricional
+from app.models.shopping import SolicitudListaCompra, ListaCompra
+import app.services.openfoodfacts_service as openfoodfacts_service
+import app.services.shopping_service as shopping_service
 
 from app.models.profile import PerfilUsuario, PerfilActualizar
 import app.services.profile_service as profile_service
@@ -139,6 +143,31 @@ def agregar_alimento_despensa(alimento: AlimentoPantryEntrada, current_user: Usu
 async def procesar_imagen_ocr(file: UploadFile = File(...), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     contenido = await file.read()
     return await vision_service.analizar_etiqueta_nutricional(contenido, file.filename or "etiqueta.jpg")
+
+
+@app.post("/api/v1/alimentos/analizar-plato", response_model=AnalisisPlato, tags=["Visión OCR"])
+async def analizar_plato(file: UploadFile = File(...), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    contenido = await file.read()
+    if not contenido:
+        raise HTTPException(status_code=400, detail="La imagen está vacía.")
+    return await vision_service.analizar_plato(contenido, file.filename or "plato.jpg")
+
+
+@app.get("/api/v1/alimentos/barcode/{codigo}", response_model=ProductoNutricional, tags=["Visión OCR"])
+async def buscar_por_codigo_barras(codigo: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    codigo = codigo.strip()
+    if not codigo.isdigit() or not 8 <= len(codigo) <= 14:
+        raise HTTPException(status_code=422, detail="El código de barras debe tener entre 8 y 14 dígitos.")
+    producto = await openfoodfacts_service.consultar_open_food_facts(codigo)
+    if not producto:
+        raise HTTPException(status_code=404, detail="Producto no encontrado en Open Food Facts.")
+    return producto
+
+
+# --- ENDPOINT DE LISTA DE LA COMPRA ---
+@app.post("/api/v1/compra/lista", response_model=ListaCompra, tags=["Lista de la compra"])
+def generar_lista_compra(solicitud: SolicitudListaCompra, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    return shopping_service.generar_lista_compra(solicitud, usuario_id=current_user.id)
 
 
 # --- ENDPOINT DE CHAT AGENTE ---
