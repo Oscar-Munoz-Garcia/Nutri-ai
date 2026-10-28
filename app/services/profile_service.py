@@ -1,7 +1,11 @@
-from app.models.profile import PerfilUsuario, PerfilActualizar
+from app.models.profile import PerfilUsuario, PerfilActualizar, CuestionarioRegistro
+from app.models.metabolic import PesoEntrada
 from app.models.daily import ObjetivosMacros
 from app.db.session import SessionLocal
 from app.services import daily_service
+
+# Ajuste sobre el gasto calórico de mantenimiento según la meta del usuario
+AJUSTE_OBJETIVO_KCAL = {"perder_grasa": -400, "mantenimiento": 0, "ganar_masa": 300}
 
 
 def calcular_mifflin_st_jeor(perfil: PerfilUsuario) -> ObjetivosMacros:
@@ -12,7 +16,7 @@ def calcular_mifflin_st_jeor(perfil: PerfilUsuario) -> ObjetivosMacros:
 
     factores = {"sedentario": 1.2, "ligero": 1.375, "moderado": 1.55, "intenso": 1.725}
     factor = factores.get(perfil.nivel_actividad, 1.55)
-    calorias = round(tmb * factor, 1)
+    calorias = round(tmb * factor + AJUSTE_OBJETIVO_KCAL.get(perfil.objetivo, 0), 1)
 
     prot_g = round(perfil.peso_kg * 2.0, 1)
     grasas_g = round((calorias * 0.25) / 9.0, 1)
@@ -39,6 +43,8 @@ def obtener_perfil(usuario_id: int) -> PerfilUsuario:
         )
         return PerfilUsuario(
             nombre=pdb.nombre,
+            apellidos=pdb.apellidos or "",
+            objetivo=pdb.objetivo or "mantenimiento",
             edad=pdb.edad,
             peso_kg=pdb.peso_kg,
             altura_cm=pdb.altura_cm,
@@ -57,6 +63,8 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
         pdb = daily_service.obtener_o_crear_perfil_db(db, usuario_id)
 
         if datos.nombre is not None: pdb.nombre = datos.nombre
+        if datos.apellidos is not None: pdb.apellidos = datos.apellidos
+        if datos.objetivo is not None: pdb.objetivo = datos.objetivo
         if datos.edad is not None: pdb.edad = datos.edad
         if datos.peso_kg is not None: pdb.peso_kg = datos.peso_kg
         if datos.altura_cm is not None: pdb.altura_cm = datos.altura_cm
@@ -66,7 +74,8 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
 
         perfil_temp = PerfilUsuario(
             nombre=pdb.nombre, edad=pdb.edad, peso_kg=pdb.peso_kg,
-            altura_cm=pdb.altura_cm, genero=pdb.genero, nivel_actividad=pdb.nivel_actividad
+            altura_cm=pdb.altura_cm, genero=pdb.genero, nivel_actividad=pdb.nivel_actividad,
+            objetivo=pdb.objetivo or "mantenimiento"
         )
 
         if datos.modo_objetivo == "manual_macros":
@@ -97,3 +106,25 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
         return obtener_perfil(usuario_id)
     finally:
         db.close()
+
+
+def completar_registro(datos: CuestionarioRegistro, usuario_id: int) -> PerfilUsuario:
+    """Guarda el cuestionario de alta, calcula los objetivos diarios y marca el registro como completo."""
+    actualizar_perfil(PerfilActualizar(
+        nombre=datos.nombre.strip(), apellidos=datos.apellidos.strip(), edad=datos.edad,
+        peso_kg=datos.peso_kg, altura_cm=datos.altura_cm, genero=datos.genero,
+        nivel_actividad=datos.nivel_actividad, objetivo=datos.objetivo,
+        modo_objetivo="mifflin_st_jeor"
+    ), usuario_id)
+    # Primer pesaje del historial, para que el TDEE dinámico tenga punto de partida
+    from app.services import metabolic_service  # import local: metabolic_service importa este módulo
+    metabolic_service.registrar_peso(PesoEntrada(peso_kg=datos.peso_kg), usuario_id)
+
+    db = SessionLocal()
+    try:
+        pdb = daily_service.obtener_o_crear_perfil_db(db, usuario_id)
+        pdb.registro_completo = 1
+        db.commit()
+    finally:
+        db.close()
+    return obtener_perfil(usuario_id)

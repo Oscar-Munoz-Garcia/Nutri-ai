@@ -2,7 +2,9 @@
 
 ## Privacidad multiusuario
 
-Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y analítica: todas las rutas `/api/v1/*` (salvo registro y login) exigen `Authorization: Bearer <token>` y filtran por `usuario_id`. Sin token la API responde `401`. Los datos antiguos sin dueño (`usuario_id` vacío) se asignan al primer usuario registrado una sola vez (la primera vez que arranca esta versión); una fila sin dueño que aparezca después no se asigna a nadie.
+Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y analítica: todas las rutas `/api/v1/*` (salvo `/api/v1/auth/google` y `/api/v1/auth/config`) exigen `Authorization: Bearer <token>` y filtran por `usuario_id`. Sin token la API responde `401`. Los datos antiguos sin dueño (`usuario_id` vacío) se asignan al primer usuario registrado una sola vez (la primera vez que arranca esta versión); una fila sin dueño que aparezca después no se asigna a nadie.
+
+**Acceso solo con Google.** La app no guarda contraseñas: se entra con "Iniciar sesión con Google" (`GOOGLE_CLIENT_ID` en `.env`). La primera vez se crea la cuenta y se muestra un cuestionario de alta (nombre y apellidos, edad, peso, altura, sexo, actividad y objetivo) que calcula las calorías y macros diarios. Las cuentas antiguas siguen funcionando si se entra con una cuenta de Google con el mismo correo.
 
 ## Copias de seguridad de `nutri_ai.db`
 

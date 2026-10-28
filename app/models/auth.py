@@ -1,16 +1,5 @@
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
-
-
-class UsuarioRegistro(BaseModel):
-    username: str
-    email: EmailStr
-    password: str
-
-
-class UsuarioLogin(BaseModel):
-    username_or_email: str
-    password: str
 
 
 class LoginGoogle(BaseModel):
@@ -21,6 +10,7 @@ class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     username: str
+    registro_completo: bool = True
 
 
 class UsuarioOut(BaseModel):
@@ -29,3 +19,4 @@ class UsuarioOut(BaseModel):
     id: int
     username: str
     email: str
+    registro_completo: bool = True

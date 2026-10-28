@@ -8,16 +8,15 @@ from app.core.config import settings
 import app.services.streak_service as streak_service
 import app.services.quicklog_service as quicklog_service
 
+from tests.usuarios import crear_usuario
+
 client = TestClient(app)
 
 
 def _registrar_usuario():
     nombre = f"dash_{uuid.uuid4().hex[:8]}"
-    res = client.post("/api/v1/auth/registro", json={
-        "username": nombre, "email": f"{nombre}@test.com", "password": "secreto123"
-    })
-    assert res.status_code == 200, res.text
-    headers = {"Authorization": f"Bearer {res.json()['access_token']}"}
+    token = crear_usuario(nombre)
+    headers = {"Authorization": f"Bearer {token}"}
     db = SessionLocal()
     try:
         uid = db.query(UsuarioDB).filter(UsuarioDB.username == nombre).first().id

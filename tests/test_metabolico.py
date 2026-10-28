@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services.metabolic_service import regresion_lineal, calcular_tdee, puntuar_dia
 
+from tests.usuarios import crear_usuario
+
 client = TestClient(app)
 
 
@@ -72,9 +74,7 @@ def test_endpoints_peso_y_tdee():
 def test_endpoint_versus():
     # Un segundo participante con su propio token
     nombre = f"rival_{uuid.uuid4().hex[:8]}"
-    token = client.post("/api/v1/auth/registro", json={
-        "username": nombre, "email": f"{nombre}@nutri.ai", "password": "secreta123"
-    }).json()["access_token"]
+    token = crear_usuario(nombre)
     rival = client.get("/api/v1/versus", headers={"Authorization": f"Bearer {token}"}).json()
     yo_rival = next(p for p in rival["participantes"] if p["es_yo"])
     assert yo_rival["nombre"] == nombre
@@ -94,9 +94,7 @@ def test_endpoint_versus():
 def test_pesos_aislados_por_usuario():
     def token_nuevo():
         nombre = f"user_{uuid.uuid4().hex[:8]}"
-        return {"Authorization": "Bearer " + client.post("/api/v1/auth/registro", json={
-            "username": nombre, "email": f"{nombre}@nutri.ai", "password": "secreta123"
-        }).json()["access_token"]}
+        return {"Authorization": "Bearer " + crear_usuario(nombre)}
 
     a, b = token_nuevo(), token_nuevo()
     peso_id = client.post("/api/v1/peso", json={"peso_kg": 70.0}, headers=a).json()["id"]
@@ -107,9 +105,7 @@ def test_pesos_aislados_por_usuario():
 
 def _usuario_nuevo():
     nombre = f"amigo_{uuid.uuid4().hex[:8]}"
-    token = client.post("/api/v1/auth/registro", json={
-        "username": nombre, "email": f"{nombre}@nutri.ai", "password": "secreta123"
-    }).json()["access_token"]
+    token = crear_usuario(nombre)
     return nombre, {"Authorization": f"Bearer {token}"}
 
 
