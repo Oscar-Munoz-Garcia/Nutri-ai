@@ -106,3 +106,32 @@ def test_verificacion_real_rechaza_token_basura(google_configurado):
     with pytest.raises(HTTPException) as exc:
         auth_service.verificar_token_google("esto.no.es-un-jwt")
     assert exc.value.status_code == 401
+
+
+def test_eliminar_cuenta_borra_todo_y_no_toca_a_otros():
+    from app.db.session import SessionLocal
+    from app.db.models import UsuarioDB, PerfilDB, PesoHistorialDB, AmistadDB
+
+    yo, otro = f"borra_{uuid.uuid4().hex[:6]}", f"queda_{uuid.uuid4().hex[:6]}"
+    h_yo = {"Authorization": f"Bearer {crear_usuario(yo)}"}
+    h_otro = {"Authorization": f"Bearer {crear_usuario(otro)}"}
+    client.post("/api/v1/peso", json={"peso_kg": 70.0}, headers=h_yo)
+    client.post("/api/v1/peso", json={"peso_kg": 90.0}, headers=h_otro)
+    client.post("/api/v1/despensa", json={"nombre": "Avena", "cantidad_gramos": 500, "calorias_100g": 380,
+                                           "proteinas_100g": 13, "carbohidratos_100g": 60, "grasas_100g": 7}, headers=h_yo)
+    assert client.post("/api/v1/amigos/solicitudes", json={"usuario": otro}, headers=h_yo).status_code in (200, 201)
+    uid = client.get("/api/v1/auth/me", headers=h_yo).json()["id"]
+
+    assert client.delete("/api/v1/auth/cuenta", headers=h_yo).status_code == 200
+
+    db = SessionLocal()
+    try:
+        assert db.query(UsuarioDB).filter(UsuarioDB.id == uid).first() is None
+        assert db.query(PerfilDB).filter(PerfilDB.usuario_id == uid).count() == 0
+        assert db.query(PesoHistorialDB).filter(PesoHistorialDB.usuario_id == uid).count() == 0
+        assert db.query(AmistadDB).filter((AmistadDB.solicitante_id == uid) | (AmistadDB.destinatario_id == uid)).count() == 0
+    finally:
+        db.close()
+    # El token antiguo deja de valer y el otro usuario conserva sus datos
+    assert client.get("/api/v1/despensa", headers=h_yo).status_code == 401
+    assert [p["peso_kg"] for p in client.get("/api/v1/peso", headers=h_otro).json()] == [90.0]

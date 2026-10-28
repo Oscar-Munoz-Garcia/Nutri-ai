@@ -29,7 +29,7 @@ from app.db.session import init_db
 from typing import Optional
 import app.services.analytics_service as analytics_service
 from app.models.auth import LoginGoogle, TokenResponse, UsuarioOut
-from app.services.auth_service import login_google, obtener_usuario_actual, registro_completo
+from app.services.auth_service import login_google, obtener_usuario_actual, registro_completo, eliminar_cuenta
 from app.core.config import settings
 from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
@@ -249,6 +249,13 @@ def obtener_mi_perfil(current_user: UsuarioDB = Depends(obtener_usuario_actual))
         id=current_user.id, username=current_user.username, email=current_user.email,
         registro_completo=registro_completo(current_user)
     )
+
+
+@app.delete("/api/v1/auth/cuenta", tags=["Autenticación"])
+def borrar_mi_cuenta(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Elimina la cuenta del usuario y todos sus datos (no se puede deshacer)."""
+    eliminar_cuenta(current_user.id)
+    return {"mensaje": "Cuenta eliminada"}
 
 
 @app.post("/api/v1/auth/completar-registro", response_model=PerfilUsuario, tags=["Autenticación"])
