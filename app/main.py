@@ -46,6 +46,8 @@ import app.services.quicklog_service as quicklog_service
 from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
 from app.models.plan import AsignacionSemana, CambioPlanDia, Plan, PlanDelDia, PlanEntrada, PlanesUsuario
 import app.services.plan_service as plan_service
+from app.models.dia_libre import CambioDiaLibre, DiasLibresSemana
+import app.services.dia_libre_service as dia_libre_service
 
 
 
@@ -180,6 +182,21 @@ def eliminar_plan(plan_id: int, current_user: UsuarioDB = Depends(obtener_usuari
     except plan_service.PlanNoValido as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return {"status": "ok", "message": "Plan eliminado"}
+
+
+# --- ENDPOINTS DE DÍAS LIBRES (comidas fuera: no cuentan para las metas ni la racha) ---
+@app.get("/api/v1/dias-libres", response_model=DiasLibresSemana, tags=["Diario"])
+def dias_libres_semana(fecha: Optional[str] = None, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Días libres de la semana (lunes a domingo) que contiene `fecha` (por defecto, hoy) y el límite semanal."""
+    return dia_libre_service.obtener_semana(current_user.id, _validar_fecha(fecha) if fecha else None)
+
+
+@app.put("/api/v1/dias-libres/{fecha}", response_model=DiasLibresSemana, tags=["Diario"])
+def marcar_dia_libre(fecha: str, datos: CambioDiaLibre, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    try:
+        return dia_libre_service.marcar(current_user.id, _validar_fecha(fecha), datos.libre)
+    except dia_libre_service.LimiteDiasLibres as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
 
 
 # --- ENDPOINTS DE RECETAS ---

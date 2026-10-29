@@ -3,7 +3,7 @@ from typing import Optional
 from app.models.daily import ObjetivosMacros, PlanAplicado, RegistroConsumo, ResumenDiario
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB, PerfilDB
-from app.services import plan_service
+from app.services import dia_libre_service, plan_service
 
 
 def _fecha_hoy() -> str:
@@ -109,6 +109,7 @@ def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> Resu
         return ResumenDiario(
             fecha=fecha_target,
             plan=PlanAplicado(id=plan.id, nombre=plan.nombre, es_principal=bool(plan.es_principal)),
+            dia_libre=dia_libre_service.es_libre(db, usuario_id, fecha_target),
             calorias_totales=round(cal_tot, 1),
             proteinas_totales=round(prot_tot, 1),
             carbohidratos_totales=round(carb_tot, 1),

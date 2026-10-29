@@ -27,6 +27,7 @@ class PlanAplicado(BaseModel):
 class ResumenDiario(BaseModel):
     fecha: Optional[str] = None
     plan: Optional[PlanAplicado] = Field(default=None, description="Plan de nutrición que se aplica ese día")
+    dia_libre: bool = Field(default=False, description="Día libre (comida fuera): no cuenta para las metas")
     calorias_totales: float
     proteinas_totales: float
     carbohidratos_totales: float

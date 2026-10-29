@@ -343,10 +343,16 @@
                         <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA DIARIA</span>
                         <h2 class="font-display font-semibold text-xl text-zinc-100">Energía & Macros</h2>
                         <span class="font-mono text-[10px] text-zinc-400 block mt-0.5">Plan de hoy: <strong id="txt-plan-hoy" translate="no" class="text-matcha font-semibold">—</strong></span>
+                        <span id="txt-dia-libre-hoy" class="font-mono text-[10px] text-amberAccent block mt-0.5 hidden">🍽 Hoy es día libre: no cuenta para tus metas ni tu racha</span>
                     </div>
-                    <button onclick="toggleModalObjetivos()" title="Cambiar el plan de un día" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
-                        ⚙ Plan
-                    </button>
+                    <div class="flex flex-col items-end gap-1.5">
+                        <button onclick="toggleModalObjetivos()" title="Cambiar el plan de un día" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
+                            ⚙ Plan
+                        </button>
+                        <button id="btnDiaLibreHoy" onclick="alternarDiaLibre(fechaLocal(new Date()), !diaLibreHoy)" title="Comes fuera: este día no cuenta para tus metas" class="font-mono text-[10px] text-zinc-400 border border-panelBorder hover:border-amberAccent hover:text-amberAccent px-2.5 py-1 rounded transition uppercase">
+                            🍽 Día libre
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Display Numérico Focal -->
@@ -763,6 +769,19 @@
                         </div>
                     </div>
 
+                    <!-- Días libres por semana -->
+                    <div class="space-y-2 pt-3 border-t border-panelBorder">
+                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">3. Días libres</span>
+                        <p class="text-zinc-500 text-[10px] leading-relaxed">Un día libre (por ejemplo, una comida fuera) no cuenta para tus metas ni rompe la racha. Lo marcas desde el Diario.</p>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Días libres por semana</label>
+                            <select id="prof-dias-libres" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                <option value="0">0</option><option value="1">1</option><option value="2">2</option><option value="3">3</option>
+                                <option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option>
+                            </select>
+                        </div>
+                    </div>
+
                     <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
                         Guardar Perfil & Actualizar Diario
                     </button>
@@ -973,6 +992,7 @@
                 </div>
                 <div id="semana-planes-lista" class="space-y-1.5"></div>
                 <p class="text-[10px] text-zinc-500 leading-relaxed">Elige otro plan solo para ese día. La semana tipo se cambia en Perfil.</p>
+                <p class="text-[10px] text-zinc-500 leading-relaxed">🍽 marca un día libre (comida fuera): no cuenta para tus metas ni rompe la racha. <span id="txt-dias-libres-semana" class="text-amberAccent"></span></p>
                 <button type="button" onclick="toggleModalObjetivos(); cambiarPestana('sec-perfil'); document.getElementById('bloque-planes')?.scrollIntoView({ behavior: 'smooth' });" class="w-full py-1.5 border border-matcha/30 hover:border-matcha text-matcha rounded uppercase text-[10px]">
                     Gestionar planes →
                 </button>
@@ -1316,8 +1336,14 @@
             try {
                 const ref = new Date();
                 ref.setDate(ref.getDate() + semanaPlanesDesplazamiento * 7);
-                const [, res] = await Promise.all([refrescarPlanes(), fetch(`${API_BASE}/planes/calendario?fecha=${fechaLocal(ref)}`)]);
+                const [, res, resLibres] = await Promise.all([
+                    refrescarPlanes(),
+                    fetch(`${API_BASE}/planes/calendario?fecha=${fechaLocal(ref)}`),
+                    fetch(`${API_BASE}/dias-libres?fecha=${fechaLocal(ref)}`)
+                ]);
                 const dias = await res.json();
+                const libres = await resLibres.json();
+                document.getElementById("txt-dias-libres-semana").innerText = `Días libres esta semana: ${libres.usados}/${libres.limite}`;
                 const locale = (window.idiomaActual && idiomaActual() === "en") ? "en-GB" : "es-ES";
                 const corto = f => new Date(`${f}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" });
                 document.getElementById("semana-planes-rango").innerText = `${corto(dias[0].fecha)} – ${corto(dias[6].fecha)}`;
@@ -1332,6 +1358,9 @@
                             ${opcionesPlanes(d.plan_id)}
                         </select>
                         ${d.cambiado ? `<button type="button" onclick="cambiarPlanDia('${d.fecha}', null)" title="Volver al plan de la semana" class="text-amberAccent hover:text-matcha text-[11px]">↺</button>` : `<span class="w-3"></span>`}
+                        ${libres.fechas.includes(d.fecha)
+                            ? `<button type="button" onclick="alternarDiaLibre('${d.fecha}', false)" title="Quitar día libre" class="px-1.5 py-1 rounded border border-amberAccent text-[11px]">🍽</button>`
+                            : `<button type="button" onclick="alternarDiaLibre('${d.fecha}', true)" title="Marcar como día libre" class="px-1.5 py-1 rounded border border-panelBorder text-[11px] opacity-40 hover:opacity-100">🍽</button>`}
                     </div>`;
                 }).join("");
             } catch (e) {
@@ -1352,6 +1381,33 @@
             });
             cargarSemanaPlanes();
             cargarResumenDiario();
+        }
+
+        // Día libre (comida fuera): no cuenta para las metas ni para la racha; hay un máximo por semana (Perfil)
+        let diaLibreHoy = false;
+
+        async function alternarDiaLibre(fecha, libre) {
+            const res = await fetch(`${API_BASE}/dias-libres/${fecha}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ libre })
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({}));
+                alert(`⚠ ${err.detail || "No se pudo cambiar el día libre."}`);
+                return;
+            }
+            if (!document.getElementById("modalObjetivos").classList.contains("hidden")) cargarSemanaPlanes();
+            cargarResumenDiario();
+        }
+
+        function pintarDiaLibreHoy(libre) {
+            diaLibreHoy = libre;
+            document.getElementById("txt-dia-libre-hoy").classList.toggle("hidden", !libre);
+            const btn = document.getElementById("btnDiaLibreHoy");
+            btn.innerText = libre ? "🍽 Quitar día libre" : "🍽 Día libre";
+            btn.classList.toggle("border-amberAccent", libre);
+            btn.classList.toggle("text-amberAccent", libre);
         }
 
         async function cargarPlanes() {
@@ -1486,6 +1542,7 @@
                 planHoy = data.plan || null;
                 document.getElementById("txt-plan-hoy").innerText = nombrePlan(planHoy);
                 document.getElementById("txt-plan-modal").innerText = nombrePlan(planHoy);
+                pintarDiaLibreHoy(!!data.dia_libre);
 
                 document.getElementById("txt-cal-tot").innerText = data.calorias_totales;
                 document.getElementById("txt-cal-rest").innerText = data.calorias_restantes;
@@ -1767,6 +1824,7 @@
                 document.getElementById("prof-genero").value = p.genero;
                 document.getElementById("prof-actividad").value = p.nivel_actividad;
                 document.getElementById("prof-modo").value = p.modo_objetivo;
+                document.getElementById("prof-dias-libres").value = p.dias_libres_semana;
 
                 document.getElementById("prof-prot").value = p.objetivos_diarios.proteinas_objetivo;
                 document.getElementById("prof-carb").value = p.objetivos_diarios.carbohidratos_objetivo;
@@ -1803,7 +1861,8 @@
                 proteinas_g: parseFloat(document.getElementById("prof-prot").value),
                 carbohidratos_g: parseFloat(document.getElementById("prof-carb").value),
                 grasas_g: parseFloat(document.getElementById("prof-gras").value),
-                calorias_totales: parseFloat(document.getElementById("prof-cal-tot").value)
+                calorias_totales: parseFloat(document.getElementById("prof-cal-tot").value),
+                dias_libres_semana: parseInt(document.getElementById("prof-dias-libres").value)
             };
 
             await fetch(`${API_BASE}/perfil`, {

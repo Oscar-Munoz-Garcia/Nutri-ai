@@ -28,6 +28,7 @@
         .nx-cell[data-n="1"] { background: var(--nx-heat-1); }
         .nx-cell[data-n="2"] { background: var(--nx-heat-2); }
         .nx-cell[data-n="3"] { background: var(--nx-heat-3); }
+        .nx-cell[data-n="libre"] { background: transparent; border: 1.5px dashed var(--nx-heat-2); }
         .nx-cell.nx-hoy { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
         .nx-cell.nx-futuro { visibility: hidden; }
         .nx-stat { background: var(--nx-surface-2); border: 1px solid var(--nx-border); border-radius: 1rem; padding: .6rem .75rem; }
@@ -69,8 +70,8 @@
             const hoy = data.hasta;
             const celdas = data.dias.map(d => {
                 const titulo = `${d.fecha}: ${d.calorias} kcal · ${d.proteinas} g prot` +
-                    (d.nivel === 3 ? " ✓ metas cumplidas" : d.nivel === 0 ? " · sin registros" : "");
-                return `<div class="nx-cell${d.fecha === hoy ? " nx-hoy" : ""}" data-n="${d.nivel}" title="${esc(titulo)}"></div>`;
+                    (d.libre ? " · 🍽 día libre" : d.nivel === 3 ? " ✓ metas cumplidas" : d.nivel === 0 ? " · sin registros" : "");
+                return `<div class="nx-cell${d.fecha === hoy ? " nx-hoy" : ""}" data-n="${d.libre ? "libre" : d.nivel}" title="${esc(titulo)}"></div>`;
             });
             // Rellenar hasta el domingo para cerrar la última columna
             const resto = (7 - (data.dias.length % 7)) % 7;
@@ -83,7 +84,7 @@
                             <span class="text-[10px] uppercase tracking-widest nx-muted">Calendario de constancia</span>
                             <h2 class="font-display font-semibold text-lg">🔥 ${data.racha_actual} ${data.racha_actual === 1 ? "día" : "días"} de racha</h2>
                         </div>
-                        <span class="text-[10px] nx-muted text-right">Meta: ${Math.round(data.meta_calorias)} kcal ±10%<br>y ≥ ${Math.round(data.meta_proteinas * 0.9)} g proteína</span>
+                        <span class="text-[10px] nx-muted text-right">Meta: ${Math.round(data.meta_calorias)} kcal ±10%<br>y ${Math.round(data.meta_proteinas)} g proteína ±10%</span>
                     </div>
                     <div class="nx-heat">${celdas.join("")}</div>
                     <div class="flex items-center justify-end gap-1.5 text-[10px] nx-muted">
@@ -91,6 +92,7 @@
                         <div class="nx-cell" data-n="0"></div><div class="nx-cell" data-n="1"></div>
                         <div class="nx-cell" data-n="2"></div><div class="nx-cell" data-n="3"></div>
                         <span>Ambas metas</span>
+                        <div class="nx-cell ml-2" data-n="libre"></div><span>Día libre</span>
                     </div>
                     <div class="grid grid-cols-3 gap-2 text-center">
                         <div class="nx-stat"><span class="block text-lg font-bold">${data.mejor_racha}</span><span class="text-[10px] nx-muted">Mejor racha</span></div>

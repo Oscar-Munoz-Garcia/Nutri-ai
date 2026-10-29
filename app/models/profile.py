@@ -30,6 +30,7 @@ class PerfilUsuario(BaseModel):
         ),
         description="Límites diarios configurados"
     )
+    dias_libres_semana: int = Field(default=1, ge=0, le=7, description="Días libres (comidas fuera) permitidos por semana")
 
 
 class PerfilActualizar(BaseModel):
@@ -50,6 +51,8 @@ class PerfilActualizar(BaseModel):
     
     # Para modo manual por calorías totales
     calorias_totales: Optional[float] = None
+
+    dias_libres_semana: Optional[int] = Field(default=None, ge=0, le=7)
 
 
 class CuestionarioRegistro(BaseModel):

@@ -51,7 +51,8 @@ def obtener_perfil(usuario_id: int) -> PerfilUsuario:
             genero=pdb.genero,
             nivel_actividad=pdb.nivel_actividad,
             modo_objetivo=pdb.modo_objetivo,
-            objetivos_diarios=macros
+            objetivos_diarios=macros,
+            dias_libres_semana=1 if pdb.dias_libres_semana is None else pdb.dias_libres_semana
         )
     finally:
         db.close()
@@ -70,6 +71,7 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
         if datos.altura_cm is not None: pdb.altura_cm = datos.altura_cm
         if datos.genero is not None: pdb.genero = datos.genero
         if datos.nivel_actividad is not None: pdb.nivel_actividad = datos.nivel_actividad
+        if datos.dias_libres_semana is not None: pdb.dias_libres_semana = datos.dias_libres_semana
         pdb.modo_objetivo = datos.modo_objetivo
 
         perfil_temp = PerfilUsuario(

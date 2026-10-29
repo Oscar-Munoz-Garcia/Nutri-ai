@@ -2,7 +2,7 @@
 import calendar
 from datetime import date
 from io import BytesIO
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Set
 
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, LineChart, Reference
@@ -13,7 +13,7 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 
 from app.db.session import SessionLocal
 from app.db.models import PantryDB, PerfilDB, RegistroConsumoDB
-from app.services import plan_service
+from app.services import dia_libre_service, plan_service
 
 # Paleta del reporte (tonos suaves, coherentes con la app)
 COLOR_CABECERA = "4981D4"
@@ -54,6 +54,7 @@ def resumen_dia(usuario_id: int, fecha: Optional[str] = None) -> Dict:
     try:
         # Metas del plan de nutrición de ese día
         metas = _metas(plan_service.plan_de_fecha(db, usuario_id, fecha))
+        libre = dia_libre_service.es_libre(db, usuario_id, fecha)
         registros = db.query(RegistroConsumoDB).filter(
             RegistroConsumoDB.usuario_id == usuario_id,
             RegistroConsumoDB.fecha == fecha,
@@ -79,7 +80,8 @@ def resumen_dia(usuario_id: int, fecha: Optional[str] = None) -> Dict:
         "meta_grasas": metas["grasas"],
         "cumplimiento_calorias_pct": pct_kcal,
         "cumplimiento_proteinas_pct": pct_prot,
-        "meta_cumplida": 90 <= pct_kcal <= 110 and pct_prot >= 100,
+        "dia_libre": libre,
+        "meta_cumplida": not libre and 90 <= pct_kcal <= 110 and 90 <= pct_prot <= 110,
     }
 
 
@@ -182,8 +184,9 @@ def _hoja_despensa(wb: Workbook, items: List[PantryDB]) -> None:
 
 
 def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float],
-               metas_dia: Dict[str, Dict[str, float]], ultima_fila_diario: int) -> None:
-    """`metas` son las del plan principal; cada día se evalúa con las de su plan (`metas_dia`)."""
+               metas_dia: Dict[str, Dict[str, float]], ultima_fila_diario: int, libres: Set[str] = frozenset()) -> None:
+    """`metas` son las del plan principal; cada día se evalúa con las de su plan (`metas_dia`).
+    Los días libres (`libres`) se marcan como «Libre» y no cuentan para la constancia."""
     ws = wb.create_sheet("KPIs & Gráficos")
     _titulo(ws, "KPIs del mes", "Verde: 90–110% de la meta calórica y proteína ≥ 100%. Ámbar: cerca. Rojo: fuera.")
 
@@ -221,7 +224,10 @@ def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float],
         ws.cell(row=fila, column=6, value=meta["calorias"]).number_format = "0"
         ws.cell(row=fila, column=7, value=f'=IF(OR(B{fila}=0,F{fila}=0),"",B{fila}/F{fila})').number_format = "0%"
         ws.cell(row=fila, column=8, value=f'=IF(B{fila}=0,"",C{fila}/{meta["proteinas"] or 1})').number_format = "0%"
-        ws.cell(row=fila, column=9, value=f'=IF(B{fila}=0,"",IF(AND(G{fila}>=0.9,G{fila}<=1.1,H{fila}>=1),"Sí","No"))')
+        if date(anio, mes, dia).isoformat() in libres:
+            ws.cell(row=fila, column=9, value="Libre")
+        else:
+            ws.cell(row=fila, column=9, value=f'=IF(B{fila}=0,"",IF(AND(G{fila}>=0.9,G{fila}<=1.1,H{fila}>=0.9,H{fila}<=1.1),"Sí","No"))')
         ws.cell(row=fila, column=9).alignment = Alignment(horizontal="center")
         for col in range(1, 10):
             ws.cell(row=fila, column=col).border = BORDE_FINO
@@ -238,9 +244,9 @@ def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float],
 
     rango_prot = f"H{primera}:H{ultima}"
     ws.conditional_formatting.add(rango_prot, FormulaRule(
-        formula=[f'AND(H{primera}<>"",H{primera}>=1)'], fill=FILL_OK, font=FONT_OK))
+        formula=[f'AND(H{primera}<>"",H{primera}>=0.9,H{primera}<=1.1)'], fill=FILL_OK, font=FONT_OK))
     ws.conditional_formatting.add(rango_prot, FormulaRule(
-        formula=[f'AND(H{primera}<>"",H{primera}>=0.85)'], fill=FILL_AVISO, font=FONT_AVISO))
+        formula=[f'AND(H{primera}<>"",H{primera}>=0.8,H{primera}<=1.2)'], fill=FILL_AVISO, font=FONT_AVISO))
     ws.conditional_formatting.add(rango_prot, FormulaRule(
         formula=[f'H{primera}<>""'], fill=FILL_MAL, font=FONT_MAL))
 
@@ -251,7 +257,7 @@ def _hoja_kpis(wb: Workbook, anio: int, mes: int, metas: Dict[str, float],
     # Resumen con promedios automáticos (solo días con registros)
     ws["D4"], ws["E4"] = "Promedio kcal / día", f'=IFERROR(AVERAGEIF(B{primera}:B{ultima},">0"),0)'
     ws["D5"], ws["E5"] = "Promedio proteínas / día", f'=IFERROR(AVERAGEIF(C{primera}:C{ultima},">0"),0)'
-    ws["D6"], ws["E6"] = "Días registrados", f'=COUNTIF(B{primera}:B{ultima},">0")'
+    ws["D6"], ws["E6"] = "Días registrados", f'=COUNTIFS(B{primera}:B{ultima},">0",I{primera}:I{ultima},"<>Libre")'
     ws["D7"], ws["E7"] = "Días con meta cumplida", f'=COUNTIF(I{primera}:I{ultima},"Sí")'
     ws["D8"], ws["E8"] = "% de constancia", f'=IFERROR(E7/E6,0)'
     for f in range(4, 9):
@@ -316,6 +322,7 @@ def generar_reporte_mensual(usuario_id: int, anio: int, mes: int) -> bytes:
         metas = _metas_usuario(db, usuario_id)
         fechas_mes = [date(anio, mes, d).isoformat() for d in range(1, calendar.monthrange(anio, mes)[1] + 1)]
         metas_dia = {f: _metas(p) for f, p in plan_service.planes_por_fecha(db, usuario_id, fechas_mes).items()}
+        libres = dia_libre_service.fechas_libres(db, usuario_id, fechas_mes)
     finally:
         db.close()
 
@@ -323,7 +330,7 @@ def generar_reporte_mensual(usuario_id: int, anio: int, mes: int) -> bytes:
     wb = Workbook()
     ultima_fila_diario = _hoja_diario(wb, registros, f"Reporte mensual {etiqueta_mes}")
     _hoja_despensa(wb, despensa)
-    _hoja_kpis(wb, anio, mes, metas, metas_dia, ultima_fila_diario)
+    _hoja_kpis(wb, anio, mes, metas, metas_dia, ultima_fila_diario, libres)
 
     buffer = BytesIO()
     wb.save(buffer)

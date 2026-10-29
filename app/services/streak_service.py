@@ -2,16 +2,16 @@ from datetime import date, timedelta
 from typing import Dict, Any, Optional
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB
-from app.services import plan_service
+from app.services import dia_libre_service, plan_service
 
-# Margen aceptado alrededor de la meta calórica y mínimo de proteína para contar el día como cumplido
+# Margen aceptado alrededor de las metas de calorías y proteínas para contar el día como cumplido
 MARGEN_CALORIAS = 0.10
-MINIMO_PROTEINAS = 0.90
+MARGEN_PROTEINAS = 0.10
 
 
 def _evaluar_dia(calorias: float, proteinas: float, meta_cal: float, meta_prot: float, hay_registros: bool) -> Dict[str, Any]:
     cumple_cal = meta_cal > 0 and abs(calorias - meta_cal) <= meta_cal * MARGEN_CALORIAS
-    cumple_prot = meta_prot > 0 and proteinas >= meta_prot * MINIMO_PROTEINAS
+    cumple_prot = meta_prot > 0 and abs(proteinas - meta_prot) <= meta_prot * MARGEN_PROTEINAS
 
     if not hay_registros:
         nivel = 0
@@ -26,9 +26,9 @@ def _evaluar_dia(calorias: float, proteinas: float, meta_cal: float, meta_prot: 
 
 
 def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) -> Dict[str, Any]:
-    """Calendario de constancia: un día cuenta como cumplido si las calorías quedan
-    dentro de ±10% de la meta y las proteínas llegan al 90% de la meta.
-    La meta de cada día es la del plan de nutrición que tocaba ese día."""
+    """Calendario de constancia: un día cuenta como cumplido si las calorías y las proteínas quedan
+    dentro de ±10% de su meta. La meta de cada día es la del plan de nutrición que tocaba ese día.
+    Los días libres (comidas fuera) se saltan: ni suman ni rompen la racha."""
     dias = max(7, min(dias, 371))
     hoy = hoy or date.today()
     # Empezar en lunes para que la cuadrícula semanal quede alineada
@@ -39,6 +39,7 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
     try:
         fechas = [(inicio + timedelta(days=i)).isoformat() for i in range((hoy - inicio).days + 1)]
         planes = plan_service.planes_por_fecha(db, usuario_id, fechas)
+        libres = dia_libre_service.fechas_libres(db, usuario_id, fechas)
 
         consulta = db.query(RegistroConsumoDB).filter(
             RegistroConsumoDB.usuario_id == usuario_id,
@@ -63,19 +64,21 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
                 "calorias": round(t["calorias"], 1),
                 "proteinas": round(t["proteinas"], 1),
                 "plan": plan.nombre,
+                "libre": f in libres,
                 **evaluacion
             })
+        evaluados = [d for d in lista_dias if not d["libre"]]
 
         # Mejor racha dentro del rango
         mejor = actual_tmp = 0
-        for dia in lista_dias:
+        for dia in evaluados:
             actual_tmp = actual_tmp + 1 if dia["nivel"] == 3 else 0
             mejor = max(mejor, actual_tmp)
 
         # Racha actual: hoy aún está en curso, así que si no está cumplido se cuenta desde ayer
         racha_actual = 0
-        pendientes = list(reversed(lista_dias))
-        if pendientes and pendientes[0]["nivel"] != 3:
+        pendientes = list(reversed(evaluados))
+        if pendientes and pendientes[0]["fecha"] == hoy.isoformat() and pendientes[0]["nivel"] != 3:
             pendientes = pendientes[1:]
         for dia in pendientes:
             if dia["nivel"] != 3:
@@ -90,8 +93,9 @@ def obtener_racha(usuario_id: int, dias: int = 112, hoy: Optional[date] = None) 
             "meta_proteinas": planes[hoy.isoformat()].proteinas_objetivo,
             "racha_actual": racha_actual,
             "mejor_racha": mejor,
-            "dias_cumplidos": sum(1 for x in lista_dias if x["nivel"] == 3),
-            "dias_registrados": sum(1 for x in lista_dias if x["nivel"] > 0),
+            "dias_cumplidos": sum(1 for x in evaluados if x["nivel"] == 3),
+            "dias_registrados": sum(1 for x in evaluados if x["nivel"] > 0),
+            "dias_libres": len(libres),
             "dias": lista_dias
         }
     finally:
