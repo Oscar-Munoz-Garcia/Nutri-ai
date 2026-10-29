@@ -433,7 +433,6 @@
         "Recena": "Late snack",
         "Pre-entreno": "Pre-workout",
         "Post-entreno": "Post-workout",
-        "Sin consumos registrados este día.": "Nothing logged this day.",
         "Sin comida asignada": "No meal assigned",
         "Añadir a esta comida": "Add to this meal",
         "Añadir alimentos": "Add foods",
