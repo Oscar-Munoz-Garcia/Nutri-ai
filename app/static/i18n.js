@@ -86,10 +86,14 @@
         "¿Deseas eliminar este registro de comida?": "Do you want to delete this food entry?",
         "REPORTES": "REPORTS",
         "⬇ Descargar Excel": "⬇ Download Excel",
-        "✔ Cerrar jornada y enviar a Google Sheets": "✔ Close the day and send to Google Sheets",
+        "Exportar a Excel": "Export to Excel",
+        "Una fila por día con calorías y macros consumidos / meta de tu plan (p. ej. 2100/2300).": "One row per day with calories and macros consumed / your plan's goal (e.g. 2100/2300).",
+        "Desde": "From",
+        "Hasta": "To",
+        "❌ La fecha de inicio no puede ser posterior a la de fin.": "❌ The start date can't be after the end date.",
+        "La fecha de inicio no puede ser posterior a la de fin.": "The start date can't be after the end date.",
         "⏳ Generando reporte...": "⏳ Generating report...",
         "Error al generar el Excel": "Error generating the Excel file",
-        "⏳ Enviando resumen a Google Sheets...": "⏳ Sending summary to Google Sheets...",
         "No se pudo sincronizar": "Couldn't sync",
 
         // Planes de nutrición
@@ -440,7 +444,6 @@
         // Escáner, reportes e importación
         [/^✅ Alimento detectado: (.+) \((.+) kcal\/100g\)$/, "✅ Food detected: $1 ($2 kcal/100g)"],
         [/^✅ Descargado (.+)$/, "✅ Downloaded $1"],
-        [/^✅ Jornada (.+) enviada: (.+) kcal, (.+) g proteína(.*)$/, "✅ Day $1 sent: $2 kcal, $3 g protein$4"],
         [/^⏳ Importando (.+)\.\.\.$/, "⏳ Importing $1..."],
         [/^✅ (\d+) alimentos nuevos, (\d+) actualizados$/, "✅ $1 new foods, $2 updated"],
         [/^✅ (\d+) recetas nuevos, (\d+) actualizados$/, "✅ $1 new recipes, $2 updated"],
@@ -457,7 +460,6 @@
         [/^Falta por comprar \((\d+)\)$/, "To buy ($1)"],
         [/^Ya en la despensa \((\d+)\)$/, "Already in the pantry ($1)"],
         [/^Sin ingredientes guardados, no se han podido comparar: (.*)\.$/, "No saved ingredients, couldn't compare: $1."],
-        [/^No se pudo enviar a Google Sheets: (.*)$/, "Couldn't send to Google Sheets: $1"],
         // Calendario de constancia, registro rápido y modo cocina (dashboard360.js)
         [/^🔥 (\d+) días? de racha$/, (_, n) => `🔥 ${n}-day streak`],
         [/^Meta: (.+) kcal ±10%$/, "Goal: $1 kcal ±10%"],

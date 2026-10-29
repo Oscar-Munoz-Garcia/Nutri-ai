@@ -16,8 +16,7 @@ Cada usuario solo ve y modifica su propio diario, despensa, recetas, perfil y an
   ```
 - **Restaurar:** para el servidor y copia el `.db` elegido encima de `nutri_ai.db`.
 
-## Excel, Google Sheets e importación masiva
+## Excel e importación masiva
 
-- **Reporte mensual (.xlsx)**: botón *Descargar Excel* en el Diario o `GET /api/v1/exportar/excel?anio=2026&mes=10`. Incluye las pestañas *Diario*, *Despensa* y *KPIs & Gráficos* (fórmulas `SUMIFS`/`AVERAGEIF`, semáforo de cumplimiento con formato condicional y gráficos nativos de Excel).
-- **Google Sheets**: pega `docs/google_sheets_apps_script.gs` en el Apps Script de tu hoja, impleméntalo como aplicación web y rellena `GOOGLE_SHEETS_WEBHOOK_URL` y `GOOGLE_SHEETS_WEBHOOK_SECRET` en el `.env`. El botón *Cerrar jornada* (o `POST /api/v1/sheets/cerrar-jornada`) envía el resumen del día; con `GOOGLE_SHEETS_HORA_CIERRE=23:55` se envía solo cada noche para todos los usuarios.
+- **Exportar a Excel (.xlsx)**: en el Diario eliges *desde* y *hasta* y pulsas *Descargar Excel* (o `GET /api/v1/exportar/excel?desde=2026-10-01&hasta=2026-10-31&idioma=es`). Sale una tabla con una fila por día: fecha, plan del día y calorías, proteínas, carbohidratos y grasas como *consumido/meta* (p. ej. `2100/2300`). La meta es la del plan de nutrición de ese día; verde si está a ±10%, ámbar a ±20%, rojo fuera, gris si es día libre. Máximo 366 días.
 - **Importador**: arrastra un `.xlsx` o `.csv` a la pestaña Escáner (`POST /api/v1/importar`). La primera fila es la cabecera; detecta si son alimentos (despensa) o recetas.

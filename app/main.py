@@ -36,7 +36,6 @@ import app.services.backup_service as backup_service
 from datetime import date
 import app.services.export_service as export_service
 import app.services.import_service as import_service
-import app.services.sheets_service as sheets_service
 from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
 import app.services.metabolic_service as metabolic_service
 from app.models.friends import Amigos, SolicitudAmistadEntrada
@@ -61,13 +60,9 @@ async def lifespan(app: FastAPI):
     tarea_backup = None
     if os.getenv("BACKUP_AUTO", "1") == "1":
         tarea_backup = asyncio.create_task(backup_service.bucle_backup_diario())
-    # Cierre de jornada automático en Google Sheets (solo si GOOGLE_SHEETS_HORA_CIERRE está configurado)
-    tarea_sheets = sheets_service.iniciar_cierre_automatico()
     yield
     if tarea_backup:
         tarea_backup.cancel()
-    if tarea_sheets:
-        tarea_sheets.cancel()
 
 
 app = FastAPI(
@@ -341,17 +336,18 @@ def completar_registro(datos: CuestionarioRegistro, current_user: UsuarioDB = De
     """Cuestionario de alta de un usuario nuevo: nombre, apellidos, edad, peso y objetivo."""
     return profile_service.completar_registro(datos, current_user.id)
 
-# --- ENDPOINTS DE EXCEL, IMPORTACIÓN Y GOOGLE SHEETS ---
+# --- ENDPOINTS DE EXCEL E IMPORTACIÓN ---
 @app.get("/api/v1/exportar/excel", tags=["Excel"])
-def exportar_excel(anio: Optional[int] = None, mes: Optional[int] = None,
+def exportar_excel(desde: Optional[date] = None, hasta: Optional[date] = None, idioma: str = "es",
                    current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    hoy = date.today()
-    anio, mes = anio or hoy.year, mes or hoy.month
+    """Excel con una fila por día entre `desde` y `hasta`: consumido/meta de kcal y macros."""
+    hasta = hasta or date.today()
+    desde = desde or hasta.replace(day=1)
     try:
-        contenido = export_service.generar_reporte_mensual(current_user.id, anio, mes)
+        contenido = export_service.generar_reporte(current_user.id, desde, hasta, idioma)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    nombre = f"nutriai_{current_user.username}_{anio}-{mes:02d}.xlsx"
+    nombre = f"nutriai_{current_user.username}_{desde.isoformat()}_{hasta.isoformat()}.xlsx"
     return Response(
         content=contenido,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -371,20 +367,6 @@ async def importar_archivo(file: UploadFile = File(...), tipo: Optional[str] = F
         raise HTTPException(status_code=400, detail=str(exc))
 
 
-@app.get("/api/v1/sheets/estado", tags=["Google Sheets"])
-def estado_sheets(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    return sheets_service.estado()
-
-
-@app.post("/api/v1/sheets/cerrar-jornada", tags=["Google Sheets"])
-async def cerrar_jornada_sheets(fecha: Optional[str] = None,
-                                current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    try:
-        return await sheets_service.enviar_resumen(current_user, fecha)
-    except sheets_service.SheetsNoConfigurado as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"No se pudo enviar a Google Sheets: {exc}")
 # --- ENDPOINTS DE TELEMETRÍA METABÓLICA (PESO, TDEE DINÁMICO Y VERSUS) ---
 @app.get("/api/v1/peso", response_model=List[PesoRegistro], tags=["Metabolismo"])
 def listar_pesos(dias: int = 90, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
