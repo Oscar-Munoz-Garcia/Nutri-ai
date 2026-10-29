@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Literal
+from typing import List, Optional, Literal
 from app.models.daily import ObjetivosMacros
+from app.models.plan import ListaComidas
 
 Objetivo = Literal["perder_grasa", "mantenimiento", "ganar_masa"]
 
@@ -31,6 +32,8 @@ class PerfilUsuario(BaseModel):
         description="Límites diarios configurados"
     )
     dias_libres_semana: int = Field(default=1, ge=0, le=7, description="Días libres (comidas fuera) permitidos por semana")
+    comidas: List[str] = Field(default_factory=lambda: ["Desayuno", "Comida", "Cena"],
+                               description="Comidas del día del plan principal, en orden")
 
 
 class PerfilActualizar(BaseModel):
@@ -53,6 +56,8 @@ class PerfilActualizar(BaseModel):
     calorias_totales: Optional[float] = None
 
     dias_libres_semana: Optional[int] = Field(default=None, ge=0, le=7)
+    # Comidas del día del plan principal (p. ej. 5: desayuno, almuerzo, comida, merienda y cena)
+    comidas: Optional[ListaComidas] = None
 
 
 class CuestionarioRegistro(BaseModel):
@@ -65,3 +70,4 @@ class CuestionarioRegistro(BaseModel):
     genero: Literal["hombre", "mujer"]
     nivel_actividad: Literal["sedentario", "ligero", "moderado", "intenso"]
     objetivo: Objetivo
+    comidas: Optional[ListaComidas] = Field(default=None, description="Comidas que hace al día; por defecto desayuno, comida y cena")

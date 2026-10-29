@@ -39,7 +39,7 @@
         .nx-btn-ghost { background: var(--nx-surface-2); border: 1px solid var(--nx-border); color: var(--nx-text); }
         .nx-input { width: 100%; background: var(--nx-surface-2); border: 1px solid var(--nx-border); color: var(--nx-text); border-radius: .85rem; padding: .5rem .75rem; font-size: .75rem; }
         .nx-input:focus { outline: none; border-color: var(--nx-accent); }
-        .nx-fab { position: fixed; right: 1.25rem; bottom: 1.5rem; z-index: 45; width: 3.5rem; height: 3.5rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+        .nx-fab { position: fixed; left: 1.25rem; bottom: 1.5rem; z-index: 45; width: 3.5rem; height: 3.5rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
                   background: linear-gradient(135deg, var(--nx-accent), var(--nx-accent-3)); color: #fff; box-shadow: 0 10px 25px rgba(0,0,0,.35); }
         .nx-overlay { position: fixed; inset: 0; z-index: 55; background: rgba(0,0,0,.55); backdrop-filter: blur(6px); display: flex; align-items: flex-end; justify-content: center; }
         .nx-sheet { width: 100%; max-width: 28rem; max-height: 90vh; overflow-y: auto; background: var(--nx-surface); color: var(--nx-text); border-radius: 1.5rem 1.5rem 0 0; padding: 1.25rem; border: 1px solid var(--nx-border); }
@@ -110,6 +110,7 @@
     const Reconocimiento = window.SpeechRecognition || window.webkitSpeechRecognition;
     let reconocedor = null;
     let itemsPendientes = [];
+    let comidaRapida = null; // comida del plan a la que va el registro (comidas.js)
 
     function abrirRegistroRapido() {
         cerrar("nx-quick");
@@ -194,6 +195,7 @@
             if (!res.ok) throw new Error(res.status);
             const data = await res.json();
             itemsPendientes = data.items;
+            comidaRapida = window.comidaSugerida ? comidaSugerida(data.comida) : null;
             renderizarPreview(data.avisos);
         } catch (e) {
             preview.innerHTML = '<p class="text-[11px] text-rose-400 text-center">No se pudo interpretar el texto.</p>';
@@ -207,7 +209,14 @@
         const preview = document.getElementById("nx-preview");
         const origen = { despensa: "📦 despensa", ia: "✨ estimado IA", sin_estimar: "⚠ rellena a mano" };
         const campo = (i, k, v) => `<input type="number" step="0.1" min="0" value="${v}" data-i="${i}" data-k="${k}" class="nx-input text-center !px-1" oninput="editarItemRapido(this)">`;
+        const comidas = window.comidasDelDia ? comidasDelDia() : [];
         preview.innerHTML = `
+            ${itemsPendientes.length && comidas.length ? `
+                <label class="flex items-center gap-2 text-[11px] nx-muted">Añadir a
+                    <select class="nx-input flex-1" onchange="elegirComidaRapida(this.value)">
+                        ${comidas.map(c => `<option value="${esc(c)}" ${c === comidaRapida ? "selected" : ""}>${esc(c)}</option>`).join("")}
+                    </select>
+                </label>` : ""}
             ${avisos.map(a => `<p class="text-[10px] nx-muted text-center">${esc(a)}</p>`).join("")}
             ${itemsPendientes.map((it, i) => `
                 <div class="nx-stat space-y-2">
@@ -231,6 +240,10 @@
         it[input.dataset.k] = input.dataset.k === "nombre" ? input.value : (parseFloat(input.value) || 0);
     }
 
+    function elegirComidaRapida(comida) {
+        comidaRapida = comida;
+    }
+
     function quitarItemRapido(i) {
         itemsPendientes.splice(i, 1);
         renderizarPreview();
@@ -246,7 +259,7 @@
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         nombre: it.nombre, calorias: it.calorias, proteinas: it.proteinas,
-                        carbohidratos: it.carbohidratos, grasas: it.grasas
+                        carbohidratos: it.carbohidratos, grasas: it.grasas, comida: comidaRapida
                     })
                 });
                 if (!res.ok) throw new Error(res.status);
@@ -447,7 +460,7 @@
 
     Object.assign(window, {
         cargarRacha, abrirRegistroRapido, cerrarRegistroRapido, alternarDictado, interpretarRegistroRapido,
-        editarItemRapido, quitarItemRapido, guardarRegistroRapido,
+        editarItemRapido, elegirComidaRapida, quitarItemRapido, guardarRegistroRapido,
         abrirModoCocina, cerrarModoCocina, marcarIngrediente, irAPaso, iniciarTemporizador, quitarTemporizador
     });
 

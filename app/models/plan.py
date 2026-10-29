@@ -1,5 +1,9 @@
-from pydantic import BaseModel, Field
-from typing import List, Optional
+from pydantic import BaseModel, Field, StringConstraints
+from typing import Annotated, List, Optional
+
+NombreComida = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=30)]
+# Entre 1 y 8 comidas al día, cada una con el nombre que quiera el usuario
+ListaComidas = Annotated[List[NombreComida], Field(min_length=1, max_length=8)]
 
 
 class PlanEntrada(BaseModel):
@@ -8,10 +12,12 @@ class PlanEntrada(BaseModel):
     proteinas_objetivo: float = Field(..., ge=0, lt=1000)
     carbohidratos_objetivo: float = Field(..., ge=0, lt=2000)
     grasas_objetivo: float = Field(..., ge=0, lt=1000)
+    comidas: Optional[ListaComidas] = Field(default=None, description="Nombres de las comidas del día, en orden; null las deja como estaban")
 
 
 class Plan(PlanEntrada):
     id: int
+    comidas: List[str] = Field(..., description="Nombres de las comidas del día, en orden")
     es_principal: bool = Field(..., description="El plan principal refleja los objetivos del perfil")
     dias_semana: List[int] = Field(default=[], description="Días en los que toca (0 = lunes ... 6 = domingo)")
 

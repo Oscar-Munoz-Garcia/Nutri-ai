@@ -270,6 +270,7 @@
                         </label>
                     </div>
                 </div>
+                <div data-editor-comidas id="reg-comidas"></div>
 
                 <div id="registro-error" class="text-rose-400 text-[10px] hidden text-center"></div>
 
@@ -309,7 +310,7 @@
     </header>
 
     <!-- CONTENEDOR PRINCIPAL -->
-    <main class="max-w-md mx-auto p-5 space-y-6">
+    <main class="max-w-md mx-auto p-5 pb-28 space-y-6">
 
         <!-- NAVEGACIÓN -->
         <nav class="bg-panel border border-panelBorder p-1.5 rounded-xl flex text-center font-mono text-[10px] uppercase tracking-wider overflow-x-auto no-scrollbar">
@@ -798,6 +799,9 @@
                         <div id="campo-info-mifflin" class="p-3 bg-canvas border border-panelBorder rounded-xl text-zinc-400 text-[10px] leading-relaxed hidden">
                             💡 Se calcularán automáticamente tus necesidades metabólicas diarias y gramos óptimos según tu peso, altura, edad y nivel de actividad.
                         </div>
+
+                        <!-- Comidas al día del plan principal (en cualquier modo, también los automáticos) -->
+                        <div data-editor-comidas id="prof-comidas" class="pt-2"></div>
                     </div>
 
                     <!-- Días libres por semana -->
@@ -857,6 +861,7 @@
                         <label class="text-zinc-400 block mb-1 text-[10px]">Calorías (kcal) · se calculan con los macros, puedes ajustarlas</label>
                         <input type="number" step="1" min="1" id="plan-cal" required class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                     </div>
+                    <div data-editor-comidas id="plan-comidas"></div>
                     <p id="plan-error" class="text-rose-400 text-[10px] hidden"></p>
                     <div class="flex gap-2">
                         <button type="submit" class="flex-1 py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded uppercase">Guardar plan</button>
@@ -1244,6 +1249,7 @@
         function empezarCuestionarioRegistro() {
             document.getElementById("registro-bienvenida").classList.add("hidden");
             document.getElementById("registro-formulario").classList.remove("hidden");
+            pintarEditorComidas("reg-comidas");
             document.getElementById("reg-edad").focus();
         }
 
@@ -1259,7 +1265,8 @@
                 altura_cm: parseFloat(document.getElementById("reg-altura").value),
                 genero: document.getElementById("reg-genero").value,
                 nivel_actividad: document.getElementById("reg-actividad").value,
-                objetivo: document.querySelector('input[name="reg-objetivo"]:checked').value
+                objetivo: document.querySelector('input[name="reg-objetivo"]:checked').value,
+                comidas: leerComidas("reg-comidas")
             };
             try {
                 const res = await fetch(`${API_BASE}/auth/completar-registro`, {
@@ -1470,6 +1477,7 @@
                             ${p.es_principal ? '<span class="text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-1.5 py-0.5 rounded uppercase">Principal</span>' : ""}
                         </div>
                         <span class="text-[10px] text-zinc-400">${Math.round(p.calorias_objetivo)} kcal · P ${p.proteinas_objetivo}g · C ${p.carbohidratos_objetivo}g · G ${p.grasas_objetivo}g</span>
+                        <span class="block text-[10px] text-zinc-500 truncate">🍽 ${p.comidas.length} · ${p.comidas.map(c => `<span>${escaparHtml(c)}</span>`).join(", ")}</span>
                     </div>
                     <div class="flex gap-2 shrink-0">
                         <button type="button" onclick="abrirFormPlan(${p.id})" title="Editar plan" class="text-zinc-400 hover:text-matcha">✎</button>
@@ -1520,6 +1528,7 @@
             document.getElementById("plan-carb").value = plan ? plan.carbohidratos_objetivo : "";
             document.getElementById("plan-gras").value = plan ? plan.grasas_objetivo : "";
             document.getElementById("plan-cal").value = plan ? Math.round(plan.calorias_objetivo) : "";
+            pintarEditorComidas("plan-comidas", plan ? plan.comidas : null);
             document.getElementById("plan-error").classList.add("hidden");
             document.getElementById("planForm").classList.remove("hidden");
             document.getElementById("plan-nombre").focus();
@@ -1537,7 +1546,8 @@
                 calorias_objetivo: parseFloat(document.getElementById("plan-cal").value),
                 proteinas_objetivo: parseFloat(document.getElementById("plan-prot").value),
                 carbohidratos_objetivo: parseFloat(document.getElementById("plan-carb").value),
-                grasas_objetivo: parseFloat(document.getElementById("plan-gras").value)
+                grasas_objetivo: parseFloat(document.getElementById("plan-gras").value),
+                comidas: leerComidas("plan-comidas")
             };
             const res = await fetch(id ? `${API_BASE}/planes/${id}` : `${API_BASE}/planes`, {
                 method: id ? "PUT" : "POST",
@@ -1625,6 +1635,8 @@
         function renderizarConsumos(registros) {
             const contenedor = document.getElementById("registrosList");
             if (!contenedor) return;
+            // Con comidas.js cargado, los registros se agrupan por las comidas del plan del día
+            if (window.pintarRegistrosPorComida) return pintarRegistrosPorComida(contenedor, registros || [], planHoy);
 
             if (!registros || registros.length === 0) {
                 contenedor.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>';
@@ -1865,6 +1877,7 @@
                 document.getElementById("prof-actividad").value = p.nivel_actividad;
                 document.getElementById("prof-modo").value = p.modo_objetivo;
                 document.getElementById("prof-dias-libres").value = p.dias_libres_semana;
+                pintarEditorComidas("prof-comidas", p.comidas);
 
                 document.getElementById("prof-prot").value = p.objetivos_diarios.proteinas_objetivo;
                 document.getElementById("prof-carb").value = p.objetivos_diarios.carbohidratos_objetivo;
@@ -2036,7 +2049,8 @@
                 carbohidratos_g: parseFloat(document.getElementById("prof-carb").value),
                 grasas_g: parseFloat(document.getElementById("prof-gras").value),
                 calorias_totales: parseFloat(document.getElementById("prof-cal-tot").value),
-                dias_libres_semana: parseInt(document.getElementById("prof-dias-libres").value)
+                dias_libres_semana: parseInt(document.getElementById("prof-dias-libres").value),
+                comidas: leerComidas("prof-comidas")
             };
 
             const res = await fetch(`${API_BASE}/perfil`, {
@@ -2961,5 +2975,6 @@
         }
     </script>
     <script src="/static/dashboard360.js"></script>
+    <script src="/static/comidas.js"></script>
 </body>
 </html>
