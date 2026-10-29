@@ -31,6 +31,9 @@
         .nx-cell[data-n="libre"] { background: transparent; border: 1.5px dashed var(--nx-heat-2); }
         .nx-cell.nx-hoy { outline: 2px solid var(--nx-accent); outline-offset: 1px; }
         .nx-cell.nx-futuro { visibility: hidden; }
+        .nx-dia { padding: 0; border: 0; cursor: pointer; }
+        .nx-dia:hover { filter: brightness(1.35); }
+        .nx-cell.nx-sel { outline: 2px solid #f5a524; outline-offset: 1px; }
         .nx-stat { background: var(--nx-surface-2); border: 1px solid var(--nx-border); border-radius: 1rem; padding: .6rem .75rem; }
         .nx-btn { border-radius: 9999px; padding: .55rem 1rem; font-weight: 600; font-size: .75rem; transition: opacity .2s, transform .1s; }
         .nx-btn:active { transform: scale(.97); }
@@ -71,7 +74,9 @@
             const celdas = data.dias.map(d => {
                 const titulo = `${d.fecha}: ${d.calorias} kcal · ${d.proteinas} g prot` +
                     (d.libre ? " · 🍽 día libre" : d.nivel === 3 ? " ✓ metas cumplidas" : d.nivel === 0 ? " · sin registros" : "");
-                return `<div class="nx-cell${d.fecha === hoy ? " nx-hoy" : ""}" data-n="${d.libre ? "libre" : d.nivel}" title="${esc(titulo)}"></div>`;
+                // Cada día es clicable: abre ese día en el Diario para consultarlo o registrar comidas
+                const sel = typeof window.fechaDiario === "function" && d.fecha === window.fechaDiario() && d.fecha !== hoy;
+                return `<button type="button" onclick="window.irADiaDiario && irADiaDiario('${d.fecha}')" class="nx-cell nx-dia${d.fecha === hoy ? " nx-hoy" : ""}${sel ? " nx-sel" : ""}" data-n="${d.libre ? "libre" : d.nivel}" title="${esc(titulo)}" aria-label="${esc(d.fecha)}"></button>`;
             });
             // Rellenar hasta el domingo para cerrar la última columna
             const resto = (7 - (data.dias.length % 7)) % 7;
@@ -254,7 +259,9 @@
         btn.disabled = true;
         try {
             for (const it of itemsPendientes) {
-                const res = await fetch(`${API_BASE}/diario/consumo`, {
+                // Se guarda en el día que se está viendo en el Diario (hoy, ayer o cualquier fecha)
+                const fecha = typeof window.fechaDiario === "function" ? window.fechaDiario() : "";
+                const res = await fetch(`${API_BASE}/diario/consumo${fecha ? `?fecha=${encodeURIComponent(fecha)}` : ""}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
