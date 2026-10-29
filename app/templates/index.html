@@ -425,21 +425,26 @@
                     <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>
                 </div>
             </div>
-            <!-- EXPORTAR A EXCEL Y SINCRONIZAR CON GOOGLE SHEETS -->
+            <!-- EXPORTAR A EXCEL POR RANGO DE FECHAS -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-3">
                 <div class="pb-2 border-b border-panelBorder">
                     <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">REPORTES</span>
-                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Excel & Google Sheets</h3>
+                    <h3 class="font-display font-semibold text-sm text-zinc-200 uppercase tracking-wider">Exportar a Excel</h3>
                 </div>
-                <div class="flex flex-col sm:flex-row gap-2">
-                    <input type="month" id="exportMes" class="flex-1 bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-200">
-                    <button onclick="descargarExcelMensual()" id="btnExportExcel" class="py-2 px-4 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
+                <p class="font-mono text-[11px] text-zinc-500">Una fila por día con calorías y macros consumidos / meta de tu plan (p. ej. 2100/2300).</p>
+                <div class="flex flex-col sm:flex-row gap-2 sm:items-end">
+                    <label class="flex-1 space-y-1">
+                        <span class="font-mono text-[10px] text-zinc-500 uppercase block">Desde</span>
+                        <input type="date" id="exportDesde" class="w-full bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-200">
+                    </label>
+                    <label class="flex-1 space-y-1">
+                        <span class="font-mono text-[10px] text-zinc-500 uppercase block">Hasta</span>
+                        <input type="date" id="exportHasta" class="w-full bg-canvas border border-panelBorder rounded-xl px-3 py-2 font-mono text-xs text-zinc-200">
+                    </label>
+                    <button onclick="descargarExcel()" id="btnExportExcel" class="py-2 px-4 bg-matcha hover:bg-lime-400 text-black font-mono font-semibold text-xs rounded-xl transition uppercase">
                         ⬇ Descargar Excel
                     </button>
                 </div>
-                <button onclick="cerrarJornadaSheets()" id="btnCerrarJornada" class="w-full py-2 border border-matcha/40 hover:border-matcha text-matcha font-mono text-xs rounded-xl transition uppercase">
-                    ✔ Cerrar jornada y enviar a Google Sheets
-                </button>
                 <p id="reporteStatus" class="font-mono text-[11px] text-center text-zinc-500 hidden"></p>
             </div>
         </section>
@@ -2388,7 +2393,7 @@
             }
         });
 
-        // --- EXCEL, GOOGLE SHEETS E IMPORTACIÓN ---
+        // --- EXCEL E IMPORTACIÓN ---
         function mostrarEstado(id, texto, tipo) {
             const el = document.getElementById(id);
             const colores = { ok: "text-matcha font-semibold", error: "text-rose-400", info: "text-amberAccent" };
@@ -2396,18 +2401,27 @@
             el.innerText = texto;
         }
 
-        async function descargarExcelMensual() {
-            const input = document.getElementById("exportMes");
-            if (!input.value) input.value = new Date().toISOString().slice(0, 7);
-            const [anio, mes] = input.value.split("-").map(Number);
+        async function descargarExcel() {
+            const inputDesde = document.getElementById("exportDesde");
+            const inputHasta = document.getElementById("exportHasta");
+            // Por defecto: del día 1 del mes actual a hoy
+            const hoy = new Date();
+            if (!inputHasta.value) inputHasta.value = fechaLocal(hoy);
+            if (!inputDesde.value) inputDesde.value = fechaLocal(new Date(hoy.getFullYear(), hoy.getMonth(), 1));
+            const desde = inputDesde.value, hasta = inputHasta.value;
+            if (desde > hasta) {
+                mostrarEstado("reporteStatus", "❌ La fecha de inicio no puede ser posterior a la de fin.", "error");
+                return;
+            }
             const btn = document.getElementById("btnExportExcel");
             btn.disabled = true;
             mostrarEstado("reporteStatus", "⏳ Generando reporte...", "info");
             try {
-                const res = await fetch(`${API_BASE}/exportar/excel?anio=${anio}&mes=${mes}`);
+                const idioma = window.idiomaActual ? idiomaActual() : "es";
+                const res = await fetch(`${API_BASE}/exportar/excel?desde=${desde}&hasta=${hasta}&idioma=${idioma}`);
                 if (!res.ok) throw new Error((await res.json()).detail || "Error al generar el Excel");
                 const blob = await res.blob();
-                const nombre = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || `nutriai_${input.value}.xlsx`;
+                const nombre = (res.headers.get("Content-Disposition") || "").match(/filename="(.+)"/)?.[1] || `nutriai_${desde}_${hasta}.xlsx`;
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement("a");
                 a.href = url;
@@ -2417,23 +2431,6 @@
                 a.remove();
                 URL.revokeObjectURL(url);
                 mostrarEstado("reporteStatus", `✅ Descargado ${nombre}`, "ok");
-            } catch (err) {
-                mostrarEstado("reporteStatus", `❌ ${err.message}`, "error");
-            } finally {
-                btn.disabled = false;
-            }
-        }
-
-        async function cerrarJornadaSheets() {
-            const btn = document.getElementById("btnCerrarJornada");
-            btn.disabled = true;
-            mostrarEstado("reporteStatus", "⏳ Enviando resumen a Google Sheets...", "info");
-            try {
-                const res = await fetch(`${API_BASE}/sheets/cerrar-jornada`, { method: "POST" });
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.detail || "No se pudo sincronizar");
-                const r = data.enviado;
-                mostrarEstado("reporteStatus", `✅ Jornada ${r.fecha} enviada: ${r.calorias} kcal, ${r.proteinas} g proteína ${r.meta_cumplida ? "🎯" : ""}`, "ok");
             } catch (err) {
                 mostrarEstado("reporteStatus", `❌ ${err.message}`, "error");
             } finally {
