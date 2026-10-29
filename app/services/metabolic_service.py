@@ -8,7 +8,7 @@ from app.models.metabolic import (
 from app.models.profile import PerfilUsuario
 from app.services.profile_service import calcular_mifflin_st_jeor
 from app.services.friends_service import ids_amigos
-from app.services import plan_service
+from app.services import dia_libre_service, plan_service
 
 # Energía aproximada de 1 kg de tejido corporal (mezcla grasa/magro)
 KCAL_POR_KG = 7700.0
@@ -225,16 +225,18 @@ def obtener_tdee_dinamico(usuario_id: int, dias: int = 28) -> TDEEDinamico:
 # --- VERSUS / CUMPLIMIENTO SEMANAL ---
 
 def _cumplimiento_semana(db, usuario_id: int, lunes: date, hasta: date) -> List[DiaCumplimiento]:
-    """Días de lunes a `hasta`. El día de hoy solo cuenta si ya tiene comidas registradas.
+    """Días de lunes a `hasta`, sin los días libres. El día de hoy solo cuenta si ya tiene comidas registradas.
     Cada día se puntúa contra las metas del plan de nutrición que tocaba ese día."""
     hoy = date.today()
     fechas = [(lunes + timedelta(days=i)).isoformat() for i in range((hasta - lunes).days + 1)]
     ingestas = _ingestas_por_dia(db, usuario_id, fechas)
     planes = plan_service.planes_por_fecha(db, usuario_id, fechas)
+    libres = dia_libre_service.fechas_libres(db, usuario_id, fechas)
     dias = []
     for f in fechas:
         cal, prot = ingestas[f]
-        if f == hoy.isoformat() and cal <= 0:
+        # Los días libres no puntúan; hoy solo cuenta si ya tiene comidas registradas
+        if f in libres or (f == hoy.isoformat() and cal <= 0):
             continue
         plan = planes[f]
         dias.append(DiaCumplimiento(

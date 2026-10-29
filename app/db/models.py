@@ -17,6 +17,7 @@ class UsuarioDB(Base):
     registros = relationship("RegistroConsumoDB", back_populates="usuario", cascade="all, delete-orphan")
     planes = relationship("PlanNutricionDB", cascade="all, delete-orphan")
     planes_por_fecha = relationship("PlanFechaDB", cascade="all, delete-orphan")
+    dias_libres = relationship("DiaLibreDB", cascade="all, delete-orphan")
 
 
 class PerfilDB(Base):
@@ -42,6 +43,8 @@ class PerfilDB(Base):
     proteinas_objetivo = Column(Float, default=160.0)
     carbohidratos_objetivo = Column(Float, default=210.0)
     grasas_objetivo = Column(Float, default=70.0)
+    # Cuántos días libres (comidas fuera) se permite marcar por semana
+    dias_libres_semana = Column(Integer, default=1)
 
 class PesoHistorialDB(Base):
     __tablename__ = "peso_historial"
@@ -140,3 +143,13 @@ class PlanFechaDB(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
     fecha = Column(String, nullable=False)
     plan_id = Column(Integer, ForeignKey("planes_nutricion.id"), nullable=False)
+
+
+class DiaLibreDB(Base):
+    """Día libre (comida fuera): no cuenta para las metas ni rompe la racha."""
+    __tablename__ = "dias_libres"
+    __table_args__ = (UniqueConstraint("usuario_id", "fecha", name="uq_dia_libre"),)
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False, index=True)
+    fecha = Column(String, nullable=False)
