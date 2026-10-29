@@ -1846,27 +1846,11 @@
                             <button onclick="abrirModoCocina('${r.id}')" class="flex-1 py-2 bg-panel border border-panelBorder hover:border-matcha text-zinc-200 font-mono text-[11px] font-semibold rounded uppercase transition">
                                 👨‍🍳 Modo cocina
                             </button>
-                            <button onclick="consumirReceta('${r.id}')" class="flex-1 py-2 bg-panel border border-panelBorder hover:border-matcha text-matcha font-mono text-[11px] font-semibold rounded uppercase transition">
-                                [ + CONSUMIR ]
-                            </button>
                         </div>
                     </div>
                 `).join("");
             } catch (e) {
                 console.error("Error cargando recetas", e);
-            }
-        }
-
-        async function consumirReceta(recetaId) {
-            try {
-                const res = await fetch(urlConFecha(`${API_BASE}/recetas/${recetaId}/consumir`), { method: "POST" });
-                if (res.ok) {
-                    alert(esDiarioHoy() ? "✅ Receta consumida e incorporada a tus macros diarios."
-                        : `✅ Receta añadida al día ${fechaDiario()}.`);
-                    cargarResumenDiario();
-                }
-            } catch (e) {
-                alert("Error al consumir la receta.");
             }
         }
 

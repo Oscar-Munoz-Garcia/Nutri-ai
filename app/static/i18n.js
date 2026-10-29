@@ -227,10 +227,7 @@
         "Sin descripción": "No description",
         "GRASAS:": "FAT:",
         "👨‍🍳 Modo cocina": "👨‍🍳 Cooking mode",
-        "[ + CONSUMIR ]": "[ + EAT ]",
         "Selecciona un ingrediente de tu despensa e indica la cantidad en gramos.": "Pick an ingredient from your pantry and enter the amount in grams.",
-        "✅ Receta consumida e incorporada a tus macros diarios.": "✅ Recipe eaten and added to your daily macros.",
-        "Error al consumir la receta.": "Error logging the recipe.",
         "Receta no encontrada.": "Recipe not found.",
 
         // Modo cocina (dashboard360.js)
@@ -421,14 +418,20 @@
         "Añadir": "Add",
         "Añadir 1 alimento": "Add 1 food",
         "Elegir comida": "Choose meal",
-        "Busca un alimento: arroz, pollo, tomate…": "Search for a food: rice, chicken, tomato…",
         "Crear a mano:": "Add manually:",
         "Ver en la rueda": "Show in the chart",
         "Valores por 100 g": "Values per 100 g",
         "Ver total": "Show total",
         "Total": "Total",
         "% de cada macro sobre el total de gramos de macros.": "% of each macro over the total grams of macros.",
-        "Busca y añade cada alimento con sus gramos, por ejemplo 200 g de arroz y 150 g de pollo.": "Search and add each food with its grams, for example 200 g of rice and 150 g of chicken.",
+        "Busca y añade cada alimento con sus gramos (por ejemplo 200 g de arroz y 150 g de pollo) o una de tus recetas.": "Search and add each food with its grams (for example 200 g of rice and 150 g of chicken) or one of your recipes.",
+        "Busca un alimento o receta: arroz, pollo…": "Search for a food or recipe: rice, chicken…",
+        "¿A qué comida?": "Which meal?",
+        "Elige la comida de cada alimento": "Choose the meal for each food",
+        "Tus recetas": "Your recipes",
+        "Ración": "Serving",
+        "ración": "serving",
+        "raciones": "servings",
         "No se pudo guardar. Revisa la conexión y vuelve a intentarlo.": "Couldn't save. Check your connection and try again."
     };
 
@@ -479,7 +482,6 @@
         [/^🔥 (\d+) días? de racha$/, (_, n) => `🔥 ${n}-day streak`],
         [/^Meta: (.+) kcal ±10%$/, "Goal: $1 kcal ±10%"],
         [/^y (.+) g proteína ±10%$/, "and $1 g protein ±10%"],
-        [/^✅ Receta añadida al día (\d{4}-\d{2}-\d{2})\.$/, "✅ Recipe added to $1."],
         [/^Días libres esta semana: (\d+)\/(\d+)$/, "Days off this week: $1/$2"],
         [/^Ya has llegado a tu límite de días libres esta semana \((\d+)\)\. Puedes cambiarlo en tu perfil\.$/, "You've reached your days-off limit for this week ($1). You can change it in your profile."],
         [/^(.+) · 🍽 día libre$/, "$1 · 🍽 day off"],

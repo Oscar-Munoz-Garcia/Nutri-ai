@@ -243,7 +243,7 @@ def agregar_alimento_despensa(alimento: AlimentoPantryEntrada, current_user: Usu
 
 @app.get("/api/v1/alimentos/buscar", response_model=List[AlimentoPor100g], tags=["Diario"])
 def buscar_alimentos(q: str = "", current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    """Alimentos con sus valores por 100 g: primero los de tu despensa, después la base de alimentos comunes."""
+    """Tus recetas (por ración) y alimentos por 100 g de tu despensa y de la base común; sin texto, tus recetas."""
     return alimentos_service.buscar_alimentos(q, current_user.id)
 
 

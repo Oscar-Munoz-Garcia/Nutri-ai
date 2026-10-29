@@ -1,9 +1,10 @@
-"""Buscador de alimentos para añadirlos al diario por gramos: primero los de la despensa del usuario
+"""Buscador de alimentos para añadirlos al diario: primero las recetas y la despensa del usuario
 y después una base de alimentos comunes con valores medios por 100 g (tablas BEDCA / USDA)."""
+import json
 import unicodedata
 from typing import List
 
-from app.db.models import PantryDB
+from app.db.models import PantryDB, RecetaDB
 from app.db.session import SessionLocal
 from app.models.food import AlimentoPor100g
 
@@ -92,17 +93,45 @@ def _coincide(consulta: str, *nombres: str) -> bool:
     return any(all(p in _normalizar(n) for p in palabras) for n in nombres if n)
 
 
-def buscar_alimentos(consulta: str, usuario_id: int, limite: int = 12) -> List[AlimentoPor100g]:
-    consulta = (consulta or "").strip()
-    if not consulta:
-        return []
+def _gramos_receta(receta: RecetaDB):
+    try:
+        ingredientes = json.loads(receta.ingredientes or "[]")
+        total = sum(float(i.get("cantidad_gramos") or 0) for i in ingredientes)
+    except (ValueError, TypeError, AttributeError):
+        return None
+    return round(total, 1) if total > 0 else None
+
+
+def _receta(r: RecetaDB) -> AlimentoPor100g:
+    """Una receta se añade por raciones: sus totales son los de una ración (la receta entera)."""
+    return AlimentoPor100g(nombre=r.nombre, origen="receta", receta_id=str(r.id), por_racion=True,
+                           gramos_racion=_gramos_receta(r), calorias_100g=r.calorias_totales or 0.0,
+                           proteinas_100g=r.proteinas_totales or 0.0, carbohidratos_100g=r.carbohidratos_totales or 0.0,
+                           grasas_100g=r.grasas_totales or 0.0)
+
+
+def listar_recetas(usuario_id: int) -> List[AlimentoPor100g]:
     db = SessionLocal()
     try:
-        despensa = db.query(PantryDB).filter(PantryDB.usuario_id == usuario_id).all()
+        return [_receta(r) for r in db.query(RecetaDB).filter(RecetaDB.usuario_id == usuario_id).order_by(RecetaDB.nombre).all()]
     finally:
         db.close()
 
-    resultados = [
+
+def buscar_alimentos(consulta: str, usuario_id: int, limite: int = 12) -> List[AlimentoPor100g]:
+    consulta = (consulta or "").strip()
+    if not consulta:
+        # Sin texto: las recetas del usuario, para elegirlas con un toque al abrir el «+»
+        return listar_recetas(usuario_id)[:limite]
+    db = SessionLocal()
+    try:
+        despensa = db.query(PantryDB).filter(PantryDB.usuario_id == usuario_id).all()
+        recetas = db.query(RecetaDB).filter(RecetaDB.usuario_id == usuario_id).order_by(RecetaDB.nombre).all()
+    finally:
+        db.close()
+
+    resultados = [_receta(r) for r in recetas if _coincide(consulta, r.nombre)]
+    resultados += [
         AlimentoPor100g(nombre=p.nombre, origen="despensa", calorias_100g=p.calorias_100g or 0.0,
                         proteinas_100g=p.proteinas_100g or 0.0, carbohidratos_100g=p.carbohidratos_100g or 0.0,
                         grasas_100g=p.grasas_100g or 0.0)
