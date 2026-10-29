@@ -20,40 +20,6 @@ def test_vision_ocr_modo_prueba(monkeypatch):
     assert response.json()["calorias_100g"] == 210.0
 
 
-def test_analizar_plato_modo_prueba(monkeypatch):
-    monkeypatch.setattr(vision_service.settings, "GROQ_API_KEY", None)
-    response = client.post("/api/v1/alimentos/analizar-plato", files=IMAGEN)
-    assert response.status_code == 200
-    data = response.json()
-    assert data["modo_prueba"] is True
-    assert len(data["ingredientes"]) == 3
-    assert data["calorias_totales"] == round(sum(i["calorias"] for i in data["ingredientes"]), 1)
-
-
-def test_analizar_plato_recalcula_totales_de_groq(monkeypatch):
-    monkeypatch.setattr(vision_service.settings, "GROQ_API_KEY", "clave-test")
-
-    async def groq_falso(prompt, imagen_b64, content_type, max_tokens=500):
-        return {
-            "nombre_plato": "Arroz con pollo",
-            "ingredientes": [
-                {"nombre": "Arroz", "peso_estimado_g": 150, "calorias": 195, "proteinas": 4, "carbohidratos": 42, "grasas": 0.5},
-                {"nombre": "Pollo", "peso_estimado_g": "100", "calorias": 165, "proteinas": 31, "carbohidratos": 0, "grasas": 3.6},
-                {"peso_estimado_g": 10}
-            ],
-            "confianza": 0.8,
-            "notas": "Aceite no visible"
-        }, ""
-
-    monkeypatch.setattr(vision_service, "_consultar_groq_vision", groq_falso)
-    data = client.post("/api/v1/alimentos/analizar-plato", files=IMAGEN).json()
-    assert data["nombre_plato"] == "Arroz con pollo"
-    assert len(data["ingredientes"]) == 2
-    assert data["peso_total_g"] == 250.0
-    assert data["calorias_totales"] == 360.0
-    assert data["proteinas_totales"] == 35.0
-
-
 def test_barcode_codigo_invalido():
     assert client.get("/api/v1/alimentos/barcode/12ab").status_code == 422
 

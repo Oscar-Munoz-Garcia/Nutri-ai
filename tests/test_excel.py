@@ -3,7 +3,7 @@ import uuid
 from datetime import date
 
 from fastapi.testclient import TestClient
-from openpyxl import Workbook, load_workbook
+from openpyxl import load_workbook
 
 from app.main import app
 from app.db.session import SessionLocal
@@ -72,36 +72,3 @@ def test_exportar_excel_rango_invalido():
     assert client.get("/api/v1/exportar/excel?desde=2026-05-10&hasta=2026-05-01").status_code == 400
     assert client.get("/api/v1/exportar/excel?desde=2024-01-01&hasta=2026-01-01").status_code == 400
     assert client.get("/api/v1/exportar/excel?desde=no-es-fecha").status_code == 422
-
-
-def test_importar_alimentos_csv():
-    csv_texto = "Nombre;Cantidad (g);Calorías;Proteínas;Carbohidratos;Grasas\nArroz Import Test;1000;360;7;79;0,6\n;5;1;1;1;1\n"
-    res = client.post("/api/v1/importar", files={"file": ("despensa.csv", csv_texto.encode("utf-8"), "text/csv")})
-    assert res.status_code == 200
-    data = res.json()
-    assert data["tipo"] == "alimentos"
-    assert data["importados"] + data["actualizados"] == 1
-    assert data["errores"][0]["fila"] == 3
-    despensa = client.get("/api/v1/despensa").json()
-    assert any(i["nombre"] == "Arroz Import Test" for i in despensa)
-
-
-def test_importar_recetas_xlsx():
-    wb = Workbook()
-    ws = wb.active
-    ws.append(["nombre", "descripcion", "calorias_totales", "proteinas_totales",
-               "carbohidratos_totales", "grasas_totales", "tiempo_preparacion_min", "utensilios"])
-    ws.append(["Bowl Import Test", "Arroz con pollo", 550, 45, 60, 12, 20, "Sartén, Olla"])
-    buffer = io.BytesIO()
-    wb.save(buffer)
-    res = client.post("/api/v1/importar", files={"file": ("recetas.xlsx", buffer.getvalue(),
-                      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")})
-    assert res.status_code == 200
-    assert res.json()["tipo"] == "recetas"
-    receta = next(r for r in client.get("/api/v1/recetas").json() if r["nombre"] == "Bowl Import Test")
-    assert receta["utensilios_necesarios"] == ["Sartén", "Olla"]
-
-
-def test_importar_formato_no_soportado():
-    res = client.post("/api/v1/importar", files={"file": ("foto.png", b"123", "image/png")})
-    assert res.status_code == 400

@@ -1,12 +1,9 @@
 from fastapi.testclient import TestClient
 from app.main import app
 import app.services.agent_service as agent_service
-import app.services.vision_service as vision_service
 import app.services.quicklog_service as quicklog_service
 
 client = TestClient(app)
-
-IMAGEN = {"file": ("plato.jpg", b"\xff\xd8\xff fake jpeg", "image/jpeg")}
 
 
 def test_pagina_carga_el_selector_de_idioma():
@@ -25,21 +22,6 @@ def test_agente_responde_en_el_idioma_elegido(monkeypatch):
     es = client.post("/api/v1/chat/planificar", json={"historial": historial}).json()
     assert en["respuesta"].startswith("Set GROQ_API_KEY")
     assert es["respuesta"].startswith("Configura GROQ_API_KEY")
-
-
-def test_analizar_plato_pide_a_groq_el_idioma_elegido(monkeypatch):
-    monkeypatch.setattr(vision_service.settings, "GROQ_API_KEY", "clave-test")
-    prompts = []
-
-    async def groq_falso(prompt, *args, **kwargs):
-        prompts.append(prompt)
-        return {"nombre_plato": "Chicken rice", "ingredientes": [], "confianza": 0.9, "notas": ""}, ""
-
-    monkeypatch.setattr(vision_service, "_consultar_groq_vision", groq_falso)
-    assert client.post("/api/v1/alimentos/analizar-plato", files=IMAGEN, data={"idioma": "en"}).status_code == 200
-    assert client.post("/api/v1/alimentos/analizar-plato", files=IMAGEN).status_code == 200
-    assert "en inglés" in prompts[0]
-    assert "en español" in prompts[1]
 
 
 def test_registro_rapido_entiende_frases_en_ingles():

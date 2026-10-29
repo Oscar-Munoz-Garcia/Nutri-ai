@@ -1,7 +1,7 @@
 import asyncio
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, Request, Response, File, Form, UploadFile, Depends
+from fastapi import FastAPI, HTTPException, Request, Response, File, UploadFile, Depends
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from typing import List, Optional
@@ -16,7 +16,7 @@ import app.services.pantry_service as pantry_service
 import app.services.vision_service as vision_service
 import app.services.agent_service as agent_service
 from app.models.pantry import AlimentoPantry, AlimentoPantryEntrada
-from app.models.vision import ProductoOCR, AnalisisPlato
+from app.models.vision import ProductoOCR
 from app.models.food import AlimentoPor100g, ProductoNutricional
 from app.models.shopping import SolicitudListaCompra, ListaCompra
 import app.services.openfoodfacts_service as openfoodfacts_service
@@ -35,7 +35,6 @@ from app.db.models import UsuarioDB
 import app.services.backup_service as backup_service
 from datetime import date
 import app.services.export_service as export_service
-import app.services.import_service as import_service
 from app.models.metabolic import PesoEntrada, PesoRegistro, TDEEDinamico, Versus
 import app.services.metabolic_service as metabolic_service
 from app.models.friends import Amigos, SolicitudAmistadEntrada
@@ -254,14 +253,6 @@ async def procesar_imagen_ocr(file: UploadFile = File(...), current_user: Usuari
     return await vision_service.analizar_etiqueta_nutricional(contenido, file.filename or "etiqueta.jpg")
 
 
-@app.post("/api/v1/alimentos/analizar-plato", response_model=AnalisisPlato, tags=["Visión OCR"])
-async def analizar_plato(file: UploadFile = File(...), idioma: str = Form("es"), current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    contenido = await file.read()
-    if not contenido:
-        raise HTTPException(status_code=400, detail="La imagen está vacía.")
-    return await vision_service.analizar_plato(contenido, file.filename or "plato.jpg", idioma)
-
-
 @app.get("/api/v1/alimentos/barcode/{codigo}", response_model=ProductoNutricional, tags=["Visión OCR"])
 async def buscar_por_codigo_barras(codigo: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     codigo = codigo.strip()
@@ -364,18 +355,6 @@ def exportar_excel(desde: Optional[date] = None, hasta: Optional[date] = None, i
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": f'attachment; filename="{nombre}"'},
     )
-
-
-@app.post("/api/v1/importar", tags=["Excel"])
-async def importar_archivo(file: UploadFile = File(...), tipo: Optional[str] = Form(None),
-                           current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    contenido = await file.read()
-    if len(contenido) > 5 * 1024 * 1024:
-        raise HTTPException(status_code=413, detail="El archivo supera 5 MB.")
-    try:
-        return import_service.importar_archivo(contenido, file.filename or "", current_user.id, tipo or None)
-    except import_service.ErrorImportacion as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
 
 
 # --- ENDPOINTS DE TELEMETRÍA METABÓLICA (PESO, TDEE DINÁMICO Y VERSUS) ---
