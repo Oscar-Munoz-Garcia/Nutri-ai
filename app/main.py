@@ -95,14 +95,25 @@ def get_manifest():
 
 
 # --- ENDPOINTS DE DIARIO Y MACROS ---
+# Las fechas se validan con datetime.date: así un 29 de febrero solo existe en años bisiestos
+def _validar_fecha(fecha: str) -> str:
+    try:
+        return date.fromisoformat(fecha).isoformat()
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Fecha inválida, usa el formato YYYY-MM-DD.")
+
+
 @app.get("/api/v1/diario/resumen", response_model=ResumenDiario, tags=["Diario"])
 def obtener_resumen_diario(fecha: Optional[str] = None, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    return daily_service.obtener_resumen_diario(current_user.id, fecha=fecha)
+    """Resumen de un día cualquiera (por defecto, hoy) con las metas del plan que tocaba ese día."""
+    return daily_service.obtener_resumen_diario(current_user.id, fecha=_validar_fecha(fecha) if fecha else None)
 
 
 @app.post("/api/v1/diario/consumo", response_model=RegistroConsumo, tags=["Diario"])
-def registrar_consumo(registro: RegistroConsumo, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
-    return daily_service.registrar_consumo(registro, current_user.id)
+def registrar_consumo(registro: RegistroConsumo, fecha: Optional[str] = None,
+                      current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Registra una comida en `fecha` (YYYY-MM-DD, por defecto hoy): sirve para apuntar lo de ayer o de hace años."""
+    return daily_service.registrar_consumo(registro, current_user.id, fecha=_validar_fecha(fecha) if fecha else None)
 
 
 @app.get("/api/v1/diario/racha", tags=["Diario"])
@@ -121,13 +132,6 @@ def actualizar_objetivos(objetivos: ObjetivosMacros, current_user: UsuarioDB = D
 
 
 # --- ENDPOINTS DE PLANES DE NUTRICIÓN (varios planes, asignados por día de la semana o por fecha) ---
-def _validar_fecha(fecha: str) -> str:
-    try:
-        return date.fromisoformat(fecha).isoformat()
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Fecha inválida, usa el formato YYYY-MM-DD.")
-
-
 @app.get("/api/v1/planes", response_model=PlanesUsuario, tags=["Planes"])
 def listar_planes(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return plan_service.listar_planes(current_user.id)
@@ -206,7 +210,7 @@ def guardar_receta(receta: RecetaCrear, current_user: UsuarioDB = Depends(obtene
 
 
 @app.post("/api/v1/recetas/{receta_id}/consumir", tags=["Recetas"])
-def consumir_receta(receta_id: str, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+def consumir_receta(receta_id: str, fecha: Optional[str] = None, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     receta = recipe_service.obtener_receta(receta_id, current_user.id)
     if not receta:
         raise HTTPException(status_code=404, detail="Receta no encontrada.")
@@ -218,7 +222,7 @@ def consumir_receta(receta_id: str, current_user: UsuarioDB = Depends(obtener_us
         carbohidratos=receta.carbohidratos_totales,
         grasas=receta.grasas_totales
     )
-    registro = daily_service.registrar_consumo(registro, current_user.id)
+    registro = daily_service.registrar_consumo(registro, current_user.id, fecha=_validar_fecha(fecha) if fecha else None)
     return {
         "status": "ok",
         "mensaje": f"Receta '{receta.nombre}' registrada en tu diario.",

@@ -337,19 +337,33 @@
         <section id="sec-inicio" class="tab-content space-y-6">
             
             <!-- TARJETA PRINCIPAL DE CALORÍAS -->
-            <div class="bg-panel p-6 rounded-2xl border border-panelBorder shadow-2xl relative overflow-hidden space-y-6">
+            <div id="tarjeta-diario" class="bg-panel p-6 rounded-2xl border border-panelBorder shadow-2xl relative overflow-hidden space-y-6 transition">
+                <!-- SELECTOR DE DÍA: hoy, ayer o cualquier fecha pasada (aunque sea de hace años) -->
+                <div class="space-y-2">
+                    <div class="flex items-center gap-2 font-mono">
+                        <button type="button" onclick="moverDiaDiario(-1)" title="Día anterior" aria-label="Día anterior" class="shrink-0 w-9 h-9 rounded-lg border border-panelBorder text-zinc-300 hover:border-matcha hover:text-matcha transition">◀</button>
+                        <input type="date" id="diario-fecha" onchange="irADiaDiario(this.value)" title="Elige un día para consultarlo o registrar comidas" class="flex-1 min-w-0 h-9 bg-canvas border border-panelBorder text-zinc-200 px-3 rounded-lg text-xs focus:outline-none focus:border-matcha">
+                        <button type="button" id="btnDiaSiguiente" onclick="moverDiaDiario(1)" title="Día siguiente" aria-label="Día siguiente" class="shrink-0 w-9 h-9 rounded-lg border border-panelBorder text-zinc-300 hover:border-matcha hover:text-matcha transition disabled:opacity-30 disabled:pointer-events-none">▶</button>
+                        <button type="button" id="btnVolverHoy" onclick="irADiaDiario(null)" class="hidden shrink-0 h-9 px-3 rounded-lg bg-amberAccent text-canvas text-[10px] font-bold uppercase">Hoy</button>
+                    </div>
+                    <div id="diario-otro-dia" class="hidden px-3 py-2 rounded-lg border border-amberAccent/60 bg-amberAccent/10 font-mono text-[11px] text-amberAccent">
+                        <span>📅 Estás viendo otro día:</span> <strong id="txt-diario-fecha-larga" translate="no"></strong><br>
+                        <span class="text-[10px] text-zinc-400">Lo que añadas se guardará en ese día.</span>
+                    </div>
+                </div>
+
                 <div class="flex justify-between items-start border-b border-panelBorder pb-4">
                     <div>
                         <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA DIARIA</span>
                         <h2 class="font-display font-semibold text-xl text-zinc-100">Energía & Macros</h2>
-                        <span class="font-mono text-[10px] text-zinc-400 block mt-0.5">Plan de hoy: <strong id="txt-plan-hoy" translate="no" class="text-matcha font-semibold">—</strong></span>
+                        <span class="font-mono text-[10px] text-zinc-400 block mt-0.5"><span id="lbl-plan-dia">Plan de hoy:</span> <strong id="txt-plan-hoy" translate="no" class="text-matcha font-semibold">—</strong></span>
                         <span id="txt-dia-libre-hoy" class="font-mono text-[10px] text-amberAccent block mt-0.5 hidden">🍽 Hoy es día libre: no cuenta para tus metas ni tu racha</span>
                     </div>
                     <div class="flex flex-col items-end gap-1.5">
                         <button onclick="toggleModalObjetivos()" title="Cambiar el plan de un día" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
                             ⚙ Plan
                         </button>
-                        <button id="btnDiaLibreHoy" onclick="alternarDiaLibre(fechaLocal(new Date()), !diaLibreHoy)" title="Comes fuera: este día no cuenta para tus metas" class="font-mono text-[10px] text-zinc-400 border border-panelBorder hover:border-amberAccent hover:text-amberAccent px-2.5 py-1 rounded transition uppercase">
+                        <button id="btnDiaLibreHoy" onclick="alternarDiaLibre(fechaDiario(), !diaLibreHoy)" title="Comes fuera: este día no cuenta para tus metas" class="font-mono text-[10px] text-zinc-400 border border-panelBorder hover:border-amberAccent hover:text-amberAccent px-2.5 py-1 rounded transition uppercase">
                             🍽 Día libre
                         </button>
                     </div>
@@ -422,7 +436,7 @@
                     <button onclick="cargarResumenDiario()" class="font-mono text-[10px] text-matcha">🔄 Actualizar</button>
                 </div>
                 <div id="registrosList" class="space-y-2">
-                    <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>
+                    <p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados este día.</p>
                 </div>
             </div>
             <!-- EXPORTAR A EXCEL POR RANGO DE FECHAS -->
@@ -1039,7 +1053,7 @@
             </div>
 
             <div class="border-t border-panelBorder pt-3">
-                <span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">Metas del plan de hoy: <strong id="txt-plan-modal" translate="no" class="text-matcha">—</strong></span>
+                <span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider"><span id="lbl-plan-modal">Metas del plan de hoy:</span> <strong id="txt-plan-modal" translate="no" class="text-matcha">—</strong></span>
             </div>
             <form id="objetivosForm" class="space-y-3 font-mono text-xs">
                 <div>
@@ -1374,7 +1388,8 @@
         async function cargarSemanaPlanes() {
             const lista = document.getElementById("semana-planes-lista");
             try {
-                const ref = new Date();
+                // La semana que se abre es la del día que se está viendo en el Diario
+                const ref = new Date(`${fechaDiario()}T12:00:00`);
                 ref.setDate(ref.getDate() + semanaPlanesDesplazamiento * 7);
                 const [, res, resLibres] = await Promise.all([
                     refrescarPlanes(),
@@ -1387,10 +1402,10 @@
                 const locale = (window.idiomaActual && idiomaActual() === "en") ? "en-GB" : "es-ES";
                 const corto = f => new Date(`${f}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" });
                 document.getElementById("semana-planes-rango").innerText = `${corto(dias[0].fecha)} – ${corto(dias[6].fecha)}`;
-                const hoy = fechaLocal(new Date());
+                const seleccionado = fechaDiario();
                 lista.innerHTML = dias.map(d => {
                     const etiqueta = new Date(`${d.fecha}T12:00:00`).toLocaleDateString(locale, { weekday: "short", day: "numeric" });
-                    const esHoy = d.fecha === hoy;
+                    const esHoy = d.fecha === seleccionado;
                     return `
                     <div class="flex items-center gap-2 p-1.5 rounded-lg ${esHoy ? "bg-canvas border border-matcha/40" : ""}">
                         <span translate="no" class="w-16 shrink-0 text-[11px] uppercase ${esHoy ? "text-matcha font-semibold" : "text-zinc-400"}">${etiqueta}</span>
@@ -1573,10 +1588,80 @@
             if (!document.getElementById("modalObjetivos").classList.contains("hidden")) cargarSemanaPlanes();
         });
 
+        // --- DÍA QUE SE VE EN EL DIARIO ---
+        // null = hoy (sigue siendo "hoy" aunque pase la medianoche). Las fechas se calculan con Date,
+        // que ya sabe cuántos días tiene cada mes y cuándo hay 29 de febrero (años bisiestos).
+        let fechaDiarioSeleccionada = null;
+
+        function fechaDiario() {
+            return fechaDiarioSeleccionada || fechaLocal(new Date());
+        }
+
+        function esDiarioHoy() {
+            return fechaDiario() === fechaLocal(new Date());
+        }
+
+        // Para que otras partes (registro por voz, escáner, añadir alimentos...) guarden en el día que se está viendo
+        window.fechaDiario = fechaDiario;
+        window.esDiarioHoy = esDiarioHoy;
+
+        function urlConFecha(url) {
+            return `${url}${url.includes("?") ? "&" : "?"}fecha=${encodeURIComponent(fechaDiario())}`;
+        }
+
+        function irADiaDiario(fecha) {
+            const hoy = fechaLocal(new Date());
+            // Fecha vacía, inválida o futura: se vuelve a hoy
+            fechaDiarioSeleccionada = (fecha && /^\d{4}-\d{2}-\d{2}$/.test(fecha) && fecha < hoy) ? fecha : null;
+            cargarResumenDiario();
+            if (!document.getElementById("modalObjetivos").classList.contains("hidden")) {
+                semanaPlanesDesplazamiento = 0;
+                cargarSemanaPlanes();
+            }
+        }
+
+        function moverDiaDiario(paso) {
+            const d = new Date(`${fechaDiario()}T12:00:00`);
+            d.setDate(d.getDate() + paso);
+            irADiaDiario(fechaLocal(d));
+        }
+        window.irADiaDiario = irADiaDiario;
+
+        function pintarDiaDiario() {
+            const hoy = fechaLocal(new Date());
+            const fecha = fechaDiario();
+            const enHoy = fecha === hoy;
+            const input = document.getElementById("diario-fecha");
+            input.max = hoy;
+            input.value = fecha;
+            document.getElementById("btnDiaSiguiente").disabled = enHoy;
+            document.getElementById("btnVolverHoy").classList.toggle("hidden", enHoy);
+            document.getElementById("diario-otro-dia").classList.toggle("hidden", enHoy);
+            const tarjeta = document.getElementById("tarjeta-diario");
+            tarjeta.classList.toggle("border-amberAccent", !enHoy);
+            tarjeta.classList.toggle("border-panelBorder", enHoy);
+            if (!enHoy) {
+                const ayer = new Date();
+                ayer.setDate(ayer.getDate() - 1);
+                const locale = (window.idiomaActual && idiomaActual() === "en") ? "en-GB" : "es-ES";
+                const larga = new Date(`${fecha}T12:00:00`).toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+                const prefijo = fecha === fechaLocal(ayer) ? `${window.t ? t("Ayer") : "Ayer"} · ` : "";
+                document.getElementById("txt-diario-fecha-larga").innerText = prefijo + larga.charAt(0).toUpperCase() + larga.slice(1);
+            }
+            document.getElementById("lbl-plan-dia").innerText = enHoy ? "Plan de hoy:" : "Plan de ese día:";
+            document.getElementById("lbl-plan-modal").innerText = enHoy ? "Metas del plan de hoy:" : "Metas del plan de ese día:";
+            document.getElementById("txt-dia-libre-hoy").innerText = enHoy
+                ? "🍽 Hoy es día libre: no cuenta para tus metas ni tu racha"
+                : "🍽 Ese día fue libre: no cuenta para tus metas ni tu racha";
+        }
+
+        window.addEventListener("nutri:idioma", () => pintarDiaDiario());
+
         // --- DIARIO DE CONSUMO & PAPELERAS ---
         async function cargarResumenDiario() {
             try {
-                const res = await fetch(`${API_BASE}/diario/resumen`);
+                pintarDiaDiario();
+                const res = await fetch(`${API_BASE}/diario/resumen?fecha=${encodeURIComponent(fechaDiario())}`);
                 const data = await res.json();
 
                 planHoy = data.plan || null;
@@ -1627,7 +1712,7 @@
             if (!contenedor) return;
 
             if (!registros || registros.length === 0) {
-                contenedor.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados hoy.</p>';
+                contenedor.innerHTML = '<p class="font-mono text-[11px] text-center text-zinc-500 py-3">Sin consumos registrados este día.</p>';
                 return;
             }
 
@@ -1798,9 +1883,10 @@
 
         async function consumirReceta(recetaId) {
             try {
-                const res = await fetch(`${API_BASE}/recetas/${recetaId}/consumir`, { method: "POST" });
+                const res = await fetch(urlConFecha(`${API_BASE}/recetas/${recetaId}/consumir`), { method: "POST" });
                 if (res.ok) {
-                    alert("✅ Receta consumida e incorporada a tus macros diarios.");
+                    alert(esDiarioHoy() ? "✅ Receta consumida e incorporada a tus macros diarios."
+                        : `✅ Receta añadida al día ${fechaDiario()}.`);
                     cargarResumenDiario();
                 }
             } catch (e) {
@@ -2476,7 +2562,7 @@
             }));
             zona.addEventListener("drop", (e) => importarArchivo(e.dataTransfer.files[0]));
             const mes = document.getElementById("exportMes");
-            if (mes) mes.value = new Date().toISOString().slice(0, 7);
+            if (mes) mes.value = fechaLocal(new Date()).slice(0, 7);
         })();
 
         // --- CHAT AGENTE ---
@@ -2569,7 +2655,7 @@
         }
 
         async function registrarEnDiario(registro) {
-            const res = await fetch(`${API_BASE}/diario/consumo`, {
+            const res = await fetch(urlConFecha(`${API_BASE}/diario/consumo`), {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(registro)
