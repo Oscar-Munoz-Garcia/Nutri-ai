@@ -299,12 +299,9 @@
                     <svg id="ico-tema-sol" class="w-4 h-4 hidden dark:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
                     <svg id="ico-tema-luna" class="w-4 h-4 block dark:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
                 </button>
-                <button onclick="cerrarSesion()" class="font-mono text-[10px] text-rose-400 hover:text-rose-300 bg-panel border border-panelBorder px-2.5 py-1 rounded transition uppercase whitespace-nowrap">
-                    Salir ↵
+                <button onclick="cambiarPestana('sec-cuenta')" id="btn-perfil-cabecera" title="Tu perfil" aria-label="Tu perfil" class="w-8 h-8 flex items-center justify-center text-zinc-300 hover:text-matcha bg-panel border border-panelBorder rounded-full transition">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
                 </button>
-                <a href="/docs" target="_blank" class="font-mono text-[10px] text-zinc-400 hover:text-matcha bg-panel border border-panelBorder px-2.5 py-1 rounded transition uppercase whitespace-nowrap">
-                    API ↗
-                </a>
             </div>
         </div>
     </header>
@@ -327,7 +324,7 @@
                 04 / Agente
             </button>
             <button onclick="cambiarPestana('sec-perfil')" id="nav-sec-perfil" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition whitespace-nowrap px-2">
-                05 / Perfil
+                05 / Planes
             </button>
             <button onclick="cambiarPestana('sec-versus')" id="nav-sec-versus" class="nav-btn flex-1 py-2 text-zinc-400 hover:text-zinc-200 transition whitespace-nowrap px-2">
                 06 / Versus
@@ -686,15 +683,15 @@
             </div>
         </section>
 
-        <!-- PESTAÑA 05: PERFIL CON GRÁFICOS AVANZADOS -->
+        <!-- PESTAÑA 05: PLANES (objetivos, planes de nutrición, metabolismo y gráficos) -->
         <section id="sec-perfil" class="tab-content hidden space-y-6">
             
             <!-- BLOQUE 1: FORMULARIO DE CONFIGURACIÓN -->
             <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
                 <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
                     <div>
-                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">CONFIGURACIÓN DE USUARIO</span>
-                        <h2 class="font-display font-semibold text-lg text-zinc-100">Perfil & Límites Diarios</h2>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">PLAN PRINCIPAL</span>
+                        <h2 class="font-display font-semibold text-lg text-zinc-100">Objetivos Diarios</h2>
                     </div>
                     <span id="badge-modo" class="font-mono text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-2 py-0.5 rounded uppercase font-semibold">
                         Manual Macros
@@ -702,50 +699,9 @@
                 </div>
 
                 <form id="perfilForm" class="space-y-4 font-mono text-xs">
-                    <!-- Datos Personales -->
-                    <div class="space-y-3">
-                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Datos Antropométricos</span>
-                        <div>
-                            <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
-                            <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                        </div>
-                        <div class="grid grid-cols-3 gap-2">
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
-                                <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
-                                <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
-                                <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
-                                <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                    <option value="hombre">Hombre</option>
-                                    <option value="mujer">Mujer</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
-                                <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
-                                    <option value="sedentario">Sedentario</option>
-                                    <option value="ligero">Ligero</option>
-                                    <option value="moderado">Moderado</option>
-                                    <option value="intenso">Intenso</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
                     <!-- Modo de Configuración de Límites -->
-                    <div class="space-y-3 pt-3 border-t border-panelBorder">
-                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
+                    <div class="space-y-3">
+                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">1. Método de Objetivos Diarios</span>
                         <p class="text-zinc-500 text-[10px]">Estos objetivos son tu plan principal. Puedes crear más planes (entrenamiento, descanso...) justo debajo.</p>
                         <div>
                             <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
@@ -820,7 +776,7 @@
 
                     <!-- Días libres por semana -->
                     <div class="space-y-2 pt-3 border-t border-panelBorder">
-                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">3. Días libres</span>
+                        <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Días libres</span>
                         <p class="text-zinc-500 text-[10px] leading-relaxed">Un día libre (por ejemplo, una comida fuera) no cuenta para tus metas ni rompe la racha. Lo marcas desde el Diario.</p>
                         <div>
                             <label class="text-zinc-400 block mb-1 text-[10px]">Días libres por semana</label>
@@ -832,7 +788,7 @@
                     </div>
 
                     <button type="submit" id="btnGuardarPerfil" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase mt-4">
-                        Guardar Perfil & Actualizar Diario
+                        Guardar Objetivos & Actualizar Diario
                     </button>
                 </form>
             </div>
@@ -976,19 +932,81 @@
                 </div>
             </div>
 
+        </section>
+
+        <!-- PERFIL (botón de la cabecera): datos personales, cerrar sesión y eliminar cuenta -->
+        <section id="sec-cuenta" class="tab-content hidden space-y-6">
+            <div class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-5">
+                <div class="pb-3 border-b border-panelBorder">
+                    <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">TU PERFIL</span>
+                    <h2 class="font-display font-semibold text-lg text-zinc-100">Datos personales</h2>
+                    <p id="cuenta-correo" translate="no" class="font-mono text-[10px] text-zinc-500 mt-1"></p>
+                </div>
+
+                <form id="datosPersonalesForm" class="space-y-4 font-mono text-xs">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Nombre</label>
+                            <input type="text" id="prof-nombre" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Edad</label>
+                                <input type="number" id="prof-edad" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Peso (kg)</label>
+                                <input type="number" step="0.1" id="prof-peso" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Altura (cm)</label>
+                                <input type="number" id="prof-altura" required class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Género</label>
+                                <select id="prof-genero" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <option value="hombre">Hombre</option>
+                                    <option value="mujer">Mujer</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Actividad</label>
+                                <select id="prof-actividad" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <option value="sedentario">Sedentario</option>
+                                    <option value="ligero">Ligero</option>
+                                    <option value="moderado">Moderado</option>
+                                    <option value="intenso">Intenso</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-zinc-500 text-[10px] leading-relaxed">Si usas la calculadora automática, tus objetivos se recalculan con estos datos.</p>
+                    <p id="datos-guardados" class="text-matcha text-[10px] hidden">✅ Datos guardados.</p>
+                    <button type="submit" id="btnGuardarDatos" class="w-full py-2.5 bg-matcha hover:bg-lime-400 text-black font-semibold text-xs rounded transition uppercase">
+                        Guardar datos
+                    </button>
+                </form>
+            </div>
+
+            <button onclick="cerrarSesion()" class="w-full py-2.5 bg-panel border border-panelBorder hover:border-zinc-400 text-zinc-200 font-semibold text-xs rounded-xl transition uppercase font-mono">
+                Cerrar sesión
+            </button>
+
             <!-- ZONA DE PELIGRO: ELIMINAR CUENTA -->
-            <div class="bg-panel p-5 rounded-2xl border border-rose-400/40 space-y-3">
+            <div class="bg-rose-500/5 p-5 rounded-2xl border-2 border-rose-500/60 space-y-3">
                 <div>
-                    <span class="font-mono text-[9px] text-rose-400 uppercase tracking-widest block">ZONA DE PELIGRO</span>
+                    <span class="font-mono text-[9px] text-rose-400 uppercase tracking-widest block">⚠️ ZONA DE PELIGRO</span>
                     <h3 class="font-display font-semibold text-base text-zinc-100">Eliminar cuenta</h3>
-                    <p class="text-zinc-400 text-xs font-mono mt-1">Se borran para siempre tu perfil, diario, despensa, recetas, pesajes y amistades. No se puede deshacer.</p>
+                    <p class="text-zinc-300 text-xs font-mono mt-1 leading-relaxed">Este botón elimina tu cuenta. Se borran para siempre tu perfil, diario, despensa, recetas, pesajes y amistades. No se puede deshacer.</p>
                 </div>
                 <div id="eliminar-cuenta-error" class="text-rose-400 text-[10px] hidden font-mono"></div>
-                <button onclick="eliminarCuenta()" class="w-full py-2.5 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-400/40 text-rose-400 font-semibold text-xs rounded transition uppercase font-mono">
+                <button onclick="eliminarCuenta()" class="w-full py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs rounded transition uppercase font-mono">
                     Eliminar mi cuenta
                 </button>
             </div>
-
         </section>
 
         <!-- PESTAÑA 06: VERSUS / DUELO AMISTOSO -->
@@ -1050,7 +1068,7 @@
                     <button type="button" onclick="moverSemanaPlanes(1)" title="Semana siguiente" class="px-2 py-1 text-zinc-400 hover:text-matcha">▶</button>
                 </div>
                 <div id="semana-planes-lista" class="space-y-1.5"></div>
-                <p class="text-[10px] text-zinc-500 leading-relaxed">Elige otro plan solo para ese día. La semana tipo se cambia en Perfil.</p>
+                <p class="text-[10px] text-zinc-500 leading-relaxed">Elige otro plan solo para ese día. La semana tipo se cambia en Planes.</p>
                 <p class="text-[10px] text-zinc-500 leading-relaxed">🍽 marca un día libre (comida fuera): no cuenta para tus metas ni rompe la racha. <span id="txt-dias-libres-semana" class="text-amberAccent"></span></p>
                 <button type="button" onclick="toggleModalObjetivos(); cambiarPestana('sec-perfil'); document.getElementById('bloque-planes')?.scrollIntoView({ behavior: 'smooth' });" class="w-full py-1.5 border border-matcha/30 hover:border-matcha text-matcha rounded uppercase text-[10px]">
                     Gestionar planes →
@@ -1307,6 +1325,8 @@
         async function eliminarCuenta() {
             const errorDiv = document.getElementById("eliminar-cuenta-error");
             errorDiv.classList.add("hidden");
+            if (!confirm("¿Seguro que quieres eliminar tu cuenta?\nSe borrarán tu perfil, diario, despensa, recetas, pesajes y amistades.")) return;
+            if (!confirm("Última oportunidad: no se puede deshacer y no podremos recuperar tus datos.\n¿Continuar con la eliminación?")) return;
             const confirmacion = prompt("Esto borrará tu cuenta y TODOS tus datos para siempre.\nEscribe ELIMINAR para confirmar:");
             if (confirmacion === null) return;
             if (![ "ELIMINAR", t("ELIMINAR") ].includes(confirmacion.trim().toUpperCase())) {
@@ -1351,6 +1371,14 @@
             if (secId === 'sec-despensa') { cargarDespensa(); cargarRecetasPlanificables(); }
             if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
             if (secId === 'sec-perfil') { cargarPerfil(); cargarPlanes(); cargarGraficasTendencia(); cargarTDEE(); }
+            const enCuenta = secId === 'sec-cuenta';
+            document.getElementById("btn-perfil-cabecera").classList.toggle("text-matcha", enCuenta);
+            document.getElementById("btn-perfil-cabecera").classList.toggle("border-matcha", enCuenta);
+            if (enCuenta) {
+                document.getElementById("datos-guardados").classList.add("hidden");
+                document.getElementById("cuenta-correo").innerText = localStorage.getItem("nutri_user") || "";
+                cargarPerfil();
+            }
             if (secId === 'sec-versus') { cargarVersus(); cargarAmigos(); }
         }
 
@@ -2118,9 +2146,8 @@
             document.getElementById("modalPlanPrincipal").classList.add("hidden");
         }
 
-        document.getElementById("perfilForm")?.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById("btnGuardarPerfil");
+        // El perfil se guarda entero: datos personales (pantalla de perfil) y objetivos (pestaña Planes)
+        async function guardarPerfil(btn) {
             btn.disabled = true;
 
             const datos = {
@@ -2146,12 +2173,26 @@
             });
 
             btn.disabled = false;
-            if (!res.ok) { alert("❌ No se pudo guardar el perfil."); return; }
-            document.getElementById("modalPlanPrincipal").classList.remove("hidden");
-            document.getElementById("btnOkPlanPrincipal").focus();
+            if (!res.ok) { alert("❌ No se pudo guardar el perfil."); return false; }
             cargarPerfil();
             cargarPlanes();
             cargarResumenDiario();
+            return true;
+        }
+
+        document.getElementById("perfilForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            if (!await guardarPerfil(document.getElementById("btnGuardarPerfil"))) return;
+            document.getElementById("modalPlanPrincipal").classList.remove("hidden");
+            document.getElementById("btnOkPlanPrincipal").focus();
+        });
+
+        document.getElementById("datosPersonalesForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            document.getElementById("datos-guardados").classList.add("hidden");
+            if (await guardarPerfil(document.getElementById("btnGuardarDatos"))) {
+                document.getElementById("datos-guardados").classList.remove("hidden");
+            }
         });
 
         async function cargarGraficasTendencia() {
