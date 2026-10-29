@@ -99,3 +99,29 @@ def test_buscador_de_alimentos_despensa_primero():
     # La despensa de otro usuario no aparece
     otro = _cab(crear_usuario("comidas_buscar_otro"))
     assert all(r["origen"] == "base" for r in client.get("/api/v1/alimentos/buscar", headers=otro, params={"q": "arroz"}).json())
+
+
+def test_buscador_incluye_tus_recetas_por_racion():
+    cab = _cab(crear_usuario("comidas_recetas"))
+    assert client.post("/api/v1/recetas", headers=cab, json={
+        "nombre": "Arroz con pollo", "calorias_totales": 600, "proteinas_totales": 45,
+        "carbohidratos_totales": 70, "grasas_totales": 12,
+        "ingredientes": [{"nombre": "Arroz", "cantidad_gramos": 200}, {"nombre": "Pollo", "cantidad_gramos": 150}]
+    }).status_code == 200
+    client.post("/api/v1/recetas", headers=cab, json={
+        "nombre": "Batido", "calorias_totales": 300, "proteinas_totales": 30,
+        "carbohidratos_totales": 30, "grasas_totales": 5})
+
+    # Sin texto (al abrir el «+») salen tus recetas
+    recetas = client.get("/api/v1/alimentos/buscar", headers=cab, params={"q": ""}).json()
+    assert [r["nombre"] for r in recetas] == ["Arroz con pollo", "Batido"]
+    arroz = recetas[0]
+    assert arroz["origen"] == "receta" and arroz["por_racion"] and arroz["gramos_racion"] == 350
+    assert arroz["calorias_100g"] == 600 and recetas[1]["gramos_racion"] is None
+
+    # Con texto, la receta va antes que los alimentos
+    res = client.get("/api/v1/alimentos/buscar", headers=cab, params={"q": "arroz"}).json()
+    assert res[0]["nombre"] == "Arroz con pollo" and res[1]["origen"] == "base"
+    # Las recetas de otro usuario no aparecen
+    otro = _cab(crear_usuario("comidas_recetas_otro"))
+    assert client.get("/api/v1/alimentos/buscar", headers=otro, params={"q": ""}).json() == []

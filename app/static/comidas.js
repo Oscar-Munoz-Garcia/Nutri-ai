@@ -1,6 +1,6 @@
 // Comidas del día: cada plan tiene su número de comidas con nombre (Desayuno, Pre-entreno, Cena...),
-// el Diario agrupa los registros por esas comidas y el botón «+» añade alimentos por gramos a la comida que elijas,
-// con sus macros en gramos y en % y una rueda de colores antes de confirmar.
+// el Diario agrupa los registros por esas comidas y el botón «+» añade alimentos por gramos y recetas por raciones,
+// con sus macros en gramos y en % y una rueda de colores antes de confirmar; la comida se elige en cada uno tras añadirlo.
 // Usa API_BASE, el fetch con JWT, colorTema, planHoy y cargarResumenDiario de index.html; los estilos nx-* de dashboard360.js.
 (function () {
     const esc = (t) => String(t ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -25,7 +25,6 @@
     estilos.textContent = `
         .nx-fab-add { left: auto; right: 1.25rem; font-size: 1.9rem; font-weight: 300; }
         .ca-chip { border-radius: 9999px; padding: .3rem .75rem; font-size: .7rem; border: 1px solid var(--nx-border); background: var(--nx-surface-2); color: var(--nx-muted); }
-        .ca-chip.ca-on { border-color: var(--nx-accent); color: var(--nx-text); background: color-mix(in srgb, var(--nx-accent) 18%, transparent); }
         .ca-resultado { width: 100%; text-align: left; padding: .5rem .75rem; border-radius: .85rem; background: var(--nx-surface-2); border: 1px solid var(--nx-border); }
         .ca-resultado:hover { border-color: var(--nx-accent); }
         .ca-barra { display: flex; height: 6px; border-radius: 9999px; overflow: hidden; background: var(--nx-border); }
@@ -150,8 +149,9 @@
             }).join("");
     }
 
-    // ---------- AÑADIR ALIMENTOS POR GRAMOS ----------
+    // ---------- AÑADIR ALIMENTOS Y RECETAS ----------
     // alimentos: [{ nombre, por100: { kcal, prot, carb, gras }, gramos, comida, propia, origen }]
+    // Una receta lleva racion: true, cantidad (raciones) y gramosRacion; su por100 son los valores de una ración.
     let hoja = null;
     let temporizadorBusqueda = null;
     let busquedaActual = 0;
@@ -174,7 +174,7 @@
     }
 
     function macrosDe(a) {
-        const f = (parseFloat(a.gramos) || 0) / 100;
+        const f = a.racion ? (parseFloat(a.cantidad) || 0) : (parseFloat(a.gramos) || 0) / 100;
         let kcal = a.por100.kcal;
         // En un alimento propio sin kcal se calculan con los macros
         if (!kcal) kcal = a.por100.prot * 4 + a.por100.carb * 4 + a.por100.gras * 9;
@@ -195,7 +195,8 @@
     function abrirAnadirAlimentos(comida) {
         cerrarAnadirAlimentos();
         const comidas = comidasDelDia();
-        hoja = { comida: (comida && comidas.find(c => igual(c, comida))) || siguienteComida(), alimentos: [], foco: null };
+        // Desde el «+» de una comida del Diario ya va a esa comida; si no, se elige en cada alimento tras añadirlo
+        hoja = { comida: (comida && comidas.find(c => igual(c, comida))) || null, alimentos: [], foco: null };
 
         const fecha = fechaDestino();
         const esHoy = typeof window.esDiarioHoy === "function" ? window.esDiarioHoy() : true;
@@ -215,13 +216,8 @@
                     </div>
                     <button class="nx-muted text-lg" onclick="cerrarAnadirAlimentos()" aria-label="Cerrar">✕</button>
                 </div>
-                ${comidas.length ? `
                 <div class="space-y-1.5">
-                    <span class="text-[10px] uppercase tracking-widest nx-muted">Añadir a</span>
-                    <div id="ca-comidas" class="flex flex-wrap gap-1.5"></div>
-                </div>` : ""}
-                <div class="space-y-1.5">
-                    <input id="ca-buscar" type="search" autocomplete="off" class="nx-input" placeholder="Busca un alimento: arroz, pollo, tomate…" oninput="buscarAlimentoDiario(this.value)">
+                    <input id="ca-buscar" type="search" autocomplete="off" class="nx-input" placeholder="Busca un alimento o receta: arroz, pollo…" oninput="buscarAlimentoDiario(this.value)">
                     <div id="ca-resultados" class="space-y-1.5"></div>
                 </div>
                 <div id="ca-lista" class="space-y-2"></div>
@@ -230,8 +226,8 @@
                 <button id="ca-guardar" class="nx-btn nx-btn-primary w-full !py-3" onclick="guardarAlimentosDiario()" disabled>Añadir</button>
             </div>`;
         document.body.appendChild(ov);
-        pintarChipsComida();
         pintarListaAlimentos();
+        buscarAlimentoDiario("");
         document.getElementById("ca-buscar").focus();
     }
 
@@ -242,30 +238,15 @@
     }
 
     function opcionesComida(seleccionada) {
-        return comidasDelDia().map(c => `<option value="${esc(c)}" ${igual(c, seleccionada) ? "selected" : ""}>${esc(c)}</option>`).join("");
+        return `<option value="" ${seleccionada ? "" : "selected"} disabled>¿A qué comida?</option>` +
+            comidasDelDia().map(c => `<option value="${esc(c)}" ${igual(c, seleccionada) ? "selected" : ""}>${esc(c)}</option>`).join("");
     }
 
-    function pintarChipsComida() {
-        const cont = document.getElementById("ca-comidas");
-        if (!cont || !hoja) return;
-        cont.innerHTML = comidasDelDia().map(c =>
-            `<button type="button" data-comida="${esc(c)}" onclick="elegirComidaHoja(this.dataset.comida)" class="ca-chip${igual(c, hoja.comida) ? " ca-on" : ""}">${esc(c)}</button>`
-        ).join("");
-    }
-
-    // Cambia la comida de la hoja y la de los alimentos a los que no se les ha elegido otra a mano
-    function elegirComidaHoja(comida) {
-        hoja.comida = comida;
-        hoja.alimentos.forEach(a => { if (!a.comidaElegida) a.comida = comida; });
-        pintarChipsComida();
-        pintarListaAlimentos();
-    }
-
+    // Sin texto se muestran las recetas del usuario; con texto, recetas, despensa y alimentos comunes
     function buscarAlimentoDiario(texto) {
         clearTimeout(temporizadorBusqueda);
         const cont = document.getElementById("ca-resultados");
         const q = texto.trim();
-        if (!q) { cont.innerHTML = ""; return; }
         temporizadorBusqueda = setTimeout(async () => {
             const n = ++busquedaActual;
             let resultados = [];
@@ -275,21 +256,26 @@
             } catch (e) { /* se ofrece igualmente crearlo a mano */ }
             if (n !== busquedaActual || !hoja) return;
             hoja.resultados = resultados;
-            cont.innerHTML = resultados.map((a, i) => `
+            const valores = (a) => `${Math.round(a.calorias_100g)} kcal · P ${r1(a.proteinas_100g)}g · C ${r1(a.carbohidratos_100g)}g · G ${r1(a.grasas_100g)}g`;
+            cont.innerHTML = (!q && resultados.length ? '<span class="text-[10px] uppercase tracking-widest nx-muted">Tus recetas</span>' : "") +
+                resultados.map((a, i) => `
                 <button type="button" class="ca-resultado" onclick="elegirAlimentoDiario(${i})">
-                    <span class="block text-xs font-semibold" translate="no">${esc(ingles() && a.nombre_en ? a.nombre_en : a.nombre)} ${a.origen === "despensa" ? '<span class="nx-muted font-normal">· 📦</span>' : ""}</span>
-                    <span class="text-[10px] nx-muted">Por 100 g: ${Math.round(a.calorias_100g)} kcal · P ${r1(a.proteinas_100g)}g · C ${r1(a.carbohidratos_100g)}g · G ${r1(a.grasas_100g)}g</span>
-                </button>`).join("") + `
+                    <span class="block text-xs font-semibold"><span translate="no">${a.por_racion ? "🍳 " : ""}${esc(ingles() && a.nombre_en ? a.nombre_en : a.nombre)}</span>${a.origen === "despensa" ? ' <span class="nx-muted font-normal">· 📦</span>' : ""}</span>
+                    ${a.por_racion
+                        ? `<span class="text-[10px] nx-muted"><span>Ración</span>${a.gramos_racion ? ` (${r1(a.gramos_racion)} g)` : ""}: <span>${valores(a)}</span></span>`
+                        : `<span class="text-[10px] nx-muted">Por 100 g: ${valores(a)}</span>`}
+                </button>`).join("") + (q ? `
                 <button type="button" class="ca-resultado text-xs" data-nombre="${esc(q)}" onclick="anadirAlimentoPropio(this.dataset.nombre)">
                     ＋ <span>Crear a mano:</span> <strong translate="no">${esc(q)}</strong>
-                </button>`;
-        }, 250);
+                </button>` : "");
+        }, q ? 250 : 0);
     }
 
+    // La comida empieza vacía (o la del «+» del Diario, o la última que hayas elegido en esta hoja)
     function nuevoAlimento(datos) {
-        hoja.alimentos.push({ gramos: 100, comida: hoja.comida, comidaElegida: false, ...datos });
+        hoja.alimentos.push({ gramos: 100, comida: hoja.comida, ...datos });
         document.getElementById("ca-buscar").value = "";
-        document.getElementById("ca-resultados").innerHTML = "";
+        buscarAlimentoDiario("");
         hoja.foco = null;
         pintarListaAlimentos();
         // Lo normal es cambiar los gramos nada más añadirlo
@@ -300,6 +286,12 @@
     function elegirAlimentoDiario(i) {
         const a = hoja?.resultados?.[i];
         if (!a) return;
+        if (a.por_racion) {
+            return nuevoAlimento({
+                nombre: a.nombre, origen: "receta", propia: false, racion: true, cantidad: 1, gramosRacion: a.gramos_racion,
+                por100: { kcal: a.calorias_100g, prot: a.proteinas_100g, carb: a.carbohidratos_100g, gras: a.grasas_100g }
+            });
+        }
         nuevoAlimento({
             nombre: ingles() && a.nombre_en ? a.nombre_en : a.nombre, origen: a.origen, propia: false,
             por100: { kcal: a.calorias_100g, prot: a.proteinas_100g, carb: a.carbohidratos_100g, gras: a.grasas_100g }
@@ -344,10 +336,14 @@
                 </div>` : ""}
                 <div class="flex items-center gap-2">
                     <label class="flex items-center gap-1 shrink-0">
-                        <input type="number" inputmode="decimal" data-gramos min="1" step="1" value="${a.gramos}" oninput="cambiarGramosAlimento(${i}, this.value)" class="nx-input text-center font-semibold" style="width: 5.5rem">
-                        <span class="text-xs nx-muted">g</span>
+                        ${a.racion
+                            ? `<input type="number" inputmode="decimal" data-gramos min="0.25" step="0.25" value="${a.cantidad}" oninput="cambiarCantidadReceta(${i}, this.value)" class="nx-input text-center font-semibold" style="width: 4.5rem">
+                               <span class="text-xs nx-muted">${a.cantidad == 1 ? "ración" : "raciones"}</span>`
+                            : `<input type="number" inputmode="decimal" data-gramos min="1" step="1" value="${a.gramos}" oninput="cambiarGramosAlimento(${i}, this.value)" class="nx-input text-center font-semibold" style="width: 5.5rem">
+                               <span class="text-xs nx-muted">g</span>`}
                     </label>
-                    ${comidas.length ? `<select onchange="cambiarComidaAlimento(${i}, this.value)" class="nx-input flex-1 min-w-0" aria-label="Elegir comida">${opcionesComida(a.comida)}</select>` : ""}
+                    ${comidas.length ? `<select id="ca-comida-${i}" onchange="cambiarComidaAlimento(${i}, this.value)" class="nx-input flex-1 min-w-0" aria-label="Elegir comida"
+                        ${a.comida ? "" : 'style="border-color: rgb(var(--c-accent-2-text))"'}>${opcionesComida(a.comida)}</select>` : ""}
                 </div>
                 <div id="ca-macros-${i}" class="space-y-1.5">${lineaMacros(macrosDe(a))}</div>
             </div>`).join("");
@@ -363,7 +359,14 @@
     function cambiarGramosAlimento(i, valor) { hoja.alimentos[i].gramos = parseFloat(valor) || 0; refrescarAlimento(i); }
     function cambiarPor100(i, k, valor) { hoja.alimentos[i].por100[k] = parseFloat(valor) || 0; refrescarAlimento(i); }
     function cambiarNombreAlimento(i, valor) { hoja.alimentos[i].nombre = valor; actualizarResumen(); }
-    function cambiarComidaAlimento(i, valor) { hoja.alimentos[i].comida = valor; hoja.alimentos[i].comidaElegida = true; }
+    function cambiarCantidadReceta(i, valor) { hoja.alimentos[i].cantidad = parseFloat(valor) || 0; refrescarAlimento(i); }
+
+    function cambiarComidaAlimento(i, valor) {
+        hoja.alimentos[i].comida = valor;
+        hoja.comida = valor; // los siguientes que añadas van, de entrada, a la misma comida
+        document.getElementById(`ca-comida-${i}`)?.style.removeProperty("border-color");
+        actualizarResumen();
+    }
 
     function quitarAlimentoDiario(i) {
         hoja.alimentos.splice(i, 1);
@@ -381,12 +384,14 @@
         const btn = document.getElementById("ca-guardar");
         if (!cont || !hoja) return;
         const n = hoja.alimentos.length;
-        const validos = n > 0 && hoja.alimentos.every(a => a.gramos > 0 && a.nombre.trim());
+        const sinComida = comidasDelDia().length > 0 && hoja.alimentos.some(a => !a.comida);
+        const validos = n > 0 && !sinComida && hoja.alimentos.every(a => (a.racion ? a.cantidad : a.gramos) > 0 && a.nombre.trim());
         btn.disabled = !validos;
-        btn.textContent = n === 1 ? tr("Añadir 1 alimento") : n ? tr(`Añadir ${n} alimentos`) : tr("Añadir");
+        btn.textContent = sinComida ? tr("Elige la comida de cada alimento")
+            : n === 1 ? tr("Añadir 1 alimento") : n ? tr(`Añadir ${n} alimentos`) : tr("Añadir");
         if (!n) {
             if (graficoRueda) { graficoRueda.destroy(); graficoRueda = null; }
-            cont.innerHTML = '<p class="text-[11px] nx-muted text-center">Busca y añade cada alimento con sus gramos, por ejemplo 200 g de arroz y 150 g de pollo.</p>';
+            cont.innerHTML = '<p class="text-[11px] nx-muted text-center">Busca y añade cada alimento con sus gramos (por ejemplo 200 g de arroz y 150 g de pollo) o una de tus recetas.</p>';
             return;
         }
 
@@ -466,13 +471,16 @@
         while (hoja && hoja.alimentos.length) {
             const a = hoja.alimentos[0];
             const m = macrosDe(a);
+            const gramos = a.racion ? (a.gramosRacion ? a.gramosRacion * a.cantidad : null) : a.gramos;
+            // Sin peso conocido, las raciones van en el nombre ("Lentejas · 1.5 raciones")
+            const nombre = a.racion && !a.gramosRacion && a.cantidad != 1 ? `${a.nombre.trim()} · ${a.cantidad} ${tr("raciones")}` : a.nombre.trim();
             try {
                 const res = await fetch(`${API_BASE}/diario/consumo?fecha=${encodeURIComponent(fecha)}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        nombre: a.nombre.trim(), calorias: r1(m.kcal), proteinas: r1(m.prot), carbohidratos: r1(m.carb),
-                        grasas: r1(m.gras), gramos: r1(a.gramos), comida: a.comida || null
+                        nombre, calorias: r1(m.kcal), proteinas: r1(m.prot), carbohidratos: r1(m.carb),
+                        grasas: r1(m.gras), gramos: gramos ? r1(gramos) : null, comida: a.comida || null
                     })
                 });
                 if (!res.ok) throw new Error(res.status);
@@ -507,8 +515,8 @@
 
     Object.assign(window, {
         pintarEditorComidas, leerComidas, cambiarNumeroComidas, pintarRegistrosPorComida, comidasDelDia, comidaSugerida,
-        abrirAnadirAlimentos, cerrarAnadirAlimentos, elegirComidaHoja, buscarAlimentoDiario, elegirAlimentoDiario,
-        anadirAlimentoPropio, cambiarGramosAlimento, cambiarPor100, cambiarNombreAlimento, cambiarComidaAlimento,
+        abrirAnadirAlimentos, cerrarAnadirAlimentos, buscarAlimentoDiario, elegirAlimentoDiario,
+        anadirAlimentoPropio, cambiarGramosAlimento, cambiarCantidadReceta, cambiarPor100, cambiarNombreAlimento, cambiarComidaAlimento,
         quitarAlimentoDiario, enfocarAlimento, guardarAlimentosDiario
     });
 

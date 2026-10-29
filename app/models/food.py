@@ -16,7 +16,10 @@ class AlimentoPor100g(BaseModel):
     """Alimento del buscador del diario: valores por 100 g para calcular los macros de los gramos que se coman."""
     nombre: str
     nombre_en: Optional[str] = Field(default=None, description="Nombre en inglés (solo alimentos de la base)")
-    origen: str = Field(..., description="'despensa' (tus alimentos) o 'base' (alimentos comunes)")
+    origen: str = Field(..., description="'despensa' (tus alimentos), 'receta' (tus recetas) o 'base' (alimentos comunes)")
+    receta_id: Optional[str] = Field(default=None, description="Solo recetas")
+    por_racion: bool = Field(default=False, description="True en recetas: los valores *_100g son de una ración (la receta entera)")
+    gramos_racion: Optional[float] = Field(default=None, description="Peso de una ración, si la receta tiene los gramos de sus ingredientes")
     calorias_100g: float
     proteinas_100g: float
     carbohidratos_100g: float
