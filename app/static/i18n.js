@@ -420,7 +420,35 @@
         "No existe ningún usuario con ese nombre o email.": "There's no user with that name or email.",
         "No puedes agregarte a ti mismo.": "You can't add yourself.",
         "Solicitud no encontrada": "Request not found",
-        "Amigo no encontrado": "Friend not found"
+        "Amigo no encontrado": "Friend not found",
+
+        // Comidas del día y botón «+» para añadir alimentos por gramos (comidas.js)
+        "Comidas al día": "Meals per day",
+        "Ponles el nombre que quieras, por ejemplo Pre-entreno.": "Name them however you like, e.g. Pre-workout.",
+        "Desayuno": "Breakfast",
+        "Almuerzo": "Mid-morning snack",
+        "Comida": "Lunch",
+        "Merienda": "Afternoon snack",
+        "Cena": "Dinner",
+        "Recena": "Late snack",
+        "Pre-entreno": "Pre-workout",
+        "Post-entreno": "Post-workout",
+        "Sin comida asignada": "No meal assigned",
+        "Añadir a esta comida": "Add to this meal",
+        "Añadir alimentos": "Add foods",
+        "Añadir a": "Add to",
+        "Añadir": "Add",
+        "Añadir 1 alimento": "Add 1 food",
+        "Elegir comida": "Choose meal",
+        "Busca un alimento: arroz, pollo, tomate…": "Search for a food: rice, chicken, tomato…",
+        "Crear a mano:": "Add manually:",
+        "Ver en la rueda": "Show in the chart",
+        "Valores por 100 g": "Values per 100 g",
+        "Ver total": "Show total",
+        "Total": "Total",
+        "% de cada macro sobre el total de gramos de macros.": "% of each macro over the total grams of macros.",
+        "Busca y añade cada alimento con sus gramos, por ejemplo 200 g de arroz y 150 g de pollo.": "Search and add each food with its grams, for example 200 g of rice and 150 g of chicken.",
+        "No se pudo guardar. Revisa la conexión y vuelve a intentarlo.": "Couldn't save. Check your connection and try again."
     };
 
     // ---------- TEXTOS CON DATOS (expresión regular -> inglés) ----------
@@ -484,6 +512,9 @@
         [/^(.+) ✓ metas cumplidas$/, "$1 ✓ goals met"],
         [/^(.+) · sin registros$/, "$1 · no entries"],
         [/^Guardar (\d+) en el diario$/, "Save $1 to diary"],
+        [/^Añadir (\d+) alimentos$/, "Add $1 foods"],
+        [/^Comida (\d+)$/, "Meal $1"],
+        [/^G · (\d+)%$/, "F · $1%"],
         [/^⏱ Temporizador (.+) min$/, "⏱ Timer $1 min"],
         [/^Receta (\d+) min$/, "Recipe $1 min"],
         [/^Paso (\d+)$/, "Step $1"],

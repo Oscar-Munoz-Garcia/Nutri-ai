@@ -17,7 +17,7 @@ import app.services.vision_service as vision_service
 import app.services.agent_service as agent_service
 from app.models.pantry import AlimentoPantry, AlimentoPantryEntrada
 from app.models.vision import ProductoOCR, AnalisisPlato
-from app.models.food import ProductoNutricional
+from app.models.food import AlimentoPor100g, ProductoNutricional
 from app.models.shopping import SolicitudListaCompra, ListaCompra
 import app.services.openfoodfacts_service as openfoodfacts_service
 import app.services.shopping_service as shopping_service
@@ -45,6 +45,7 @@ import app.services.quicklog_service as quicklog_service
 from app.models.quicklog import SolicitudRegistroRapido, RespuestaRegistroRapido
 from app.models.plan import AsignacionSemana, CambioPlanDia, Plan, PlanDelDia, PlanEntrada, PlanesUsuario
 import app.services.plan_service as plan_service
+import app.services.alimentos_service as alimentos_service
 from app.models.dia_libre import CambioDiaLibre, DiasLibresSemana
 import app.services.dia_libre_service as dia_libre_service
 
@@ -239,6 +240,12 @@ def listar_despensa(current_user: UsuarioDB = Depends(obtener_usuario_actual)):
 @app.post("/api/v1/despensa", response_model=AlimentoPantry, tags=["Despensa"])
 def agregar_alimento_despensa(alimento: AlimentoPantryEntrada, current_user: UsuarioDB = Depends(obtener_usuario_actual)):
     return pantry_service.agregar_alimento(alimento, current_user.id)
+
+
+@app.get("/api/v1/alimentos/buscar", response_model=List[AlimentoPor100g], tags=["Diario"])
+def buscar_alimentos(q: str = "", current_user: UsuarioDB = Depends(obtener_usuario_actual)):
+    """Alimentos con sus valores por 100 g: primero los de tu despensa, después la base de alimentos comunes."""
+    return alimentos_service.buscar_alimentos(q, current_user.id)
 
 
 @app.post("/api/v1/alimentos/vision-ocr", response_model=ProductoOCR, tags=["Visión OCR"])

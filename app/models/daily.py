@@ -16,12 +16,15 @@ class RegistroConsumo(BaseModel):
     proteinas: float = Field(..., description="Proteínas aportadas en gramos")
     carbohidratos: float = Field(..., description="Carbohidratos aportados en gramos")
     grasas: float = Field(..., description="Grasas aportadas en gramos")
+    comida: Optional[str] = Field(default=None, max_length=30, description="Comida del plan a la que pertenece (Desayuno, Cena...)")
+    gramos: Optional[float] = Field(default=None, gt=0, lt=10000, description="Gramos consumidos, si se añadió por peso")
 
 
 class PlanAplicado(BaseModel):
     id: int
     nombre: str
     es_principal: bool
+    comidas: List[str] = Field(default_factory=list, description="Comidas del día según el plan, en orden")
 
 
 class ResumenDiario(BaseModel):

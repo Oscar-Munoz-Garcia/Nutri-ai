@@ -11,3 +11,13 @@ class ProductoNutricional(BaseModel):
     carbohidratos_100g: float = Field(default=0.0, description="Gramos de carbohidratos por 100g")
     grasas_100g: float = Field(default=0.0, description="Gramos de grasa por 100g")
     imagen_url: Optional[str] = Field(default=None, description="URL de la imagen del producto")
+
+class AlimentoPor100g(BaseModel):
+    """Alimento del buscador del diario: valores por 100 g para calcular los macros de los gramos que se coman."""
+    nombre: str
+    nombre_en: Optional[str] = Field(default=None, description="Nombre en inglés (solo alimentos de la base)")
+    origen: str = Field(..., description="'despensa' (tus alimentos) o 'base' (alimentos comunes)")
+    calorias_100g: float
+    proteinas_100g: float
+    carbohidratos_100g: float
+    grasas_100g: float

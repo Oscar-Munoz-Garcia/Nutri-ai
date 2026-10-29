@@ -52,7 +52,8 @@ def obtener_perfil(usuario_id: int) -> PerfilUsuario:
             nivel_actividad=pdb.nivel_actividad,
             modo_objetivo=pdb.modo_objetivo,
             objetivos_diarios=macros,
-            dias_libres_semana=1 if pdb.dias_libres_semana is None else pdb.dias_libres_semana
+            dias_libres_semana=1 if pdb.dias_libres_semana is None else pdb.dias_libres_semana,
+            comidas=plan_service.comidas_principal(db, usuario_id)
         )
     finally:
         db.close()
@@ -101,7 +102,7 @@ def actualizar_perfil(datos: PerfilActualizar, usuario_id: int) -> PerfilUsuario
         pdb.proteinas_objetivo = nuevos_macros.proteinas_objetivo
         pdb.carbohidratos_objetivo = nuevos_macros.carbohidratos_objetivo
         pdb.grasas_objetivo = nuevos_macros.grasas_objetivo
-        plan_service.sincronizar_principal(db, pdb)
+        plan_service.sincronizar_principal(db, pdb, datos.comidas)
 
         db.commit()
         db.refresh(pdb)
@@ -117,7 +118,7 @@ def completar_registro(datos: CuestionarioRegistro, usuario_id: int) -> PerfilUs
         nombre=datos.nombre.strip(), apellidos=datos.apellidos.strip(), edad=datos.edad,
         peso_kg=datos.peso_kg, altura_cm=datos.altura_cm, genero=datos.genero,
         nivel_actividad=datos.nivel_actividad, objetivo=datos.objetivo,
-        modo_objetivo="mifflin_st_jeor"
+        modo_objetivo="mifflin_st_jeor", comidas=datos.comidas
     ), usuario_id)
     # Primer pesaje del historial, para que el TDEE dinámico tenga punto de partida
     from app.services import metabolic_service  # import local: metabolic_service importa este módulo

@@ -103,6 +103,9 @@ class RegistroConsumoDB(Base):
     proteinas = Column(Float, default=0.0)
     carbohidratos = Column(Float, default=0.0)
     grasas = Column(Float, default=0.0)
+    # Comida del plan a la que pertenece (Desayuno, Cena...) y gramos, si se añadió por peso
+    comida = Column(String, nullable=True)
+    gramos = Column(Float, nullable=True)
 
 class AmistadDB(Base):
     """Solicitud de amistad entre dos usuarios. estado: 'pendiente' o 'aceptada' (una rechazada se borra)."""
@@ -132,6 +135,8 @@ class PlanNutricionDB(Base):
     proteinas_objetivo = Column(Float, default=160.0)
     carbohidratos_objetivo = Column(Float, default=210.0)
     grasas_objetivo = Column(Float, default=70.0)
+    # Comidas del día en este plan, en orden: JSON '["Desayuno", "Comida", "Cena"]'
+    comidas = Column(Text, nullable=True)
 
 
 class PlanFechaDB(Base):

@@ -8,6 +8,8 @@ COLUMNAS_NUEVAS = {
     # DEFAULT 1: los usuarios que ya existían no tienen que rellenar el cuestionario de alta
     "perfil": {"apellidos": "VARCHAR DEFAULT ''", "objetivo": "VARCHAR DEFAULT 'mantenimiento'", "registro_completo": "INTEGER DEFAULT 1",
                "dias_libres_semana": "INTEGER DEFAULT 1"},
+    "planes_nutricion": {"comidas": "TEXT"},
+    "registros_consumo": {"comida": "VARCHAR", "gramos": "FLOAT"},
 }
 
 # Tablas cuyos datos pertenecen a un usuario concreto

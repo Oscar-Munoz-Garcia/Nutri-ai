@@ -47,7 +47,9 @@ def registrar_consumo(registro: RegistroConsumo, usuario_id: int, fecha: Optiona
             calorias=registro.calorias,
             proteinas=registro.proteinas,
             carbohidratos=registro.carbohidratos,
-            grasas=registro.grasas
+            grasas=registro.grasas,
+            comida=(registro.comida or "").strip() or None,
+            gramos=registro.gramos
         )
         db.add(nuevo)
         db.commit()
@@ -97,7 +99,9 @@ def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> Resu
                 calorias=r.calorias,
                 proteinas=r.proteinas,
                 carbohidratos=r.carbohidratos,
-                grasas=r.grasas
+                grasas=r.grasas,
+                comida=r.comida,
+                gramos=r.gramos
             ) for r in registros_db
         ]
 
@@ -108,7 +112,8 @@ def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> Resu
 
         return ResumenDiario(
             fecha=fecha_target,
-            plan=PlanAplicado(id=plan.id, nombre=plan.nombre, es_principal=bool(plan.es_principal)),
+            plan=PlanAplicado(id=plan.id, nombre=plan.nombre, es_principal=bool(plan.es_principal),
+                              comidas=plan_service.comidas_de(plan)),
             dia_libre=dia_libre_service.es_libre(db, usuario_id, fecha_target),
             calorias_totales=round(cal_tot, 1),
             proteinas_totales=round(prot_tot, 1),
