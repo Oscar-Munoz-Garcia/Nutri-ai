@@ -24,6 +24,7 @@ def test_macros_exactos_cuadran_con_las_calorias_del_formulario():
 def test_pantalla_perfil_trae_campo_kcal_y_aviso_de_plan_principal():
     html = client.get("/").text
     for marca in ('id="prof-kcal-exactas"', 'id="aviso-kcal-exactas"', 'id="modalPlanPrincipal"',
+                  'id="btn-modo-pct"', 'id="prof-pct-prot"',
                   "Esto actualiza solo el plan principal, puedes crear más planes en 'Tus Planes'."):
         assert marca in html
     i18n = client.get("/static/i18n.js").text

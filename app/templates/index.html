@@ -731,25 +731,46 @@
 
                         <!-- Campos para Macros Exactos -->
                         <div id="campo-macros-exactos" class="space-y-2 pt-2">
-                            <span class="text-zinc-400 text-[10px] block">Define los gramos exactos de tu plan principal:</span>
-                            <div>
-                                <label class="text-zinc-400 block mb-1 text-[10px]">Calorías (kcal) · las grasas se completan solas</label>
-                                <input type="number" step="1" min="0" id="prof-kcal-exactas" oninput="completarGrasasExactas()" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            <div class="flex justify-between items-center gap-2">
+                                <span class="text-zinc-400 text-[10px]">Define los macros de tu plan principal:</span>
+                                <button type="button" id="btn-modo-pct" onclick="alternarModoPorcentaje()" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2 py-1 rounded uppercase whitespace-nowrap">Usar %</button>
                             </div>
-                            <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-zinc-400 block mb-1 text-[10px]">Calorías (kcal)</label>
+                                <input type="number" step="1" min="0" id="prof-kcal-exactas" onfocus="fotoMacrosExactos()" oninput="editarMacroExacto('kcal')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                            </div>
+                            <div id="macros-gramos" class="grid grid-cols-3 gap-2">
                                 <div>
                                     <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
-                                    <input type="number" step="0.1" id="prof-prot" oninput="completarGrasasExactas()" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <input type="number" step="0.1" min="0" id="prof-prot" oninput="editarMacroExacto('prot')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                                 </div>
                                 <div>
                                     <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
-                                    <input type="number" step="0.1" id="prof-carb" oninput="completarGrasasExactas()" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <input type="number" step="0.1" min="0" id="prof-carb" oninput="editarMacroExacto('carb')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                                 </div>
                                 <div>
                                     <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
-                                    <input type="number" step="0.1" id="prof-gras" oninput="recalcularKcalExactas()" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                    <input type="number" step="0.1" min="0" id="prof-gras" oninput="editarMacroExacto('gras')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
                                 </div>
                             </div>
+                            <div id="macros-pct" class="space-y-2 hidden">
+                                <div class="grid grid-cols-3 gap-2">
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (%)</label>
+                                    <input type="number" step="1" min="0" id="prof-pct-prot" oninput="editarPorcentaje('prot')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (%)</label>
+                                    <input type="number" step="1" min="0" id="prof-pct-carb" oninput="editarPorcentaje('carb')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                                <div>
+                                    <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (%)</label>
+                                    <input type="number" step="1" min="0" id="prof-pct-gras" oninput="editarPorcentaje('gras')" class="w-full bg-canvas border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                                </div>
+                                </div>
+                                <p id="pct-gramos" class="text-zinc-300 text-[10px]"></p>
+                            </div>
+                            <p id="auto-macro-exacto" class="text-zinc-500 text-[10px]"></p>
                             <p id="aviso-kcal-exactas" class="text-amber-400 text-[10px] leading-relaxed hidden"></p>
                         </div>
 
@@ -1788,6 +1809,9 @@
                 document.getElementById("prof-cal-tot").value = p.objetivos_diarios.calorias_objetivo;
                 document.getElementById("prof-kcal-exactas").value = Math.round(p.objetivos_diarios.calorias_objetivo);
                 document.getElementById("aviso-kcal-exactas").classList.add("hidden");
+                ordenEdicionExactos = ["kcal", "prot", "carb"];
+                if (modoPorcentaje) porcentajesDesdeGramos();
+                pintarAutoExacto();
 
                 document.getElementById("badge-modo").innerText = p.modo_objetivo.replace("_", " ").toUpperCase();
                 actualizarModoVisibilidad();
@@ -1803,33 +1827,129 @@
             document.getElementById("campo-info-mifflin").classList.toggle("hidden", modo !== "mifflin_st_jeor");
         }
 
-        // Macros exactos: con kcal + proteínas + carbos, las grasas son el resto (9 kcal/g)
-        function completarGrasasExactas() {
-            const v = id => parseFloat(document.getElementById(id).value);
-            const kcal = v("prof-kcal-exactas"), prot = v("prof-prot"), carb = v("prof-carb");
+        // --- MACROS EXACTOS ---
+        // Se rellena solo el campo que no has tocado en tus 3 últimas ediciones (al principio, las grasas).
+        // Cambiar las kcal con los macros puestos los reparte manteniendo su % sobre el total.
+        const CAMPOS_EXACTOS = { kcal: "prof-kcal-exactas", prot: "prof-prot", carb: "prof-carb", gras: "prof-gras" };
+        const KCAL_POR_G = { prot: 4, carb: 4, gras: 9 };
+        const NOMBRE_MACRO = { kcal: "Calorías", prot: "Proteínas", carb: "Carbos", gras: "Grasas" };
+        let ordenEdicionExactos = ["kcal", "prot", "carb"];
+        let ordenEdicionPct = ["prot", "carb"];
+        let modoPorcentaje = false;
+        let fotoExactos = null;
+
+        const valorCampo = id => parseFloat(document.getElementById(id).value);
+        const redondear1 = x => Math.round(x * 10) / 10;
+        const kcalDeMacros = m => m.prot * 4 + m.carb * 4 + m.gras * 9;
+        const leerExactos = () => Object.fromEntries(Object.entries(CAMPOS_EXACTOS).map(([k, id]) => [k, valorCampo(id)]));
+
+        function avisoExactos(texto) {
             const aviso = document.getElementById("aviso-kcal-exactas");
-            aviso.classList.add("hidden");
-            if ([kcal, prot, carb].some(isNaN)) return;
-            const resto = kcal - prot * 4 - carb * 4;
-            document.getElementById("prof-gras").value = Math.max(0, Math.round(resto / 9 * 10) / 10);
-            if (resto < 0) {
-                aviso.textContent = "⚠️ Las proteínas y los carbohidratos ya superan esas calorías, las grasas se quedan en 0 g.";
-                aviso.classList.remove("hidden");
-            }
+            aviso.textContent = texto || "";
+            aviso.classList.toggle("hidden", !texto);
         }
 
-        // Si se tocan las grasas a mano, las calorías se recalculan y se avisa
-        function recalcularKcalExactas() {
-            const v = id => parseFloat(document.getElementById(id).value) || 0;
-            const campo = document.getElementById("prof-kcal-exactas");
-            const antes = parseFloat(campo.value);
-            const kcal = Math.round(v("prof-prot") * 4 + v("prof-carb") * 4 + v("prof-gras") * 9);
-            campo.value = kcal;
-            const aviso = document.getElementById("aviso-kcal-exactas");
-            if (!isNaN(antes) && antes !== kcal) {
-                aviso.textContent = `⚠️ Has cambiado las grasas: las calorías pasan de ${Math.round(antes)} a ${kcal} kcal.`;
-                aviso.classList.remove("hidden");
+        function campoAutoExacto() {
+            return modoPorcentaje
+                ? ["prot", "carb", "gras"].find(k => !ordenEdicionPct.slice(-2).includes(k))
+                : Object.keys(CAMPOS_EXACTOS).find(k => !ordenEdicionExactos.slice(-3).includes(k));
+        }
+
+        function pintarAutoExacto() {
+            const auto = campoAutoExacto();
+            for (const k of Object.keys(CAMPOS_EXACTOS)) {
+                document.getElementById(CAMPOS_EXACTOS[k]).classList.toggle("ring-1", !modoPorcentaje && k === auto);
+                document.getElementById(CAMPOS_EXACTOS[k]).classList.toggle("ring-matcha", !modoPorcentaje && k === auto);
+                if (k === "kcal") continue;
+                document.getElementById(`prof-pct-${k}`).classList.toggle("ring-1", modoPorcentaje && k === auto);
+                document.getElementById(`prof-pct-${k}`).classList.toggle("ring-matcha", modoPorcentaje && k === auto);
             }
+            document.getElementById("auto-macro-exacto").textContent = `Se completa solo: ${NOMBRE_MACRO[auto]}`;
+        }
+
+        // Valores al empezar a escribir las kcal: se escala desde aquí en cada tecla, sin acumular redondeos
+        function fotoMacrosExactos() {
+            fotoExactos = leerExactos();
+        }
+
+        function editarMacroExacto(campo) {
+            avisoExactos("");
+            if (modoPorcentaje) { gramosDesdePorcentajes(); return; }
+            ordenEdicionExactos = ordenEdicionExactos.filter(k => k !== campo).concat(campo);
+            const f = fotoExactos;
+            const nuevas = valorCampo(CAMPOS_EXACTOS.kcal);
+            if (campo === "kcal" && f && !isNaN(nuevas) && ["prot", "carb", "gras"].every(k => !isNaN(f[k])) && kcalDeMacros(f) > 0) {
+                const factor = nuevas / kcalDeMacros(f);
+                for (const k of ["prot", "carb", "gras"]) document.getElementById(CAMPOS_EXACTOS[k]).value = redondear1(f[k] * factor);
+                avisoExactos("Macros repartidos manteniendo sus porcentajes.");
+            } else {
+                completarFaltanteExacto();
+            }
+            pintarAutoExacto();
+        }
+
+        function completarFaltanteExacto() {
+            const auto = campoAutoExacto();
+            const v = leerExactos();
+            if (Object.keys(v).some(k => k !== auto && isNaN(v[k]))) return;
+            if (auto === "kcal") {
+                const kcal = Math.round(kcalDeMacros(v));
+                document.getElementById(CAMPOS_EXACTOS.kcal).value = kcal;
+                if (!isNaN(v.kcal) && Math.round(v.kcal) !== kcal) avisoExactos(`⚠️ Las calorías pasan de ${Math.round(v.kcal)} a ${kcal} kcal.`);
+                return;
+            }
+            const resto = v.kcal - ["prot", "carb", "gras"].filter(k => k !== auto).reduce((s, k) => s + v[k] * KCAL_POR_G[k], 0);
+            document.getElementById(CAMPOS_EXACTOS[auto]).value = Math.max(0, redondear1(resto / KCAL_POR_G[auto]));
+            if (resto < 0) avisoExactos(`⚠️ Los otros macros ya superan esas calorías: ${NOMBRE_MACRO[auto]} en 0 g.`);
+        }
+
+        // Modo %: se ponen las kcal y el % de cada macro; los gramos se calculan solos
+        function alternarModoPorcentaje() {
+            modoPorcentaje = !modoPorcentaje;
+            document.getElementById("macros-gramos").classList.toggle("hidden", modoPorcentaje);
+            document.getElementById("macros-pct").classList.toggle("hidden", !modoPorcentaje);
+            document.getElementById("btn-modo-pct").textContent = modoPorcentaje ? "Usar gramos" : "Usar %";
+            avisoExactos("");
+            if (modoPorcentaje) porcentajesDesdeGramos();
+            pintarAutoExacto();
+        }
+
+        function porcentajesDesdeGramos() {
+            const v = leerExactos();
+            const total = kcalDeMacros(v);
+            if (!(total > 0)) return;
+            const pct = { prot: Math.round(v.prot * 400 / total), carb: Math.round(v.carb * 400 / total) };
+            pct.gras = Math.max(0, 100 - pct.prot - pct.carb);
+            for (const k of ["prot", "carb", "gras"]) document.getElementById(`prof-pct-${k}`).value = pct[k];
+            // Los gramos no se tocan hasta que cambies algún % o las kcal
+            document.getElementById(CAMPOS_EXACTOS.kcal).value = Math.round(total);
+            document.getElementById("pct-gramos").textContent = `${Math.round(total)} kcal · P ${v.prot}g · C ${v.carb}g · G ${v.gras}g`;
+        }
+
+        function editarPorcentaje(campo) {
+            avisoExactos("");
+            ordenEdicionPct = ordenEdicionPct.filter(k => k !== campo).concat(campo);
+            const auto = campoAutoExacto();
+            const otros = ["prot", "carb", "gras"].filter(k => k !== auto).map(k => valorCampo(`prof-pct-${k}`));
+            if (!otros.some(isNaN)) {
+                const resto = 100 - otros[0] - otros[1];
+                document.getElementById(`prof-pct-${auto}`).value = Math.max(0, resto);
+                if (resto < 0) avisoExactos("⚠️ Los porcentajes pasan del 100 %.");
+            }
+            pintarAutoExacto();
+            gramosDesdePorcentajes();
+        }
+
+        function gramosDesdePorcentajes() {
+            const kcal = valorCampo(CAMPOS_EXACTOS.kcal);
+            const g = {};
+            for (const k of ["prot", "carb", "gras"]) {
+                const pct = valorCampo(`prof-pct-${k}`);
+                if (isNaN(kcal) || isNaN(pct)) { document.getElementById("pct-gramos").textContent = ""; return; }
+                g[k] = redondear1(kcal * pct / 100 / KCAL_POR_G[k]);
+                document.getElementById(CAMPOS_EXACTOS[k]).value = g[k];
+            }
+            document.getElementById("pct-gramos").textContent = `${Math.round(kcal)} kcal · P ${g.prot}g · C ${g.carb}g · G ${g.gras}g`;
         }
 
         function cerrarAvisoPlanPrincipal() {
