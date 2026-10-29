@@ -342,9 +342,10 @@
                     <div>
                         <span class="font-mono text-[10px] text-zinc-500 uppercase tracking-widest block">TELEMETRÍA DIARIA</span>
                         <h2 class="font-display font-semibold text-xl text-zinc-100">Energía & Macros</h2>
+                        <span class="font-mono text-[10px] text-zinc-400 block mt-0.5">Plan de hoy: <strong id="txt-plan-hoy" translate="no" class="text-matcha font-semibold">—</strong></span>
                     </div>
-                    <button onclick="toggleModalObjetivos()" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
-                        ⚙ Metas
+                    <button onclick="toggleModalObjetivos()" title="Cambiar el plan de un día" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">
+                        ⚙ Plan
                     </button>
                 </div>
 
@@ -719,6 +720,7 @@
                     <!-- Modo de Configuración de Límites -->
                     <div class="space-y-3 pt-3 border-t border-panelBorder">
                         <span class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">2. Método de Objetivos Diarios</span>
+                        <p class="text-zinc-500 text-[10px]">Estos objetivos son tu plan principal. Puedes crear más planes (entrenamiento, descanso...) justo debajo.</p>
                         <div>
                             <select id="prof-modo" onchange="actualizarModoVisibilidad()" class="w-full bg-canvas border border-panelBorder text-matcha font-semibold px-3 py-2.5 rounded focus:outline-none focus:border-matcha uppercase text-[11px]">
                                 <option value="manual_macros">⚙️ Macros Exactos (Personalizado)</option>
@@ -729,7 +731,7 @@
 
                         <!-- Campos para Macros Exactos -->
                         <div id="campo-macros-exactos" class="space-y-2 pt-2">
-                            <span class="text-zinc-400 text-[10px] block">Define los gramos exactos deseados para todos los días:</span>
+                            <span class="text-zinc-400 text-[10px] block">Define los gramos exactos de tu plan principal:</span>
                             <div class="grid grid-cols-3 gap-2">
                                 <div>
                                     <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
@@ -765,6 +767,58 @@
                         Guardar Perfil & Actualizar Diario
                     </button>
                 </form>
+            </div>
+
+            <!-- PLANES DE NUTRICIÓN: varios planes y cuál toca cada día de la semana -->
+            <div id="bloque-planes" class="bg-panel p-5 rounded-2xl border border-panelBorder space-y-4">
+                <div class="pb-3 border-b border-panelBorder flex justify-between items-center">
+                    <div>
+                        <span class="font-mono text-[9px] text-zinc-500 uppercase tracking-widest block">PLANES DE NUTRICIÓN</span>
+                        <h3 class="font-display font-semibold text-base text-zinc-100">Tus planes</h3>
+                    </div>
+                    <button type="button" onclick="abrirFormPlan()" class="font-mono text-[10px] text-matcha border border-matcha/30 hover:border-matcha px-2.5 py-1 rounded transition uppercase">+ Nuevo plan</button>
+                </div>
+                <p class="font-mono text-[10px] text-zinc-500 leading-relaxed">Crea tantos planes como quieras, por ejemplo uno para los días de entrenamiento y otro para los de descanso, y elige cuál toca cada día de la semana. Desde el Diario (⚙ Plan) puedes cambiar el de un día concreto.</p>
+
+                <div id="planes-lista" class="space-y-2 font-mono text-xs"></div>
+
+                <form id="planForm" class="hidden space-y-3 p-3 bg-canvas border border-panelBorder rounded-xl font-mono text-xs">
+                    <input type="hidden" id="plan-id">
+                    <span id="plan-form-titulo" class="text-matcha text-[10px] uppercase font-semibold block tracking-wider">Nuevo plan</span>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Nombre del plan</label>
+                        <input type="text" id="plan-nombre" maxlength="40" required placeholder="Ej: Entrenamiento" class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                    </div>
+                    <div class="grid grid-cols-3 gap-2">
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Proteínas (g)</label>
+                            <input type="number" step="0.1" min="0" id="plan-prot" required oninput="calcularKcalPlan()" class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                        </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Carbs (g)</label>
+                            <input type="number" step="0.1" min="0" id="plan-carb" required oninput="calcularKcalPlan()" class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                        </div>
+                        <div>
+                            <label class="text-zinc-400 block mb-1 text-[10px]">Grasas (g)</label>
+                            <input type="number" step="0.1" min="0" id="plan-gras" required oninput="calcularKcalPlan()" class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-zinc-400 block mb-1 text-[10px]">Calorías (kcal) · se calculan con los macros, puedes ajustarlas</label>
+                        <input type="number" step="1" min="1" id="plan-cal" required class="w-full bg-panel border border-panelBorder text-zinc-200 px-3 py-2 rounded focus:outline-none focus:border-matcha">
+                    </div>
+                    <p id="plan-error" class="text-rose-400 text-[10px] hidden"></p>
+                    <div class="flex gap-2">
+                        <button type="submit" class="flex-1 py-2 bg-matcha hover:bg-lime-400 text-black font-semibold rounded uppercase">Guardar plan</button>
+                        <button type="button" onclick="cerrarFormPlan()" class="px-4 py-2 border border-panelBorder text-zinc-400 hover:text-zinc-100 rounded uppercase">Cancelar</button>
+                    </div>
+                </form>
+
+                <div class="space-y-2 pt-3 border-t border-panelBorder">
+                    <span class="text-matcha font-mono text-[10px] uppercase font-semibold block tracking-wider">Semana tipo</span>
+                    <div id="planes-semana" class="grid grid-cols-1 sm:grid-cols-2 gap-2 font-mono text-xs"></div>
+                    <p id="planes-semana-estado" class="font-mono text-[10px] text-zinc-500 hidden"></p>
+                </div>
             </div>
 
             <!-- BLOQUE METABÓLICO: REGISTRO DE PESO Y TDEE DINÁMICO -->
@@ -904,10 +958,28 @@
 
     <!-- MODAL DE CONFIGURACIÓN RÁPIDA DE METAS -->
     <div id="modalObjetivos" class="fixed inset-0 bg-zinc-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
-        <div class="bg-panel border border-panelBorder p-6 rounded-2xl max-w-sm w-full space-y-4">
+        <div class="bg-panel border border-panelBorder p-6 rounded-2xl max-w-sm w-full space-y-4 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center border-b border-panelBorder pb-3">
-                <h3 class="font-display font-bold text-base text-zinc-100">Establecer Metas Diarias</h3>
+                <h3 class="font-display font-bold text-base text-zinc-100">Plan de cada día</h3>
                 <button onclick="toggleModalObjetivos()" class="font-mono text-zinc-400 hover:text-zinc-100">✕</button>
+            </div>
+
+            <!-- Calendario semanal: cambiar el plan de un día concreto sin tocar la semana tipo -->
+            <div class="space-y-2 font-mono text-xs">
+                <div class="flex justify-between items-center">
+                    <button type="button" onclick="moverSemanaPlanes(-1)" title="Semana anterior" class="px-2 py-1 text-zinc-400 hover:text-matcha">◀</button>
+                    <span id="semana-planes-rango" translate="no" class="text-[10px] text-zinc-300 uppercase tracking-wider"></span>
+                    <button type="button" onclick="moverSemanaPlanes(1)" title="Semana siguiente" class="px-2 py-1 text-zinc-400 hover:text-matcha">▶</button>
+                </div>
+                <div id="semana-planes-lista" class="space-y-1.5"></div>
+                <p class="text-[10px] text-zinc-500 leading-relaxed">Elige otro plan solo para ese día. La semana tipo se cambia en Perfil.</p>
+                <button type="button" onclick="toggleModalObjetivos(); cambiarPestana('sec-perfil'); document.getElementById('bloque-planes')?.scrollIntoView({ behavior: 'smooth' });" class="w-full py-1.5 border border-matcha/30 hover:border-matcha text-matcha rounded uppercase text-[10px]">
+                    Gestionar planes →
+                </button>
+            </div>
+
+            <div class="border-t border-panelBorder pt-3">
+                <span class="font-mono text-[10px] text-zinc-400 uppercase tracking-wider">Metas del plan de hoy: <strong id="txt-plan-modal" translate="no" class="text-matcha">—</strong></span>
             </div>
             <form id="objetivosForm" class="space-y-3 font-mono text-xs">
                 <div>
@@ -1197,19 +1269,223 @@
             if (secId === 'sec-inicio') cargarResumenDiario();
             if (secId === 'sec-despensa') { cargarDespensa(); cargarRecetasPlanificables(); }
             if (secId === 'sec-recetas') { cargarRecetas(); popularSelectPantryRecetas(); }
-            if (secId === 'sec-perfil') { cargarPerfil(); cargarGraficasTendencia(); cargarTDEE(); }
+            if (secId === 'sec-perfil') { cargarPerfil(); cargarPlanes(); cargarGraficasTendencia(); cargarTDEE(); }
             if (secId === 'sec-versus') { cargarVersus(); cargarAmigos(); }
         }
 
         function toggleModalObjetivos() {
-            document.getElementById("modalObjetivos").classList.toggle("hidden");
+            const modal = document.getElementById("modalObjetivos");
+            modal.classList.toggle("hidden");
+            if (!modal.classList.contains("hidden")) {
+                semanaPlanesDesplazamiento = 0;
+                cargarSemanaPlanes();
+            }
         }
+
+        // --- PLANES DE NUTRICIÓN ---
+        // Cada usuario tiene varios planes (entrenamiento, descanso...), una semana tipo y cambios por fecha.
+        const DIAS_SEMANA = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+        let planesCache = { planes: [], semana: [] };
+        let planHoy = null;
+        let semanaPlanesDesplazamiento = 0;
+
+        // El plan principal se crea con el nombre por defecto en español: se traduce si no se ha renombrado
+        function nombrePlan(plan) {
+            if (!plan) return "—";
+            return plan.es_principal && plan.nombre === "Plan principal" ? (window.t ? t(plan.nombre) : plan.nombre) : plan.nombre;
+        }
+
+        function fechaLocal(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        }
+
+        function opcionesPlanes(seleccionado) {
+            return planesCache.planes.map(p =>
+                `<option value="${p.id}" ${p.id === seleccionado ? "selected" : ""}>${escaparHtml(nombrePlan(p))} · ${Math.round(p.calorias_objetivo)} kcal</option>`
+            ).join("");
+        }
+
+        async function refrescarPlanes() {
+            const res = await fetch(`${API_BASE}/planes`);
+            if (res.ok) planesCache = await res.json();
+            return planesCache;
+        }
+
+        async function cargarSemanaPlanes() {
+            const lista = document.getElementById("semana-planes-lista");
+            try {
+                const ref = new Date();
+                ref.setDate(ref.getDate() + semanaPlanesDesplazamiento * 7);
+                const [, res] = await Promise.all([refrescarPlanes(), fetch(`${API_BASE}/planes/calendario?fecha=${fechaLocal(ref)}`)]);
+                const dias = await res.json();
+                const locale = (window.idiomaActual && idiomaActual() === "en") ? "en-GB" : "es-ES";
+                const corto = f => new Date(`${f}T12:00:00`).toLocaleDateString(locale, { day: "numeric", month: "short" });
+                document.getElementById("semana-planes-rango").innerText = `${corto(dias[0].fecha)} – ${corto(dias[6].fecha)}`;
+                const hoy = fechaLocal(new Date());
+                lista.innerHTML = dias.map(d => {
+                    const etiqueta = new Date(`${d.fecha}T12:00:00`).toLocaleDateString(locale, { weekday: "short", day: "numeric" });
+                    const esHoy = d.fecha === hoy;
+                    return `
+                    <div class="flex items-center gap-2 p-1.5 rounded-lg ${esHoy ? "bg-canvas border border-matcha/40" : ""}">
+                        <span translate="no" class="w-16 shrink-0 text-[11px] uppercase ${esHoy ? "text-matcha font-semibold" : "text-zinc-400"}">${etiqueta}</span>
+                        <select translate="no" onchange="cambiarPlanDia('${d.fecha}', this.value)" class="flex-1 min-w-0 bg-canvas border ${d.cambiado ? "border-amberAccent text-amberAccent" : "border-panelBorder text-zinc-200"} px-2 py-1.5 rounded text-[11px] focus:outline-none focus:border-matcha">
+                            ${opcionesPlanes(d.plan_id)}
+                        </select>
+                        ${d.cambiado ? `<button type="button" onclick="cambiarPlanDia('${d.fecha}', null)" title="Volver al plan de la semana" class="text-amberAccent hover:text-matcha text-[11px]">↺</button>` : `<span class="w-3"></span>`}
+                    </div>`;
+                }).join("");
+            } catch (e) {
+                console.error("Error cargando planes de la semana", e);
+            }
+        }
+
+        function moverSemanaPlanes(paso) {
+            semanaPlanesDesplazamiento += paso;
+            cargarSemanaPlanes();
+        }
+
+        async function cambiarPlanDia(fecha, planId) {
+            await fetch(`${API_BASE}/planes/calendario/${fecha}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan_id: planId === null ? null : parseInt(planId) })
+            });
+            cargarSemanaPlanes();
+            cargarResumenDiario();
+        }
+
+        async function cargarPlanes() {
+            try {
+                await refrescarPlanes();
+                pintarPlanes();
+            } catch (e) {
+                console.error("Error cargando planes", e);
+            }
+        }
+
+        function pintarPlanes() {
+            const lista = document.getElementById("planes-lista");
+            if (!lista) return;
+            lista.innerHTML = planesCache.planes.map(p => `
+                <div class="flex justify-between items-center gap-2 p-3 bg-canvas border border-panelBorder rounded-xl">
+                    <div class="min-w-0">
+                        <div class="flex items-center gap-2">
+                            <span translate="no" class="font-semibold text-zinc-100 truncate">${escaparHtml(nombrePlan(p))}</span>
+                            ${p.es_principal ? '<span class="text-[9px] bg-matchaDark text-matcha border border-matcha/30 px-1.5 py-0.5 rounded uppercase">Principal</span>' : ""}
+                        </div>
+                        <span class="text-[10px] text-zinc-400">${Math.round(p.calorias_objetivo)} kcal · P ${p.proteinas_objetivo}g · C ${p.carbohidratos_objetivo}g · G ${p.grasas_objetivo}g</span>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button type="button" onclick="abrirFormPlan(${p.id})" title="Editar plan" class="text-zinc-400 hover:text-matcha">✎</button>
+                        ${p.es_principal ? "" : `<button type="button" onclick="eliminarPlan(${p.id})" title="Eliminar plan" class="text-zinc-400 hover:text-rose-400">🗑</button>`}
+                    </div>
+                </div>`).join("");
+
+            document.getElementById("planes-semana").innerHTML = DIAS_SEMANA.map((dia, i) => `
+                <label class="flex items-center gap-2 p-2 bg-canvas border border-panelBorder rounded-xl">
+                    <span class="w-20 shrink-0 text-[11px] text-zinc-300">${dia}</span>
+                    <select translate="no" data-dia="${i}" onchange="guardarSemanaTipo()" class="flex-1 min-w-0 bg-panel border border-panelBorder text-zinc-200 px-2 py-1.5 rounded text-[11px] focus:outline-none focus:border-matcha">
+                        ${opcionesPlanes(planesCache.semana[i])}
+                    </select>
+                </label>`).join("");
+        }
+
+        async function guardarSemanaTipo() {
+            const semana = [...document.querySelectorAll("#planes-semana select")]
+                .sort((a, b) => a.dataset.dia - b.dataset.dia)
+                .map(s => parseInt(s.value));
+            const estado = document.getElementById("planes-semana-estado");
+            const res = await fetch(`${API_BASE}/planes/semana`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ semana })
+            });
+            estado.innerText = res.ok ? "✅ Semana tipo guardada" : "❌ No se pudo guardar la semana";
+            estado.classList.remove("hidden");
+            setTimeout(() => estado.classList.add("hidden"), 2500);
+            if (res.ok) {
+                planesCache = await res.json();
+                cargarResumenDiario();
+            }
+        }
+
+        function calcularKcalPlan() {
+            const v = id => parseFloat(document.getElementById(id).value) || 0;
+            const kcal = v("plan-prot") * 4 + v("plan-carb") * 4 + v("plan-gras") * 9;
+            if (kcal > 0) document.getElementById("plan-cal").value = Math.round(kcal);
+        }
+
+        function abrirFormPlan(planId) {
+            const plan = planesCache.planes.find(p => p.id === planId);
+            document.getElementById("plan-id").value = plan ? plan.id : "";
+            document.getElementById("plan-form-titulo").innerText = plan ? "Editar plan" : "Nuevo plan";
+            document.getElementById("plan-nombre").value = plan ? plan.nombre : "";
+            document.getElementById("plan-prot").value = plan ? plan.proteinas_objetivo : "";
+            document.getElementById("plan-carb").value = plan ? plan.carbohidratos_objetivo : "";
+            document.getElementById("plan-gras").value = plan ? plan.grasas_objetivo : "";
+            document.getElementById("plan-cal").value = plan ? Math.round(plan.calorias_objetivo) : "";
+            document.getElementById("plan-error").classList.add("hidden");
+            document.getElementById("planForm").classList.remove("hidden");
+            document.getElementById("plan-nombre").focus();
+        }
+
+        function cerrarFormPlan() {
+            document.getElementById("planForm").classList.add("hidden");
+        }
+
+        document.getElementById("planForm")?.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const id = document.getElementById("plan-id").value;
+            const datos = {
+                nombre: document.getElementById("plan-nombre").value.trim(),
+                calorias_objetivo: parseFloat(document.getElementById("plan-cal").value),
+                proteinas_objetivo: parseFloat(document.getElementById("plan-prot").value),
+                carbohidratos_objetivo: parseFloat(document.getElementById("plan-carb").value),
+                grasas_objetivo: parseFloat(document.getElementById("plan-gras").value)
+            };
+            const res = await fetch(id ? `${API_BASE}/planes/${id}` : `${API_BASE}/planes`, {
+                method: id ? "PUT" : "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(datos)
+            });
+            if (!res.ok) {
+                const error = document.getElementById("plan-error");
+                error.innerText = "Revisa los datos del plan: hay algún valor fuera de rango.";
+                error.classList.remove("hidden");
+                return;
+            }
+            cerrarFormPlan();
+            await cargarPlanes();
+            cargarResumenDiario();
+            // Editar el plan principal cambia también las metas del perfil
+            if (planesCache.planes.find(p => p.id === parseInt(id))?.es_principal) cargarPerfil();
+        });
+
+        async function eliminarPlan(planId) {
+            if (!confirm("¿Eliminar este plan? Los días que lo usaban pasarán al plan principal.")) return;
+            const res = await fetch(`${API_BASE}/planes/${planId}`, { method: "DELETE" });
+            if (res.ok) {
+                await cargarPlanes();
+                cargarResumenDiario();
+            }
+        }
+
+        // Al cambiar de idioma, el nombre del plan principal se vuelve a pintar traducido
+        window.addEventListener("nutri:idioma", () => {
+            if (planHoy) document.getElementById("txt-plan-hoy").innerText = nombrePlan(planHoy);
+            if (!document.getElementById("sec-perfil").classList.contains("hidden")) pintarPlanes();
+            if (!document.getElementById("modalObjetivos").classList.contains("hidden")) cargarSemanaPlanes();
+        });
 
         // --- DIARIO DE CONSUMO & PAPELERAS ---
         async function cargarResumenDiario() {
             try {
                 const res = await fetch(`${API_BASE}/diario/resumen`);
                 const data = await res.json();
+
+                planHoy = data.plan || null;
+                document.getElementById("txt-plan-hoy").innerText = nombrePlan(planHoy);
+                document.getElementById("txt-plan-modal").innerText = nombrePlan(planHoy);
 
                 document.getElementById("txt-cal-tot").innerText = data.calorias_totales;
                 document.getElementById("txt-cal-rest").innerText = data.calorias_restantes;
@@ -1539,6 +1815,7 @@
             btn.disabled = false;
             alert("✅ Perfil y límites diarios actualizados con éxito.");
             cargarPerfil();
+            cargarPlanes();
             cargarResumenDiario();
         });
 
@@ -1808,11 +2085,20 @@
                 carbohidratos_objetivo: parseFloat(document.getElementById("obj-carb").value),
                 grasas_objetivo: parseFloat(document.getElementById("obj-gras").value)
             };
-            await fetch(`${API_BASE}/diario/objetivos`, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(metas)
-            });
+            // Las metas se guardan en el plan que se aplica hoy (entrenamiento, descanso...)
+            if (planHoy) {
+                await fetch(`${API_BASE}/planes/${planHoy.id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ nombre: planHoy.nombre, ...metas })
+                });
+            } else {
+                await fetch(`${API_BASE}/diario/objetivos`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(metas)
+                });
+            }
             toggleModalObjetivos();
             cargarResumenDiario();
         });

@@ -1,8 +1,9 @@
 from datetime import date
 from typing import Optional
-from app.models.daily import ObjetivosMacros, RegistroConsumo, ResumenDiario
+from app.models.daily import ObjetivosMacros, PlanAplicado, RegistroConsumo, ResumenDiario
 from app.db.session import SessionLocal
 from app.db.models import RegistroConsumoDB, PerfilDB
+from app.services import plan_service
 
 
 def _fecha_hoy() -> str:
@@ -28,6 +29,7 @@ def establecer_objetivos(objetivos: ObjetivosMacros, usuario_id: int) -> Objetiv
         pdb.proteinas_objetivo = objetivos.proteinas_objetivo
         pdb.carbohidratos_objetivo = objetivos.carbohidratos_objetivo
         pdb.grasas_objetivo = objetivos.grasas_objetivo
+        plan_service.sincronizar_principal(db, pdb)
         db.commit()
         return objetivos
     finally:
@@ -74,13 +76,14 @@ def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> Resu
     fecha_target = fecha or _fecha_hoy()
     db = SessionLocal()
     try:
-        pdb = obtener_o_crear_perfil_db(db, usuario_id)
-
+        obtener_o_crear_perfil_db(db, usuario_id)
+        # Las metas del día son las del plan que toca esa fecha (entrenamiento, descanso...)
+        plan = plan_service.plan_de_fecha(db, usuario_id, fecha_target, crear=True)
         objetivos = ObjetivosMacros(
-            calorias_objetivo=pdb.calorias_objetivo,
-            proteinas_objetivo=pdb.proteinas_objetivo,
-            carbohidratos_objetivo=pdb.carbohidratos_objetivo,
-            grasas_objetivo=pdb.grasas_objetivo
+            calorias_objetivo=plan.calorias_objetivo,
+            proteinas_objetivo=plan.proteinas_objetivo,
+            carbohidratos_objetivo=plan.carbohidratos_objetivo,
+            grasas_objetivo=plan.grasas_objetivo
         )
 
         registros_db = db.query(RegistroConsumoDB).filter(
@@ -104,6 +107,8 @@ def obtener_resumen_diario(usuario_id: int, fecha: Optional[str] = None) -> Resu
         gras_tot = sum(r.grasas for r in registros)
 
         return ResumenDiario(
+            fecha=fecha_target,
+            plan=PlanAplicado(id=plan.id, nombre=plan.nombre, es_principal=bool(plan.es_principal)),
             calorias_totales=round(cal_tot, 1),
             proteinas_totales=round(prot_tot, 1),
             carbohidratos_totales=round(carb_tot, 1),

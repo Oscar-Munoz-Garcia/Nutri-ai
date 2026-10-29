@@ -8,6 +8,7 @@ from app.models.metabolic import (
 from app.models.profile import PerfilUsuario
 from app.services.profile_service import calcular_mifflin_st_jeor
 from app.services.friends_service import ids_amigos
+from app.services import plan_service
 
 # Energía aproximada de 1 kg de tejido corporal (mezcla grasa/magro)
 KCAL_POR_KG = 7700.0
@@ -223,20 +224,22 @@ def obtener_tdee_dinamico(usuario_id: int, dias: int = 28) -> TDEEDinamico:
 
 # --- VERSUS / CUMPLIMIENTO SEMANAL ---
 
-def _cumplimiento_semana(db, usuario_id: int, lunes: date, hasta: date,
-                         meta_cal: float, meta_prot: float) -> List[DiaCumplimiento]:
-    """Días de lunes a `hasta`. El día de hoy solo cuenta si ya tiene comidas registradas."""
+def _cumplimiento_semana(db, usuario_id: int, lunes: date, hasta: date) -> List[DiaCumplimiento]:
+    """Días de lunes a `hasta`. El día de hoy solo cuenta si ya tiene comidas registradas.
+    Cada día se puntúa contra las metas del plan de nutrición que tocaba ese día."""
     hoy = date.today()
     fechas = [(lunes + timedelta(days=i)).isoformat() for i in range((hasta - lunes).days + 1)]
     ingestas = _ingestas_por_dia(db, usuario_id, fechas)
+    planes = plan_service.planes_por_fecha(db, usuario_id, fechas)
     dias = []
     for f in fechas:
         cal, prot = ingestas[f]
         if f == hoy.isoformat() and cal <= 0:
             continue
+        plan = planes[f]
         dias.append(DiaCumplimiento(
             fecha=f, calorias=round(cal), proteinas=round(prot, 1),
-            puntuacion=round(puntuar_dia(cal, prot, meta_cal, meta_prot) * 100, 1)
+            puntuacion=round(puntuar_dia(cal, prot, plan.calorias_objetivo, plan.proteinas_objetivo) * 100, 1)
         ))
     return dias
 
@@ -256,12 +259,8 @@ def obtener_versus(usuario_actual_id: int) -> Versus:
         participantes = []
         for usuario in db.query(UsuarioDB).filter(UsuarioDB.id.in_(ids)).order_by(UsuarioDB.id).all():
             perfil = _perfil_de(db, usuario.id)
-            meta_cal = perfil.calorias_objetivo if perfil else 2200.0
-            meta_prot = perfil.proteinas_objetivo if perfil else 160.0
-
-            dias = _cumplimiento_semana(db, usuario.id, lunes, hoy, meta_cal, meta_prot)
-            dias_ant = _cumplimiento_semana(db, usuario.id, lunes_anterior,
-                                            lunes - timedelta(days=1), meta_cal, meta_prot)
+            dias = _cumplimiento_semana(db, usuario.id, lunes, hoy)
+            dias_ant = _cumplimiento_semana(db, usuario.id, lunes_anterior, lunes - timedelta(days=1))
             es_yo = usuario.id == usuario_actual_id
             if not es_yo:
                 # Privacidad: del resto solo se comparte la puntuación, no lo que comen
